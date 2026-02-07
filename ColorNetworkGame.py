@@ -379,9 +379,8 @@ class Competitor(object):
     for node in self.network:
       node.act(self)
 
-  def active(self):
-    result = len(self.network) > 0
-    return result
+  def getNumActiveNodes(self):
+    return len(self.network)
 
   def getStatus(self):
     messages = []
@@ -465,7 +464,8 @@ class Competition(object):
     self.competitors[1].enemy = self.competitors[0]
 
   def run(self):
-    for i in range(20):
+    maxNumRounds = 20
+    for i in range(maxNumRounds):
       print("\nRound " + str(i) + ": ////////////////////")
       for competitor in self.competitors:
         print(competitor.getStatus())
@@ -476,11 +476,16 @@ class Competition(object):
         competitor.nodesAct()
       for competitor in self.competitors:
         competitor.removeBrokenNodes()
-      if not self.competitors[1].active():
-        return True # win
-      if not self.competitors[0].active():
-        return False # lose
-    return None # tie
+      for j in range(2):
+        if self.competitors[j].getNumActiveNodes() < 1:
+          print(self.competitors[1 - j].name + " wins because " + self.competitors[j].name + "'s network is empty")
+          return (j > 0)
+    for j in range(2):
+      if self.competitors[j].getNumActiveNodes() < self.competitors[1 - j].getNumActiveNodes():
+        print(self.competitors[1 - j].name + " wins because " + self.competitors[1 - j].name + "'s network is larger after " + str(maxNumRounds) + " rounds")
+        return (j > 0)
+    print("tie!")
+    return None
 
 def makePlayer():
   player = GamePlayer("Player")

@@ -7,13 +7,17 @@ class StoryNode(object):
   def getNext(self):
     return None
 
-class ChoiceMenu(StoryNode):
+class MenuStoryNode(StoryNode):
   def __init__(self, text):
     super().__init__()
     self.text = text
     self.choices = []
 
   def getNext(self):
+    index = self.chooseIndex()
+    return self.choices[index][1]
+
+  def chooseIndex(self):
     print(self.text)
     for i in range(len(self.choices)):
       option = self.choices[i][0]
@@ -31,13 +35,12 @@ class ChoiceMenu(StoryNode):
         print("Choose a number >= 0")
         continue
       if number >= len(self.choices):
-        print("Choose a number <= " + str(len(self.choices)))
+        print("Choose a number <= " + str(len(self.choices) - 1))
         continue
-      choice = self.choices[number]
-      return choice[1]
+      return number
 
-  def addChoice(self, text, newMenu):
-    self.choices.append((text, newMenu))
+  def addChoice(self, text, result):
+    self.choices.append((text, result))
 
 # a SimpleStoryNode just is an abstract class that just goes to the next node
 class SimpleStoryNode(StoryNode):
@@ -54,8 +57,8 @@ class SimpleStoryNode(StoryNode):
   def process(self):
     return
 
-# a MessageMenu shows a message and goes to the next node
-class MessageMenu(SimpleStoryNode):
+# a MessageStoryNode shows a message and goes to the next node
+class MessageStoryNode(SimpleStoryNode):
   def __init__(self, text):
     super().__init__()
     self.text = text
@@ -85,10 +88,83 @@ class CompetitionStoryNode(StoryNode):
     competition = Competition([self.player, self.opponent])
     result = competition.run()
     if result is None:
-      result = True # count ties as successes for now
+      print("Tie!")
+      return self.successNode # count ties as successes for now
     if result:
+      print("Success!")
       return self.successNode
+    print("Failure")
     return self.failureNode
+
+class ShopStoryNode(SimpleStoryNode):
+  def __init__(self, player):
+    super().__init__()
+    self.player = player
+    self.items = []
+    self.items.append([Wall(), 1])
+    self.items.append([Battery(), 1])
+    self.items.append([Laser(), 1])
+
+  def process(self):
+    while True:
+      print("")
+      menu = MenuStoryNode("Welcome to the shop! You have " + str(self.player.money) + " money")
+      menu.addChoice("Bye!", 0)
+      for i in range(len(self.items)):
+        item = self.items[i][0]
+        cost = self.items[i][1]
+        menu.addChoice(item.summarize() + ": cost = " + str(cost), i + 1)
+      choice = menu.getNext()
+      if choice == 0:
+        print("Bye!")
+        return # done
+      itemIndex = choice - 1
+      cost = self.items[itemIndex][1]
+      if cost > self.player.money:
+        print("Not enough money: " + str(player.money) + " < " + str(cost))
+        continue
+      item = self.items[itemIndex][0]
+      print("Enjoy your " + item.summarize() + "!")
+      self.player.addItem(item)
+      self.player.money -= cost
+      del self.items[itemIndex]
+
+class TestingStoryNode(CompetitionStoryNode):
+  def __init__(self, player):
+    super().__init__(player, makeEasyOpponent())
+    self.nextNode = None
+
+  def setNext(self, nextNode):
+    self.nextNode = nextNode
+
+  def getNext(self):
+    super().getNext()
+    return self.nextNode
+
+class CustomizationStoryNode(SimpleStoryNode):
+  def __init__(self, player):
+    super().__init__()
+    self.player = player
+
+  def process(self):
+    print("Customizing")
+    return
+
+class MarketStoryNode(MenuStoryNode):
+  def __init__(self, player):
+    super().__init__("Welcome to the market")
+    shop = ShopStoryNode(player)
+    shop.setNext(self)
+    tester = TestingStoryNode(player)
+    tester.setNext(self)
+    customizer = CustomizationStoryNode(player)
+    customizer.setNext(self)
+    self.addChoice("shop", shop)
+    self.addChoice("test", tester)
+    self.addChoice("customize", customizer)
+
+  def setNext(self, nextNode):
+    self.addChoice("Bye!", nextNode)
 
 # a StoryNodeRunner follows a path of StoryNode objects
 class StoryNodeRunner(object):
@@ -111,8 +187,14 @@ class CompetitorItem(object):
   def receiveDamage(self, amount):
     self.hitPoints -= amount
 
+  def declareInputs(self, linkTypes):
+    for linkType in linkTypes:
+      self.inputsByName[linkType] = None
+
   # tries to get power from the given link
   def tryAcquirePower(self, linkType, amount):
+    if linkType not in self.inputsByName.keys():
+      raise Exception("link type " + str(linkType) + " not declared in " + str(self) + ". All declared links: " + str(self.inputsByName))
     link = self.inputsByName.get(linkType)
     if link == None:
       return 0
@@ -126,7 +208,7 @@ class CompetitorItem(object):
     return
 
   def clone(self):
-    return
+    raise Exception("clone is not implemented in " + str(self))
 
   def summarize(self):
     return type(self).__name__
@@ -139,6 +221,7 @@ class Laser(CompetitorItem):
     self.damagePerPower = 1
     self.maxSignalPower = 1
     self.numPossibleTargets = 100
+    self.declareInputs(["power", "control"])
 
   def act(self, competitor):
     power = self.tryAcquirePower("power", self.maxAttackPower)
@@ -176,6 +259,18 @@ class Battery(CompetitorItem):
   def summarize(self):
     return "Battery:" + str(self.charge)
 
+# just has lots of hitpoints
+class Wall(CompetitorItem):
+  def __init__(self):
+    super().__init__()
+    self.hitPoints = 4
+
+  def summarize(self):
+    return "Wall:" + str(self.hitPoints)
+
+  def clone(self):
+    return Wall()
+
 # represents an entity that competes with other entities
 class Competitor(object):
   def __init__(self, name, network):
@@ -208,7 +303,7 @@ class Competitor(object):
     for node in remainingNodeList:
       for linkType, linkNode in node.inputsByName.copy().items():
         if linkNode not in remainingNodeSet:
-          del node.inputsByName[linkType]
+          node.inputsByName[linkType] = None
     self.network = remainingNodeList
 
   def applyEnemyDamage(self, amount, nodeIndex):
@@ -243,18 +338,22 @@ class CompetitorTemplate(object):
       template = self.itemTemplates[i]
       item = builtNodes[i]
       for linkType, otherTemplate in template.inputsByName.items():
-        otherIndex = templateIndices[otherTemplate]
-        otherItem = builtNodes[otherIndex]
-        item.addInput(linkType, otherItem)
+        if otherTemplate is not None:
+          otherIndex = templateIndices[otherTemplate]
+          otherItem = builtNodes[otherIndex]
+          item.addInput(linkType, otherItem)
     return Competitor(name, builtNodes)
 
 # represents the player
 class GamePlayer(object):
   def __init__(self, name):
     self.name = name
-    self.money = 0
+    self.money = 100
     self.items = []
     self.network = CompetitorTemplate()
+
+  def addItem(self, item):
+    self.items.append(item)
 
   def buildCompetitor(self):
     return self.network.build(self.name)
@@ -291,26 +390,33 @@ def makePlayer():
   battery1 = Battery()
   laser1 = Laser()
   laser1.addInput("power", battery1)
+  player.network.addItem(Wall())
   player.network.addItem(battery1)
   player.network.addItem(laser1)
   return player
 
-def makeOpponent():
-  player = GamePlayer("Opponent")
-  for i in range(4):
-    player.network.addItem(Battery())
+def makeEasyOpponent():
+  player = GamePlayer("Test Opponent")
+  battery1 = Battery()
+  laser1 = Laser()
+  laser1.addInput("power", battery1)
+  player.network.addItem(battery1)
+  player.network.addItem(laser1)
   return player
 
 def makeStory():
   gamePlayer = makePlayer()
-  welcome = MessageMenu("Welcome to ColorNetwork!")
+  welcome = MessageStoryNode("Welcome to ColorNetwork!")
 
-  opponent1 = makeOpponent()
+  shop = MarketStoryNode(gamePlayer)
+  welcome.setNext(shop)
+
+  opponent1 = makeEasyOpponent()
   competition1 = CompetitionStoryNode(gamePlayer, opponent1)
-  welcome.setNext(competition1)
+  shop.setNext(competition1)
  
-  successNode = MessageMenu("Success!")
-  failureNode = MessageMenu("Failure")
+  successNode = MessageStoryNode("You Win!")
+  failureNode = MessageStoryNode("Game Over")
   competition1.setSuccessNode(successNode)
   competition1.setFailureNode(failureNode)
 

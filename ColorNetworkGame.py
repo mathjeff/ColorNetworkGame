@@ -7,18 +7,18 @@ class StoryNode(object):
   def getNext(self):
     return None
 
-class MenuStoryNode(StoryNode):
-  def __init__(self, text):
-    super().__init__()
-    self.text = text
+class Menu(object):
+  def __init__(self):
     self.choices = []
 
-  def getNext(self):
+  def addChoice(self, text, result):
+    self.choices.append((text, result))
+
+  def chooseValue(self):
     index = self.chooseIndex()
     return self.choices[index][1]
 
   def chooseIndex(self):
-    print(self.text)
     for i in range(len(self.choices)):
       option = self.choices[i][0]
       print(str(i) + ": " + option)
@@ -39,8 +39,18 @@ class MenuStoryNode(StoryNode):
         continue
       return number
 
+class MenuStoryNode(StoryNode):
+  def __init__(self, text):
+    super().__init__()
+    self.text = text
+    self.menu = Menu()
+
+  def getNext(self):
+    print(self.text)
+    return self.menu.chooseValue()
+
   def addChoice(self, text, result):
-    self.choices.append((text, result))
+    self.menu.addChoice(text, result)
 
 # a SimpleStoryNode just is an abstract class that just goes to the next node
 class SimpleStoryNode(StoryNode):
@@ -87,13 +97,14 @@ class CompetitionStoryNode(StoryNode):
     print("You enter a competition with " + str(self.opponent.name))
     competition = Competition([self.player, self.opponent])
     result = competition.run()
+    print("")
     if result is None:
-      print("Tie!")
+      print("Tie!\n")
       return self.successNode # count ties as successes for now
     if result:
-      print("Success!")
+      print("Success! You defeated " + str(self.opponent.name) + "\n")
       return self.successNode
-    print("Failure")
+    print("Failure\n")
     return self.failureNode
 
 class ShopStoryNode(SimpleStoryNode):
@@ -108,17 +119,18 @@ class ShopStoryNode(SimpleStoryNode):
   def process(self):
     while True:
       print("")
-      menu = MenuStoryNode("Welcome to the shop! You have " + str(self.player.money) + " money")
-      menu.addChoice("Bye!", 0)
+      print("Welcome to the shop! You have " + str(self.player.money) + " money")
+      menu = Menu()
+      menu.addChoice("Bye!", -1)
       for i in range(len(self.items)):
         item = self.items[i][0]
         cost = self.items[i][1]
-        menu.addChoice(item.summarize() + ": cost = " + str(cost), i + 1)
-      choice = menu.getNext()
-      if choice == 0:
+        menu.addChoice(item.summarize() + ": cost = " + str(cost), i)
+      choice = menu.chooseValue()
+      if choice == -1:
         print("Bye!")
         return # done
-      itemIndex = choice - 1
+      itemIndex = choice
       cost = self.items[itemIndex][1]
       if cost > self.player.money:
         print("Not enough money: " + str(player.money) + " < " + str(cost))
@@ -146,9 +158,60 @@ class CustomizationStoryNode(SimpleStoryNode):
     super().__init__()
     self.player = player
 
+  def showStatus(self):
+    print(str(len(self.player.items)) + " unused items")
+    for item in self.player.items:
+      print("  " + item.summarize())
+    print(str(len(self.player.network.itemTemplates)) + " items in network")
+    for item in self.player.network.itemTemplates:
+      print("  " + item.describeLinks())
+    print("")
+
   def process(self):
+    print("")
     print("Customizing")
-    return
+    while True:
+      self.showStatus()
+      menu = Menu()
+      if len(self.player.items) > 0:
+        menu.addChoice("Add all items to network", 0)
+      if len(self.player.network.itemTemplates) > 0:
+        menu.addChoice("Edit item", 1)
+      menu.addChoice("Done", 2)
+      choice = menu.chooseValue()
+      print("")
+      if choice == 0:
+        self.player.network.itemTemplates += self.player.items
+        self.player.items = []
+        continue
+      if choice == 1:
+        self.chooseAndEditItem()
+        continue
+      return
+
+  def chooseAndEditItem(self):
+    self.editItem(self.chooseNetworkItem("Edit which item?"))
+
+  def chooseNetworkItem(self, description):
+    print(description)
+    menu = Menu()
+    for item in self.player.network.itemTemplates:
+      menu.addChoice(item.describeLinks(), item)
+    return menu.chooseValue()
+
+  def editItem(self, item):
+    menu = Menu()
+    menu.addChoice("Remove", "Remove")
+    for linkName in item.inputsByName.keys():
+      menu.addChoice("Set input " + linkName, linkName)
+    choice = menu.chooseValue()
+    if choice == "Remove":
+      self.player.network.itemTemplates.remove(item)
+      self.player.items.append(item)
+      return
+    linkName = choice
+    dependency = self.chooseNetworkItem("Choose " + linkName + " for " + item.summarize())
+    item.inputsByName[linkName] = dependency
 
 class MarketStoryNode(MenuStoryNode):
   def __init__(self, player):
@@ -212,6 +275,15 @@ class CompetitorItem(object):
 
   def summarize(self):
     return type(self).__name__
+
+  def describeLinks(self):
+    messages = [self.summarize()]
+    for name, value in self.inputsByName.items():
+      if value is not None:
+        messages.append(name + ": " + value.summarize())
+      else:
+        messages.append(name + ": None")
+    return ", ".join(messages)
 
 # attacks based on power and signal
 class Laser(CompetitorItem):
@@ -375,6 +447,7 @@ class Competition(object):
         print(competitor.getStatus())
         print("")
       input("(Press Enter) --------------------")
+      print("")
       for competitor in self.competitors:
         competitor.nodesAct()
       for competitor in self.competitors:
@@ -390,9 +463,9 @@ def makePlayer():
   battery1 = Battery()
   laser1 = Laser()
   laser1.addInput("power", battery1)
-  player.network.addItem(Wall())
-  player.network.addItem(battery1)
-  player.network.addItem(laser1)
+  #player.network.addItem(Wall())
+  #player.network.addItem(battery1)
+  #player.network.addItem(laser1)
   return player
 
 def makeEasyOpponent():

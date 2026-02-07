@@ -115,6 +115,7 @@ class ShopStoryNode(SimpleStoryNode):
     self.items.append([Wall(), 1])
     self.items.append([Battery(), 1])
     self.items.append([Laser(), 1])
+    self.items.append([Resistor(), 1])
 
   def process(self):
     while True:
@@ -343,6 +344,29 @@ class Wall(CompetitorItem):
   def clone(self):
     return Wall()
 
+# limits power flow
+class Resistor(CompetitorItem):
+  def __init__(self):
+    super().__init__()
+    self.dischargeRate = 0.01
+    self.readyToDischarge = 0
+    self.declareInputs(["input"])
+
+  def act(self, competitor):
+    requestedAmount = self.dischargeRate - self.readyToDischarge
+    receivedAmount = self.tryAcquirePower("input", requestedAmount)
+    self.readyToDischarge += receivedAmount
+
+  def tryGetPower(self, requested):
+    if requested < 0:
+      return
+    amount = min(requested, self.readyToDischarge)
+    self.readyToDischarge -= amount
+    return amount
+
+  def clone(self):
+    return Resistor()
+
 # represents an entity that competes with other entities
 class Competitor(object):
   def __init__(self, name, network):
@@ -473,6 +497,7 @@ def makeEasyOpponent():
   battery1 = Battery()
   laser1 = Laser()
   laser1.addInput("power", battery1)
+  player.network.addItem(Wall())
   player.network.addItem(battery1)
   player.network.addItem(laser1)
   return player

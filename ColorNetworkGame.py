@@ -116,6 +116,7 @@ class ShopStoryNode(SimpleStoryNode):
     self.items.append([Battery(), 1])
     self.items.append([Laser(), 1])
     self.items.append([Resistor(), 1])
+    self.items.append([Cutter(), 1])
 
   def process(self):
     while True:
@@ -307,6 +308,29 @@ class Laser(CompetitorItem):
   def clone(self):
     return Laser()
 
+# disconnects nodes
+class Cutter(CompetitorItem):
+  def __init__(self):
+    super().__init__()
+    self.requiredPower = 1
+    self.maxSignalPower = 1
+    self.numPossibleTargets = 100
+    self.declareInputs(["power", "control"])
+
+  def act(self, competitor):
+    power = self.tryAcquirePower("power", self.requiredPower)
+    signal = self.tryAcquirePower("control", self.maxSignalPower)
+    targetIndex = int(self.numPossibleTargets * signal / self.maxSignalPower)
+    if power >= self.requiredPower:
+      print("cutter cutting at position " + str(targetIndex))
+      competitor.disconnectEnemy(targetIndex)
+    else:
+      if power > 0:
+        print("cutter insufficient power: " + str(power) + " < " + str(self.requiredPower))
+
+  def clone(self):
+    return Cutter()
+
 # holds power and can provide it over time
 class Battery(CompetitorItem):
   def __init__(self):
@@ -412,6 +436,18 @@ class Competitor(object):
     node = self.network[nodeIndex]
     node.receiveDamage(amount)
 
+  def disconnectEnemy(self, nodeIndex):
+    self.enemy.disconnect(nodeIndex)
+
+  def disconnect(self, nodeIndex):
+    if nodeIndex < 0:
+      return # miss
+    if nodeIndex >= len(self.network):
+      return # miss
+    node = self.network[nodeIndex]
+    for linkType in node.inputsByName.keys():
+      node.inputsByName[linkType] = None
+
 # represents a template for an entity that competes with other entities
 class CompetitorTemplate(object):
   def __init__(self):
@@ -466,7 +502,7 @@ class Competition(object):
   def run(self):
     maxNumRounds = 20
     for i in range(maxNumRounds):
-      print("\nRound " + str(i) + ": ////////////////////")
+      print("\nRound " + str(i) + "/" + str(maxNumRounds) + ": ////////////////////")
       for competitor in self.competitors:
         print(competitor.getStatus())
         print("")
@@ -503,8 +539,8 @@ def makeEasyOpponent():
   laser1 = Laser()
   laser1.addInput("power", battery1)
   player.network.addItem(Wall())
-  player.network.addItem(battery1)
   player.network.addItem(laser1)
+  player.network.addItem(battery1)
   return player
 
 def makeStory():

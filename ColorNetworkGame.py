@@ -115,8 +115,9 @@ class ShopStoryNode(SimpleStoryNode):
     self.items.append([Wall(), 1])
     self.items.append([Battery(), 1])
     self.items.append([Laser(), 1])
-    self.items.append([Resistor(), 1])
     self.items.append([Cutter(), 1])
+    self.items.append([Resistor(), 1])
+    self.items.append([Adder(), 1])
 
   def process(self):
     while True:
@@ -374,11 +375,11 @@ class Resistor(CompetitorItem):
     super().__init__()
     self.dischargeRate = 0.01
     self.readyToDischarge = 0
-    self.declareInputs(["input"])
+    self.declareInputs(["power"])
 
   def act(self, competitor):
     requestedAmount = self.dischargeRate - self.readyToDischarge
-    receivedAmount = self.tryAcquirePower("input", requestedAmount)
+    receivedAmount = self.tryAcquirePower("power", requestedAmount)
     self.readyToDischarge += receivedAmount
 
   def tryGetPower(self, requested):
@@ -390,6 +391,37 @@ class Resistor(CompetitorItem):
 
   def clone(self):
     return Resistor()
+
+  def summarize(self):
+    return super().summarize() + "<" + str(self.dischargeRate)
+
+# adds a constant to power flow
+class Adder(CompetitorItem):
+  def __init__(self):
+    super().__init__()
+    self.addition = 0.01
+    self.maxInput = 1
+    self.readyToDischarge = 0
+    self.declareInputs(["power", "signal"])
+
+  def act(self, competitor):
+    signal = self.tryAcquirePower("signal", self.maxInput)
+    power = self.tryAcquirePower("power", self.addition)
+    self.readyToDischarge = power + signal
+    print(self.summarize() + " signal " + str(signal) + " power " + str(power) + " output " + str(self.readyToDischarge))
+
+  def tryGetPower(self, requested):
+    if requested < 0:
+      return
+    amount = min(requested, self.readyToDischarge)
+    self.readyToDischarge -= amount
+    return amount
+
+  def clone(self):
+    return Adder()
+
+  def summarize(self):
+    return super().summarize() + "+" + str(self.addition)
 
 # represents an entity that competes with other entities
 class Competitor(object):

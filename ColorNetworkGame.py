@@ -182,23 +182,20 @@ class CustomizationStoryNode(SimpleStoryNode):
       self.showStatus()
       menu = Menu()
       if len(self.player.items) > 0:
-        menu.addChoice("Add all items to network", 0)
-      if len(self.player.network.itemTemplates) > 0:
-        menu.addChoice("Edit item", 1)
-      menu.addChoice("Done", 2)
+        menu.addChoice("Add all items to network", -1)
+      menu.addChoice("Done", -2)
+      for i in range(len(self.player.network.itemTemplates)):
+        item = self.player.network.itemTemplates[i]
+        menu.addChoice("Edit " + item.describeLinks(), i)
       choice = menu.chooseValue()
       print("")
-      if choice == 0:
+      if choice == -1:
         self.player.network.itemTemplates += self.player.items
         self.player.items = []
         continue
-      if choice == 1:
-        self.chooseAndEditItem()
-        continue
-      return
-
-  def chooseAndEditItem(self):
-    self.editItem(self.chooseNetworkItem("Edit which item?"))
+      if choice == -2:
+        return
+      self.editItem(self.player.network.itemTemplates[choice])
 
   def chooseNetworkItem(self, description):
     print(description)

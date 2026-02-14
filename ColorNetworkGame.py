@@ -26,6 +26,8 @@ class Menu(object):
     while True:
       choiceText = input("")
       number = 0
+      if len(self.choices) == 1:
+        return 0 # there's only one choice so we return it
       try:
         number = int(choiceText)
       except Exception as e:

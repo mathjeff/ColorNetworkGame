@@ -114,11 +114,13 @@ class ShopStoryNode(SimpleStoryNode):
     self.items = []
     self.items.append([Wall(), 1])
     self.items.append([Battery(), 1])
+    self.items.append([Battery(), 1])
     self.items.append([Laser(), 1])
     self.items.append([Cutter(), 1])
     self.items.append([Resistor(), 1])
     self.items.append([Adder(), 1])
     self.items.append([Splitter(), 1])
+    self.items.append([Joiner(), 1])
 
   def process(self):
     while True:
@@ -293,15 +295,18 @@ class CompetitorItem(object):
 class Laser(CompetitorItem):
   def __init__(self):
     super().__init__()
-    self.maxAttackPower = 1
-    self.damagePerPower = 1
+    self.requiredPower = 1
+    self.damage = 1
     self.maxSignalPower = 1
     self.numPossibleTargets = 100
     self.declareInputs(["power", "control"])
 
   def act(self, competitor):
-    power = self.tryAcquirePower("power", self.maxAttackPower)
-    damage = power * self.damagePerPower
+    power = self.tryAcquirePower("power", self.requiredPower)
+    if power >= self.requiredPower:
+      damage = self.damage
+    else:
+      damage = 0
     signal = self.tryAcquirePower("control", self.maxSignalPower)
     targetIndex = int(self.numPossibleTargets * signal / self.maxSignalPower)
     print("laser applying damage " + str(damage) + " at position " + str(targetIndex))
@@ -438,7 +443,7 @@ class Splitter(CompetitorItem):
     self.signal = self.tryAcquirePower("signal", self.maxInput)
 
   def tryGetPower(self, requested):
-    if requested < 0:
+    if requested <= 0:
       return 0
     if self.numActiveCalls > 0:
       return 0 # disallow recursion
@@ -449,6 +454,31 @@ class Splitter(CompetitorItem):
 
   def clone(self):
     return Splitter()
+
+# a joiner takes power from two inputs
+class Joiner(CompetitorItem):
+  def __init__(self):
+    super().__init__()
+    self.declareInputs(["input1", "input2"])
+    self.numActiveCalls = 0
+
+  def act(self, competitor):
+    self.numActiveCalls = 0
+
+  def tryGetPower(self, requested):
+    if requested <= 0:
+      return 0
+    if self.numActiveCalls > 0:
+      return 0 # disallow recursion
+    self.numActiveCalls += 1
+    power = 0
+    power += self.tryAcquirePower("input1", requested - power)
+    power += self.tryAcquirePower("input2", requested - power)
+    self.numActiveCalls -= 1
+    return power
+
+  def clone(self):
+    return Joiner()
 
 # represents an entity that competes with other entities
 class Competitor(object):

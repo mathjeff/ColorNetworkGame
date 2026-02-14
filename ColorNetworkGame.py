@@ -205,18 +205,27 @@ class CustomizationStoryNode(SimpleStoryNode):
       menu.addChoice(item.describeLinks(), item)
     return menu.chooseValue()
 
+  def chooseNetworkItemOutput(self, description):
+    menu = Menu()
+    menu.addChoice("None", None)
+    for item in self.player.network.itemTemplates:
+      for outputName in item.outputNames:
+        output = Output(item, outputName)
+        menu.addChoice(output.summarize(), output)
+    return menu.chooseValue()
+
   def editItem(self, item):
     menu = Menu()
     menu.addChoice("Remove", "Remove")
     for linkName in item.inputsByName.keys():
-      menu.addChoice("Set input " + linkName, linkName)
+      menu.addChoice("Set input " + linkName + " for " + item.summarize(), linkName)
     choice = menu.chooseValue()
     if choice == "Remove":
       self.player.network.itemTemplates.remove(item)
       self.player.items.append(item)
       return
     linkName = choice
-    dependency = self.chooseNetworkItem("Choose " + linkName + " for " + item.summarize())
+    dependency = self.chooseNetworkItemOutput("Choose " + linkName + " for " + item.summarize())
     item.inputsByName[linkName] = dependency
 
 class MarketStoryNode(MenuStoryNode):
@@ -249,10 +258,13 @@ class CompetitorItem(object):
   def __init__(self):
     self.hitPoints = 1
     self.inputsByName = {}
+    self.outputNames = []
     self.acquiringPower = False
 
-  def addInput(self, linkType, otherItem):
-    self.inputsByName[linkType] = otherItem
+  def addInput(self, linkType, otherItem, outputName = None):
+    if outputName not in otherItem.outputNames:
+      raise Exception("output '" + outputName + "' not declared in " + str(otherItem))
+    self.inputsByName[linkType] = Output(otherItem, outputName)
 
   def receiveDamage(self, amount):
     self.hitPoints -= amount
@@ -261,8 +273,16 @@ class CompetitorItem(object):
     for linkType in linkTypes:
       self.inputsByName[linkType] = None
 
+  def declareOutputs(self, linkTypes):
+    self.outputNames = linkTypes
+
+  def declareOutput(self):
+    self.declareOutputs([None])
+
   # tries to get power from the given link
   def tryAcquirePower(self, linkType, amount):
+    if amount < 0:
+      return 0 # no power requested
     if self.acquiringPower:
       return 0 # we don't have any power for recursive calls
     if linkType not in self.inputsByName.keys():
@@ -271,12 +291,12 @@ class CompetitorItem(object):
     result = 0
     self.acquiringPower = True
     if link is not None:
-      result = link.tryGetPower(amount)
+      result = link.item.tryGetPower(amount, link.outputName)
     self.acquiringPower = False
     return result
 
   # tries to get power from the current node
-  def tryGetPower(self, amount):
+  def tryGetPower(self, amount, outputName):
     return 0
 
   def act(self, player):
@@ -296,6 +316,18 @@ class CompetitorItem(object):
       else:
         messages.append(name + ": None")
     return ", ".join(messages)
+
+# represents an output of an item
+class Output(object):
+  def __init__(self, item, outputName):
+    self.item = item
+    self.outputName = outputName
+
+  def summarize(self):
+    result = self.item.summarize()
+    if self.outputName is not None:
+      result = result + " " + self.outputName
+    return result
 
 # attacks based on power and signal
 class Laser(CompetitorItem):
@@ -350,12 +382,13 @@ class Battery(CompetitorItem):
     super().__init__()
     self.charge = 100
     self.dischargeRate = 3
+    self.declareOutput()
     self.readyToDischarge = self.dischargeRate
 
   def act(self, competitor):
     self.readyToDischarge = min(self.charge, self.dischargeRate)
 
-  def tryGetPower(self, requested):
+  def tryGetPower(self, requested, outputName):
     if requested < 0:
       return
     amount = min(requested, self.readyToDischarge)
@@ -387,6 +420,7 @@ class Resistor(CompetitorItem):
     super().__init__()
     self.dischargeRate = 0.01
     self.readyToDischarge = 0
+    self.declareOutput()
     self.declareInputs(["power"])
 
   def act(self, competitor):
@@ -394,7 +428,7 @@ class Resistor(CompetitorItem):
     receivedAmount = self.tryAcquirePower("power", requestedAmount)
     self.readyToDischarge += receivedAmount
 
-  def tryGetPower(self, requested):
+  def tryGetPower(self, requested, outputName):
     if requested < 0:
       return 0
     amount = min(requested, self.readyToDischarge)
@@ -414,6 +448,7 @@ class Adder(CompetitorItem):
     self.addition = 0.01
     self.maxInput = 1
     self.readyToDischarge = 0
+    self.declareOutput()
     self.declareInputs(["power", "signal"])
 
   def act(self, competitor):
@@ -422,7 +457,7 @@ class Adder(CompetitorItem):
     self.readyToDischarge = power + signal
     print(self.summarize() + " signal " + str(signal) + " power " + str(power) + " output " + str(self.readyToDischarge))
 
-  def tryGetPower(self, requested):
+  def tryGetPower(self, requested, outputName):
     if requested < 0:
       return 0
     amount = min(requested, self.readyToDischarge)
@@ -441,12 +476,13 @@ class Splitter(CompetitorItem):
     super().__init__()
     self.maxInput = 1
     self.signal = 0
+    self.declareOutput()
     self.declareInputs(["power", "signal"])
 
   def act(self, competitor):
     self.signal = self.tryAcquirePower("signal", self.maxInput)
 
-  def tryGetPower(self, requested):
+  def tryGetPower(self, requested, outputName):
     if requested <= 0:
       return 0
     power = self.tryAcquirePower("power", min(self.signal, requested))
@@ -459,9 +495,10 @@ class Splitter(CompetitorItem):
 class Joiner(CompetitorItem):
   def __init__(self):
     super().__init__()
+    self.declareOutput()
     self.declareInputs(["input1", "input2"])
 
-  def tryGetPower(self, requested):
+  def tryGetPower(self, requested, outputName):
     if requested <= 0:
       return 0
     power = 0
@@ -501,9 +538,10 @@ class Competitor(object):
     remainingNodeList = [node for node in self.network if node.hitPoints > 0]
     remainingNodeSet = set(remainingNodeList)
     for node in remainingNodeList:
-      for linkType, linkNode in node.inputsByName.copy().items():
-        if linkNode not in remainingNodeSet:
-          node.inputsByName[linkType] = None
+      for linkType, link in node.inputsByName.copy().items():
+        if link is not None:
+          if link.item not in remainingNodeSet:
+            node.inputsByName[linkType] = None
     self.network = remainingNodeList
 
   def applyEnemyDamage(self, amount, nodeIndex):
@@ -549,11 +587,12 @@ class CompetitorTemplate(object):
     for i in range(len(self.itemTemplates)):
       template = self.itemTemplates[i]
       item = builtNodes[i]
-      for linkType, otherTemplate in template.inputsByName.items():
-        if otherTemplate is not None:
-          otherIndex = templateIndices[otherTemplate]
+      for linkType, linkInput in template.inputsByName.items():
+        if linkInput is not None:
+          linkItem = linkInput.item
+          otherIndex = templateIndices[linkItem]
           otherItem = builtNodes[otherIndex]
-          item.addInput(linkType, otherItem)
+          item.addInput(linkType, otherItem, linkInput.outputName)
     return Competitor(name, builtNodes)
 
 # represents the player

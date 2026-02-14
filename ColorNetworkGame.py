@@ -123,6 +123,8 @@ class ShopStoryNode(SimpleStoryNode):
     self.items.append([Adder(), 1])
     self.items.append([Splitter(), 1])
     self.items.append([Joiner(), 1])
+    self.items.append([If(), 1])
+    self.items.append([Capacitor(), 1])
 
   def process(self):
     while True:
@@ -294,6 +296,8 @@ class CompetitorItem(object):
     self.acquiringPower = True
     if link is not None:
       result = link.item.tryGetPower(amount, link.outputName)
+    if result > 0:
+      print(str(self.summarize()) + " got " + str(result) + " power from " + link.item.summarize())
     self.acquiringPower = False
     return result
 
@@ -335,7 +339,7 @@ class Output(object):
 class Laser(CompetitorItem):
   def __init__(self):
     super().__init__()
-    self.requiredPower = 1
+    self.requiredPower = 4
     self.damage = 1
     self.maxSignalPower = 1
     self.numPossibleTargets = 100
@@ -420,7 +424,7 @@ class Wall(CompetitorItem):
 class Resistor(CompetitorItem):
   def __init__(self):
     super().__init__()
-    self.dischargeRate = 0.01
+    self.dischargeRate = 1
     self.readyToDischarge = 0
     self.declareOutput()
     self.declareInputs(["power"])
@@ -510,6 +514,52 @@ class Joiner(CompetitorItem):
 
   def clone(self):
     return Joiner()
+
+# an If allows power through if the signal is above a threshold
+class If(CompetitorItem):
+  def __init__(self):
+    super().__init__()
+    self.threshold = 0.05
+    self.declareOutput()
+    self.on = False
+    self.declareInputs(["power", "signal"])
+
+  def act(self, competitor):
+    self.on = self.tryAcquirePower("signal", self.threshold) >= self.threshold
+
+  def tryGetPower(self, requested, outputName):
+    if self.on:
+      return self.tryAcquirePower("power", requested)
+    return 0
+
+  def clone(self):
+    return If()
+
+# a Capacitor stores energy
+class Capacitor(CompetitorItem):
+  def __init__(self):
+    super().__init__()
+    self.energy = 0
+    self.maxEnergy = 10
+    self.signalOutputFraction = 0.01
+    self.declareOutputs(["power", "signal"])
+    self.declareInputs(["power"])
+
+  def act(self, competitor):
+    self.energy += self.tryAcquirePower("power", self.maxEnergy - self.energy)
+
+  def tryGetPower(self, requested, outputName):
+    if outputName == "signal":
+      requested = self.energy * self.signalOutputFraction
+    amount = min(requested, self.energy)
+    self.energy -= amount
+    return amount
+
+  def clone(self):
+    return Capacitor()
+
+  def summarize(self):
+    return super().summarize() + " " + str(self.energy) + "/" + str(self.maxEnergy)
 
 # represents an entity that competes with other entities
 class Competitor(object):

@@ -218,10 +218,13 @@ class CustomizationStoryNode(SimpleStoryNode):
     menu.addChoice("Remove", "Remove")
     for linkName in item.inputsByName.keys():
       menu.addChoice("Set input " + linkName + " for " + item.summarize(), linkName)
+    menu.addChoice("Cancel", "Cancel")
     choice = menu.chooseValue()
     if choice == "Remove":
       self.player.network.itemTemplates.remove(item)
       self.player.items.append(item)
+      return
+    if choice == "Cancel":
       return
     linkName = choice
     dependency = self.chooseNetworkItemOutput("Choose " + linkName + " for " + item.summarize())

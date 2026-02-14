@@ -249,6 +249,7 @@ class CompetitorItem(object):
   def __init__(self):
     self.hitPoints = 1
     self.inputsByName = {}
+    self.acquiringPower = False
 
   def addInput(self, linkType, otherItem):
     self.inputsByName[linkType] = otherItem
@@ -262,12 +263,17 @@ class CompetitorItem(object):
 
   # tries to get power from the given link
   def tryAcquirePower(self, linkType, amount):
+    if self.acquiringPower:
+      return 0 # we don't have any power for recursive calls
     if linkType not in self.inputsByName.keys():
       raise Exception("link type " + str(linkType) + " not declared in " + str(self) + ". All declared links: " + str(self.inputsByName))
     link = self.inputsByName.get(linkType)
-    if link == None:
-      return 0
-    return link.tryGetPower(amount)
+    result = 0
+    self.acquiringPower = True
+    if link is not None:
+      result = link.tryGetPower(amount)
+    self.acquiringPower = False
+    return result
 
   # tries to get power from the current node
   def tryGetPower(self, amount):
@@ -434,22 +440,16 @@ class Splitter(CompetitorItem):
   def __init__(self):
     super().__init__()
     self.maxInput = 1
-    self.numActiveCalls = 0
     self.signal = 0
     self.declareInputs(["power", "signal"])
 
   def act(self, competitor):
-    self.numActiveCalls = 0
     self.signal = self.tryAcquirePower("signal", self.maxInput)
 
   def tryGetPower(self, requested):
     if requested <= 0:
       return 0
-    if self.numActiveCalls > 0:
-      return 0 # disallow recursion
-    self.numActiveCalls += 1
     power = self.tryAcquirePower("power", min(self.signal, requested))
-    self.numActiveCalls -= 1
     return power
 
   def clone(self):
@@ -460,21 +460,13 @@ class Joiner(CompetitorItem):
   def __init__(self):
     super().__init__()
     self.declareInputs(["input1", "input2"])
-    self.numActiveCalls = 0
-
-  def act(self, competitor):
-    self.numActiveCalls = 0
 
   def tryGetPower(self, requested):
     if requested <= 0:
       return 0
-    if self.numActiveCalls > 0:
-      return 0 # disallow recursion
-    self.numActiveCalls += 1
     power = 0
     power += self.tryAcquirePower("input1", requested - power)
     power += self.tryAcquirePower("input2", requested - power)
-    self.numActiveCalls -= 1
     return power
 
   def clone(self):

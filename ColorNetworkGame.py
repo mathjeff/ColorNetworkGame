@@ -118,6 +118,7 @@ class ShopStoryNode(SimpleStoryNode):
     self.items.append([Cutter(), 1])
     self.items.append([Resistor(), 1])
     self.items.append([Adder(), 1])
+    self.items.append([Splitter(), 1])
 
   def process(self):
     while True:
@@ -384,7 +385,7 @@ class Resistor(CompetitorItem):
 
   def tryGetPower(self, requested):
     if requested < 0:
-      return
+      return 0
     amount = min(requested, self.readyToDischarge)
     self.readyToDischarge -= amount
     return amount
@@ -412,7 +413,7 @@ class Adder(CompetitorItem):
 
   def tryGetPower(self, requested):
     if requested < 0:
-      return
+      return 0
     amount = min(requested, self.readyToDischarge)
     self.readyToDischarge -= amount
     return amount
@@ -422,6 +423,32 @@ class Adder(CompetitorItem):
 
   def summarize(self):
     return super().summarize() + "+" + str(self.addition)
+
+# reads an input and gives up to that much power each time it is requested
+class Splitter(CompetitorItem):
+  def __init__(self):
+    super().__init__()
+    self.maxInput = 1
+    self.numActiveCalls = 0
+    self.signal = 0
+    self.declareInputs(["power", "signal"])
+
+  def act(self, competitor):
+    self.numActiveCalls = 0
+    self.signal = self.tryAcquirePower("signal", self.maxInput)
+
+  def tryGetPower(self, requested):
+    if requested < 0:
+      return 0
+    if self.numActiveCalls > 0:
+      return 0 # disallow recursion
+    self.numActiveCalls += 1
+    power = self.tryAcquirePower("power", min(self.signal, requested))
+    self.numActiveCalls -= 1
+    return power
+
+  def clone(self):
+    return Splitter()
 
 # represents an entity that competes with other entities
 class Competitor(object):

@@ -227,6 +227,7 @@ class CustomizationStoryNode(SimpleStoryNode):
       menu.addChoice("Move", "Move")
       for linkName in item.inputsByName.keys():
         menu.addChoice("Set input " + linkName, linkName)
+      menu.addChoice("Help", "Help")
       menu.addChoice("Done", "Done")
       choice = menu.chooseValue()
       if choice == "Move":
@@ -237,6 +238,10 @@ class CustomizationStoryNode(SimpleStoryNode):
         # if the item is no longer in the network, stop editing it
         return
       if choice == "Done":
+        return
+      if choice == "Help":
+        print(item.formatHelp())
+        input("(press Enter)")
         return
       linkName = choice
       dependency = self.chooseNetworkItemOutput("Choose " + linkName + " for " + item.summarize())
@@ -339,6 +344,21 @@ class Item(object):
 
   def summarize(self):
     return type(self).__name__
+
+  def formatHelp(self):
+    messages = [self.summarize() + ":\n"]
+    messages.append(" has " + str(self.hitPoints) + " hit points\n")
+    if len(self.inputsByName) > 0:
+      messages.append(" has " + str(len(self.inputsByName)) + " ports for receiving power:\n")
+      for key, value in self.inputsByName.items():
+        messages.append("  " + str(key) + " (connected to " + str(value) + ")\n")
+    if len(self.outputNames) > 0:
+      messages.append(" has " + str(len(self.outputNames)) + " outputs")
+      if len(self.outputNames) > 1:
+        messages.append(": ")
+        messages.append(str(self.outputNames))
+      messages.append("\n")
+    return "".join(messages)
 
   def describeLinks(self):
     messages = [self.summarize()]

@@ -200,6 +200,7 @@ class ShopStoryNode(SimpleStoryNode):
       print("Welcome to the shop! You have " + str(self.player.money) + " money")
       menu = Menu()
       menu.addChoice("Bye!", -1)
+      menu.addChoice("What is this?", -2)
       for i in range(len(self.items)):
         item = self.items[i][0]
         cost = self.items[i][1]
@@ -208,6 +209,9 @@ class ShopStoryNode(SimpleStoryNode):
       if choice == -1:
         print("Bye!")
         return # done
+      if choice == -2:
+        self.explainItem()
+        continue
       itemIndex = choice
       cost = self.items[itemIndex][1]
       if cost > self.player.money:
@@ -218,6 +222,15 @@ class ShopStoryNode(SimpleStoryNode):
       self.player.addItem(item)
       self.player.money -= cost
       del self.items[itemIndex]
+
+  def explainItem(self):
+    print("What is what?")
+    menu = Menu()
+    for i in range(len(self.items)):
+      item = self.items[i][0]
+      menu.addChoice(item.summarize(), item)
+    choice = menu.chooseValue()
+    print(choice.formatHelp())
 
 class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player):

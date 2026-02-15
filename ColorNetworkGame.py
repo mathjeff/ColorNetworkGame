@@ -193,6 +193,7 @@ class ShopStoryNode(SimpleStoryNode):
     self.items.append([If(), 1])
     self.items.append([Capacitor(), 1])
     self.items.append([Shield(), 1])
+    self.items.append([PowerUsageSensor(), 1])
 
   def process(self):
     while True:
@@ -200,7 +201,8 @@ class ShopStoryNode(SimpleStoryNode):
       print("Welcome to the shop! You have " + str(self.player.money) + " money")
       menu = Menu()
       menu.addChoice("Bye!", -1)
-      menu.addChoice("What is this?", -2)
+      if len(self.items) > 0:
+        menu.addChoice("What is this?", -2)
       for i in range(len(self.items)):
         item = self.items[i][0]
         cost = self.items[i][1]
@@ -394,6 +396,7 @@ class Item(object):
     self.hitPoints = 1
     self.inputsByName = {}
     self.outputNames = []
+    self.powerAcquiredLastTurn = 0
     self.acquiringPower = False
 
   def addInput(self, linkType, otherItem, outputName = None):
@@ -430,14 +433,18 @@ class Item(object):
     if result > 0:
       print(str(self.summarize()) + " got " + str(result) + " power from " + link.item.summarize())
     self.acquiringPower = False
+    self.powerAcquiredLastTurn += result
     return result
 
   # tries to get power from the current node
   def tryGetPower(self, amount, outputName):
     return 0
 
+  def getPowerAcquiredLastTurn(self):
+    return self.powerAcquiredLastTurn
+
   def act(self, player):
-    return
+    self.powerAcquiredLastTurn = 0
 
   def clone(self):
     raise Exception("clone is not implemented in " + str(self))
@@ -491,17 +498,18 @@ class Laser(Item):
     self.requiredPower = 1
     self.damage = 1
     self.maxSignalPower = 1
-    self.numPossibleTargets = 100
+    self.maxPossibleTarget = 100
     self.declareInputs(["power", "control"])
 
   def act(self, competitor):
+    super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
     if power >= self.requiredPower:
       damage = self.damage
     else:
       damage = 0
     signal = self.tryAcquirePower("control", self.maxSignalPower)
-    targetIndex = int(self.numPossibleTargets * signal / self.maxSignalPower)
+    targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
     print("laser applying damage " + str(damage) + " at position " + str(targetIndex))
     competitor.applyEnemyDamage(targetIndex, damage)
 
@@ -511,7 +519,7 @@ class Laser(Item):
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("attacks items in the opposing robot")
-    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to target a position from 0 to " + str(self.numPossibleTargets))
+    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to target a position from 0 to " + str(self.maxPossibleTarget))
     return messages
 
 # disconnects nodes
@@ -520,13 +528,14 @@ class Cutter(Item):
     super().__init__()
     self.requiredPower = 1
     self.maxSignalPower = 1
-    self.numPossibleTargets = 100
+    self.maxPossibleTarget = 100
     self.declareInputs(["power", "control"])
 
   def act(self, competitor):
+    super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
     signal = self.tryAcquirePower("control", self.maxSignalPower)
-    targetIndex = int(self.numPossibleTargets * signal / self.maxSignalPower)
+    targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
     if power >= self.requiredPower:
       print("cutter cutting at position " + str(targetIndex))
       competitor.disconnectEnemy(targetIndex)
@@ -540,7 +549,7 @@ class Cutter(Item):
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("disconnects items in the opposing robot")
-    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to target a position from 0 to " + str(self.numPossibleTargets))
+    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to target a position from 0 to " + str(self.maxPossibleTarget))
     return messages
 
 # holds power and can provide it over time
@@ -553,6 +562,7 @@ class Battery(Item):
     self.readyToDischarge = self.dischargeRate
 
   def act(self, competitor):
+    super().act(competitor)
     self.readyToDischarge = min(self.charge, self.dischargeRate)
 
   def tryGetPower(self, requested, outputName):
@@ -596,6 +606,7 @@ class Resistor(Item):
     self.declareInputs(["power"])
 
   def act(self, competitor):
+    super().act(competitor)
     requestedAmount = self.dischargeRate - self.readyToDischarge
     receivedAmount = self.tryAcquirePower("power", requestedAmount)
     self.readyToDischarge += receivedAmount
@@ -629,6 +640,7 @@ class Adder(Item):
     self.declareInputs(["power", "signal"])
 
   def act(self, competitor):
+    super().act(competitor)
     signal = self.tryAcquirePower("signal", self.maxInput)
     power = self.tryAcquirePower("power", self.addition)
     self.readyToDischarge = power + signal
@@ -662,6 +674,7 @@ class Splitter(Item):
     self.declareInputs(["power", "signal"])
 
   def act(self, competitor):
+    super().act(competitor)
     self.signal = self.tryAcquirePower("signal", self.maxInput)
 
   def tryGetPower(self, requested, outputName):
@@ -711,6 +724,7 @@ class If(Item):
     self.declareInputs(["power", "signal"])
 
   def act(self, competitor):
+    super().act(competitor)
     self.on = self.tryAcquirePower("signal", self.threshold) >= self.threshold
 
   def tryGetPower(self, requested, outputName):
@@ -740,6 +754,7 @@ class Capacitor(Item):
     self.declareInputs(["power"])
 
   def act(self, competitor):
+    super().act(competitor)
     self.energy += self.tryAcquirePower("power", self.maxEnergy - self.energy)
 
   def tryGetPower(self, requested, outputName):
@@ -773,6 +788,7 @@ class Shield(Item):
     self.declareInputs(["power", "distance", "direction"])
 
   def act(self, competitor):
+    super().act(competitor)
     energy = self.tryAcquirePower("power", self.requiredEnergy)
     distanceSignal = self.tryAcquirePower("distance", self.maxSignalPower)
     directionSignal = self.tryAcquirePower("direction", self.maxSignalPower)
@@ -805,6 +821,53 @@ class Shield(Item):
     messages.append("targets itself by default")
     messages.append("can be aimed up to " + str(self.maxPossibleDistance) + " spaces away by setting distance input to " + str(self.maxSignalPower))
     messages.append("will aim to the left if the direction input is nonzero")
+    return messages
+
+# senses power usage
+class PowerUsageSensor(Item):
+  def __init__(self):
+    super().__init__()
+    self.radius = 1
+    self.requiredPower = 1
+    self.maxSignalPower = 1
+    self.maxPossibleTarget = 100
+    self.outputRatio = 0.01
+    self.reading = 0
+    self.declareInputs(["power", "positionSignal"])
+    self.declareOutput()
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.requiredPower)
+    positionSignal = self.tryAcquirePower("positionSignal", self.requiredPower)
+    if power >= self.requiredPower:
+      index = int(self.maxPossibleTarget * positionSignal / self.maxSignalPower)
+      reading = 0
+      lowIndex = index - self.radius
+      highIndex = index + self.radius
+      for i in range(lowIndex, highIndex + 1):
+        reading += competitor.getEnemyPowerAcquired(i)
+      self.reading = min(reading * self.outputRatio, power)
+      print(self.summarize() + " reading enemy total power acquired from " + str(lowIndex) + " to " + str(highIndex) + ", outputting " + str(self.reading))
+    else:
+      if power > 0:
+        print("power " + str(energy) + " not enough to power " + self.summarize())
+
+  def tryGetPower(self, requested, outputName):
+    amount = min(requested, self.reading)
+    self.reading -= amount
+    return amount
+
+  def clone(self):
+    return PowerUsageSensor()
+
+  def summarize(self):
+    return super().summarize()
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("Measures power usage with radius " + str(self.radius) + " from the target position in the opposing robot")
+    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to measure a position from 0 to " + str(self.maxPossibleTarget))
     return messages
 
 # represents an attack
@@ -916,6 +979,14 @@ class Competitor(object):
     node = self.network.nodes[nodeIndex]
     for linkType in node.inputsByName.keys():
       node.inputsByName[linkType] = None
+
+  def getEnemyPowerAcquired(self, nodeIndex):
+    if nodeIndex < 0:
+      return 0
+    network = self.enemy.network
+    if nodeIndex >= network.size():
+      return 0
+    return network.nodes[nodeIndex].getPowerAcquiredLastTurn()
 
 # represents a network of items
 class Network(object):

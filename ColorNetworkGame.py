@@ -217,21 +217,41 @@ class CustomizationStoryNode(SimpleStoryNode):
     return menu.chooseValue()
 
   def editItem(self, item):
+    while True:
+      menu = Menu()
+      menu.addChoice("Move", "Move")
+      for linkName in item.inputsByName.keys():
+        menu.addChoice("Set input " + linkName + " for " + item.summarize(), linkName)
+      menu.addChoice("Done", "Done")
+      choice = menu.chooseValue()
+      if choice == "Move":
+        self.moveItem(item)
+        # if the item is still in the network, keep editing it
+        if item in self.player.network.itemTemplates:
+          continue
+        # if the item is no longer in the network, stop editing it
+        return
+      if choice == "Done":
+        return
+      linkName = choice
+      dependency = self.chooseNetworkItemOutput("Choose " + linkName + " for " + item.summarize())
+      item.inputsByName[linkName] = dependency
+
+  def moveItem(self, item):
+    print("Move " + item.summarize() + " where?")
     menu = Menu()
-    menu.addChoice("Remove", "Remove")
-    for linkName in item.inputsByName.keys():
-      menu.addChoice("Set input " + linkName + " for " + item.summarize(), linkName)
-    menu.addChoice("Cancel", "Cancel")
+    menu.addChoice("Remove", -1)
+    for i in range(len(self.player.network.itemTemplates)):
+      menu.addChoice("Position " + str(i), i)
+    menu.addChoice("Cancel", -2)
     choice = menu.chooseValue()
-    if choice == "Remove":
-      self.player.network.itemTemplates.remove(item)
+    if choice == -2:
+      return
+    self.player.network.itemTemplates.remove(item)
+    if choice == -1:
       self.player.items.append(item)
       return
-    if choice == "Cancel":
-      return
-    linkName = choice
-    dependency = self.chooseNetworkItemOutput("Choose " + linkName + " for " + item.summarize())
-    item.inputsByName[linkName] = dependency
+    self.player.network.insert(item, choice)
 
 class MarketStoryNode(MenuStoryNode):
   def __init__(self, player):
@@ -719,6 +739,9 @@ class CompetitorTemplate(object):
 
   def addItem(self, template):
     self.itemTemplates.append(template)
+
+  def insert(self, item, index):
+    self.itemTemplates = self.itemTemplates[:index] + [item] + self.itemTemplates[index:]
 
   def build(self, name):
     # create nodes and identify indices

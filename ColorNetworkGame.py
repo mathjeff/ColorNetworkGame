@@ -1,6 +1,6 @@
 #!python
 
-import textwrap
+import random, textwrap
 
 class StoryNode(object):
   def __init__(self):
@@ -148,33 +148,24 @@ class SageNode(object):
     child.parent = self
 
 # a CompetitionStoryNode runs a competition
-class CompetitionStoryNode(StoryNode):
+class CompetitionStoryNode(SimpleStoryNode):
   def __init__(self, player, opponent):
     super().__init__()
     self.player = player
     self.opponent = opponent
-    self.successNode = None
-    self.failureNode = None
 
-  def setSuccessNode(self, successNode):
-    self.successNode = successNode
-
-  def setFailureNode(self, failureNode):
-    self.failureNode = failureNode
-
-  def getNext(self):
+  def process(self):
     print("You enter a competition with " + str(self.opponent.name))
     competition = Competition([self.player, self.opponent])
     result = competition.run()
     print("")
     if result is None:
       print("Tie!\n")
-      return self.successNode # count ties as successes for now
-    if result:
-      print("Success! You defeated " + str(self.opponent.name) + "\n")
-      return self.successNode
-    print("Failure\n")
-    return self.failureNode
+    else:
+      if result:
+        print("Success! You defeated " + str(self.opponent.name) + "\n")
+      else:
+        print("Failure\n")
 
 class ShopStoryNode(SimpleStoryNode):
   def __init__(self, player):
@@ -238,13 +229,6 @@ class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player):
     super().__init__(player, makeEasyOpponent())
     self.nextNode = None
-
-  def setNext(self, nextNode):
-    self.nextNode = nextNode
-
-  def getNext(self):
-    super().getNext()
-    return self.nextNode
 
 class CustomizationStoryNode(SimpleStoryNode):
   def __init__(self, player):
@@ -1083,6 +1067,53 @@ class Competition(object):
     print("tie!")
     return None
 
+# creates a StoryNode network
+class StoryGenerator(object):
+  def __init__(self, player, targetLength, difficulty, complexity):
+    self.player = player
+    self.targetLength = targetLength
+    self.difficulty = difficulty
+    self.complexity = complexity
+
+  def create(self):
+    player = self.player
+    # create intro
+    welcome = MessageStoryNode("Welcome to ColorNetwork!")
+    firstMarket = self.makeMarket(0)
+    welcome.setNext(firstMarket)
+    firstOpponent = self.makeCompetition(0)
+    firstMarket.setNext(firstOpponent)
+    currentNode = firstOpponent
+
+    # create main content
+    numMarketsRemaining = max(1, int(self.targetLength / 20))
+    index = 0
+    while index < self.targetLength:
+      lengthRemaining = self.targetLength - index
+      rand = random.randint(0, lengthRemaining)
+      index += 1
+      if rand < numMarketsRemaining:
+        market = self.makeMarket(index)
+        currentNode.setNext(market)
+        currentNode = market
+        numMarketsRemaining -= 1
+        continue
+      competition = self.makeCompetition(index)
+      currentNode.setNext(competition)
+      currentNode = competition
+
+    success = MessageStoryNode("Success!")
+    currentNode.setNext(success)
+    return welcome
+
+  def makeMarket(self, index):
+    return MarketStoryNode(self.player)
+
+  def makeCompetition(self, index):
+    opponent = makeEasyOpponent()
+    competition = CompetitionStoryNode(self.player, opponent)
+    return competition
+
 def makePlayer():
   player = GamePlayer("Player")
   battery1 = Battery()
@@ -1105,19 +1136,10 @@ def makeEasyOpponent():
 
 def makeStory():
   gamePlayer = makePlayer()
-  welcome = MessageStoryNode("Welcome to ColorNetwork!")
-
-  shop = MarketStoryNode(gamePlayer)
-  welcome.setNext(shop)
-
-  opponent1 = makeEasyOpponent()
-  competition1 = CompetitionStoryNode(gamePlayer, opponent1)
-  shop.setNext(competition1)
- 
-  successNode = MessageStoryNode("You Win!")
-  failureNode = MessageStoryNode("Game Over")
-  competition1.setSuccessNode(successNode)
-  competition1.setFailureNode(failureNode)
+  length = 10
+  difficulty = 1
+  complexity = 1
+  welcome = StoryGenerator(gamePlayer, length, difficulty, complexity).create()
 
   return StoryNodeRunner(welcome)
 

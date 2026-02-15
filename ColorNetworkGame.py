@@ -339,7 +339,7 @@ class Output(object):
 class Laser(CompetitorItem):
   def __init__(self):
     super().__init__()
-    self.requiredPower = 4
+    self.requiredPower = 1
     self.damage = 1
     self.maxSignalPower = 1
     self.numPossibleTargets = 100
@@ -354,7 +354,7 @@ class Laser(CompetitorItem):
     signal = self.tryAcquirePower("control", self.maxSignalPower)
     targetIndex = int(self.numPossibleTargets * signal / self.maxSignalPower)
     print("laser applying damage " + str(damage) + " at position " + str(targetIndex))
-    competitor.applyEnemyDamage(damage, targetIndex)
+    competitor.applyEnemyDamage(targetIndex, damage)
 
   def clone(self):
     return Laser()
@@ -561,12 +561,38 @@ class Capacitor(CompetitorItem):
   def summarize(self):
     return super().summarize() + " " + str(self.energy) + "/" + str(self.maxEnergy)
 
+# represents an attack
+class Attack(object):
+  def __init__(self):
+    return
+
+def act(self, target):
+    return
+
+class DamageAttack(Attack):
+  def __init__(self, index, amount):
+    super().__init__()
+    self.index = index
+    self.amount = amount
+
+  def process(self, target):
+    target.receiveDamage(self.index, self.amount)
+
+class CutAttack(Attack):
+  def __init__(self, index):
+    super().__init__()
+    self.index = index
+
+  def process(self, target):
+    target.disconnect(self.index)
+
 # represents an entity that competes with other entities
 class Competitor(object):
   def __init__(self, name, network):
     self.name = name
     self.network = network
     self.enemy = None
+    self.incomingAttacks = []
 
   def nodesAct(self):
     print(str(self.name) + "'s turn:")
@@ -586,6 +612,15 @@ class Competitor(object):
       messages.append(node.summarize())
     return "".join(messages)
 
+  def addIncomingAttack(self, attack):
+    self.incomingAttacks.append(attack)
+
+  def processIncomingAttacks(self):
+    for attack in self.incomingAttacks:
+      attack.process(self)
+    self.incomingAttacks = []
+    self.removeBrokenNodes()
+
   def removeBrokenNodes(self):
     remainingNodeList = [node for node in self.network if node.hitPoints > 0]
     remainingNodeSet = set(remainingNodeList)
@@ -596,10 +631,10 @@ class Competitor(object):
             node.inputsByName[linkType] = None
     self.network = remainingNodeList
 
-  def applyEnemyDamage(self, amount, nodeIndex):
-    self.enemy.receiveDamage(amount, nodeIndex)
+  def applyEnemyDamage(self, nodeIndex, amount):
+    self.enemy.addIncomingAttack(DamageAttack(nodeIndex, amount))
 
-  def receiveDamage(self, amount, nodeIndex):
+  def receiveDamage(self, nodeIndex, amount):
     if nodeIndex < 0:
       return # miss
     if nodeIndex >= len(self.network):
@@ -608,7 +643,7 @@ class Competitor(object):
     node.receiveDamage(amount)
 
   def disconnectEnemy(self, nodeIndex):
-    self.enemy.disconnect(nodeIndex)
+    self.enemy.addIncomingAttack(CutAttack(nodeIndex))
 
   def disconnect(self, nodeIndex):
     if nodeIndex < 0:
@@ -683,7 +718,7 @@ class Competition(object):
       for competitor in self.competitors:
         competitor.nodesAct()
       for competitor in self.competitors:
-        competitor.removeBrokenNodes()
+        competitor.processIncomingAttacks()
       for j in range(2):
         if self.competitors[j].getNumActiveNodes() < 1:
           print(self.competitors[1 - j].name + " wins because " + self.competitors[j].name + "'s network is empty")

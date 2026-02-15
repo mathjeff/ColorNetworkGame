@@ -173,8 +173,8 @@ class CustomizationStoryNode(SimpleStoryNode):
     print(str(len(self.player.items)) + " unused items")
     for item in self.player.items:
       print("  " + item.summarize())
-    print(str(len(self.player.network.itemTemplates)) + " items in network")
-    for item in self.player.network.itemTemplates:
+    print(str(self.player.network.size()) + " items in network")
+    for item in self.player.network.nodes:
       print("  " + item.describeLinks())
     print("")
 
@@ -187,47 +187,52 @@ class CustomizationStoryNode(SimpleStoryNode):
       if len(self.player.items) > 0:
         menu.addChoice("Add all items to network", -1)
       menu.addChoice("Done", -2)
-      for i in range(len(self.player.network.itemTemplates)):
-        item = self.player.network.itemTemplates[i]
-        menu.addChoice("Edit " + item.describeLinks(), i)
+      network = self.player.network
+      for i in range(network.size()):
+        item = network.nodes[i]
+        index = network.getPosition(item)
+        menu.addChoice("Edit #" + str(index) + " " + item.describeLinks(), i)
       choice = menu.chooseValue()
       print("")
       if choice == -1:
-        self.player.network.itemTemplates += self.player.items
+        self.player.network.nodes += self.player.items
         self.player.items = []
         continue
       if choice == -2:
         return
-      self.editItem(self.player.network.itemTemplates[choice])
+      self.editItem(self.player.network.nodes[choice])
 
   def chooseNetworkItem(self, description):
     print(description)
     menu = Menu()
-    for item in self.player.network.itemTemplates:
+    for item in self.player.network.nodes:
       menu.addChoice(item.describeLinks(), item)
     return menu.chooseValue()
 
   def chooseNetworkItemOutput(self, description):
     menu = Menu()
     menu.addChoice("None", None)
-    for item in self.player.network.itemTemplates:
+    for item in self.player.network.nodes:
       for outputName in item.outputNames:
+        index = self.player.network.getPosition(item)
         output = Output(item, outputName)
-        menu.addChoice(output.summarize(), output)
+        menu.addChoice("#" + str(index) + " " + output.summarize(), output)
     return menu.chooseValue()
 
   def editItem(self, item):
     while True:
+      index = self.player.network.getPosition(item)
+      print("Editing #" + str(index) + " " + item.describeLinks())
       menu = Menu()
       menu.addChoice("Move", "Move")
       for linkName in item.inputsByName.keys():
-        menu.addChoice("Set input " + linkName + " for " + item.summarize(), linkName)
+        menu.addChoice("Set input " + linkName, linkName)
       menu.addChoice("Done", "Done")
       choice = menu.chooseValue()
       if choice == "Move":
         self.moveItem(item)
         # if the item is still in the network, keep editing it
-        if item in self.player.network.itemTemplates:
+        if item in self.player.network.nodes:
           continue
         # if the item is no longer in the network, stop editing it
         return
@@ -238,16 +243,16 @@ class CustomizationStoryNode(SimpleStoryNode):
       item.inputsByName[linkName] = dependency
 
   def moveItem(self, item):
-    print("Move " + item.summarize() + " where?")
+    print("Move " + item.describeLinks() + " where?")
     menu = Menu()
     menu.addChoice("Remove", -1)
-    for i in range(len(self.player.network.itemTemplates)):
+    for i in range(self.player.network.size()):
       menu.addChoice("Position " + str(i), i)
     menu.addChoice("Cancel", -2)
     choice = menu.chooseValue()
     if choice == -2:
       return
-    self.player.network.itemTemplates.remove(item)
+    self.player.network.nodes.remove(item)
     if choice == -1:
       self.player.items.append(item)
       return
@@ -598,7 +603,7 @@ class Shield(Item):
     distanceSignal = self.tryAcquirePower("distance", self.maxSignalPower)
     directionSignal = self.tryAcquirePower("direction", self.maxSignalPower)
     if energy >= self.requiredEnergy:
-      ourPosition = competitor.getPosition(self)
+      ourPosition = competitor.network.getPosition(self)
       distance = int(self.maxPossibleDistance * distanceSignal / self.maxSignalPower)
       if directionSignal > 0:
         position = ourPosition - distance
@@ -646,7 +651,6 @@ class Competitor(object):
   def __init__(self, name, network):
     self.name = name
     self.network = network
-    self.nodePositions = None
     self.enemy = None
     self.incomingAttacks = []
     self.clearShields()
@@ -654,29 +658,24 @@ class Competitor(object):
   def nodesAct(self):
     print(str(self.name) + "'s turn:")
     self.clearShields()
-    for node in self.network:
+    for node in self.network.nodes:
       node.act(self)
 
   def getNumActiveNodes(self):
-    return len(self.network)
-
-  def getPosition(self, node):
-    if self.nodePositions is None:
-      self.nodePositions = {self.network[i] : i for i in range(len(self.network))}
-    return self.nodePositions[node]
+    return self.network.size()
 
   def getStatus(self):
     messages = []
-    messages.append(self.name + ", " + str(len(self.network)) + " nodes:\n")
-    for i in range(len(self.network)):
+    messages.append(self.name + ", " + str(self.network.size()) + " nodes:\n")
+    for i in range(self.network.size()):
       if i != 0:
         messages.append(", ")
-      node = self.network[i]
+      node = self.network.nodes[i]
       messages.append(node.summarize())
     return "".join(messages)
 
   def clearShields(self):
-    self.incomingDamageMultipliers = [1] * len(self.network)
+    self.incomingDamageMultipliers = [1] * self.network.size()
 
   def addIncomingAttack(self, attack):
     self.incomingAttacks.append(attack)
@@ -688,14 +687,14 @@ class Competitor(object):
     self.removeBrokenNodes()
 
   def removeBrokenNodes(self):
-    remainingNodeList = [node for node in self.network if node.hitPoints > 0]
+    remainingNodeList = [node for node in self.network.nodes if node.hitPoints > 0]
     remainingNodeSet = set(remainingNodeList)
     for node in remainingNodeList:
       for linkType, link in node.inputsByName.copy().items():
         if link is not None:
           if link.item not in remainingNodeSet:
             node.inputsByName[linkType] = None
-    self.network = remainingNodeList
+    self.network.nodes = remainingNodeList
 
   def applyEnemyDamage(self, nodeIndex, amount):
     self.enemy.addIncomingAttack(DamageAttack(nodeIndex, amount))
@@ -703,9 +702,9 @@ class Competitor(object):
   def receiveDamage(self, nodeIndex, amount):
     if nodeIndex < 0:
       return # miss
-    if nodeIndex >= len(self.network):
+    if nodeIndex >= self.network.size():
       return # miss
-    node = self.network[nodeIndex]
+    node = self.network.nodes[nodeIndex]
     multiplier = self.incomingDamageMultipliers[nodeIndex]
     if multiplier != 1:
       result = amount * multiplier
@@ -726,42 +725,58 @@ class Competitor(object):
   def disconnect(self, nodeIndex):
     if nodeIndex < 0:
       return # miss
-    if nodeIndex >= len(self.network):
+    if nodeIndex >= self.network.size():
       return # miss
-    node = self.network[nodeIndex]
+    node = self.network.nodes[nodeIndex]
     for linkType in node.inputsByName.keys():
       node.inputsByName[linkType] = None
 
-# represents a template for an entity that competes with other entities
-class CompetitorTemplate(object):
+# represents a network of items
+class Network(object):
   def __init__(self):
-    self.itemTemplates = []
+    self.nodes = []
+    self.nodePositions = None
 
   def addItem(self, template):
-    self.itemTemplates.append(template)
+    self.nodes.append(template)
+    self.nodePositions = None
 
   def insert(self, item, index):
-    self.itemTemplates = self.itemTemplates[:index] + [item] + self.itemTemplates[index:]
+    self.setItems(self.nodes[:index] + [item] + self.nodes[index:])
 
-  def build(self, name):
+  def setItems(self, nodes):
+    self.nodes = nodes
+    self.nodePositions = None
+
+  def clone(self):
     # create nodes and identify indices
     builtNodes = []
-    templateIndices = {}
-    for i in range(len(self.itemTemplates)):
-      template = self.itemTemplates[i]
+    nodeIndices = {}
+    for i in range(len(self.nodes)):
+      template = self.nodes[i]
       builtNodes.append(template.clone())
-      templateIndices[template] = i
+      nodeIndices[template] = i
     # add links
-    for i in range(len(self.itemTemplates)):
-      template = self.itemTemplates[i]
+    for i in range(len(self.nodes)):
+      template = self.nodes[i]
       item = builtNodes[i]
       for linkType, linkInput in template.inputsByName.items():
         if linkInput is not None:
           linkItem = linkInput.item
-          otherIndex = templateIndices[linkItem]
+          otherIndex = nodeIndices[linkItem]
           otherItem = builtNodes[otherIndex]
           item.addInput(linkType, otherItem, linkInput.outputName)
-    return Competitor(name, builtNodes)
+    result = Network()
+    result.setItems(builtNodes)
+    return result
+
+  def size(self):
+    return len(self.nodes)
+
+  def getPosition(self, node):
+    if self.nodePositions is None:
+      self.nodePositions = {self.nodes[i] : i for i in range(len(self.nodes))}
+    return self.nodePositions[node]
 
 # represents the player
 class GamePlayer(object):
@@ -769,13 +784,13 @@ class GamePlayer(object):
     self.name = name
     self.money = 100
     self.items = []
-    self.network = CompetitorTemplate()
+    self.network = Network()
 
   def addItem(self, item):
     self.items.append(item)
 
   def buildCompetitor(self):
-    return self.network.build(self.name)
+    return Competitor(self.name, self.network.clone())
 
 class Competition(object):
   def __init__(self, gamePlayers):

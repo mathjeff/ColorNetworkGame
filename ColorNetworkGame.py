@@ -258,7 +258,7 @@ class StoryNodeRunner(object):
       self.currentMenu = self.currentMenu.getNext()
 
 # represents an object that a Competitor can use
-class CompetitorItem(object):
+class Item(object):
   def __init__(self):
     self.hitPoints = 1
     self.inputsByName = {}
@@ -336,7 +336,7 @@ class Output(object):
     return result
 
 # attacks based on power and signal
-class Laser(CompetitorItem):
+class Laser(Item):
   def __init__(self):
     super().__init__()
     self.requiredPower = 1
@@ -360,7 +360,7 @@ class Laser(CompetitorItem):
     return Laser()
 
 # disconnects nodes
-class Cutter(CompetitorItem):
+class Cutter(Item):
   def __init__(self):
     super().__init__()
     self.requiredPower = 1
@@ -383,7 +383,7 @@ class Cutter(CompetitorItem):
     return Cutter()
 
 # holds power and can provide it over time
-class Battery(CompetitorItem):
+class Battery(Item):
   def __init__(self):
     super().__init__()
     self.charge = 100
@@ -409,7 +409,7 @@ class Battery(CompetitorItem):
     return "Battery:" + str(self.charge)
 
 # just has lots of hitpoints
-class Wall(CompetitorItem):
+class Wall(Item):
   def __init__(self):
     super().__init__()
     self.hitPoints = 4
@@ -421,7 +421,7 @@ class Wall(CompetitorItem):
     return Wall()
 
 # limits power flow
-class Resistor(CompetitorItem):
+class Resistor(Item):
   def __init__(self):
     super().__init__()
     self.dischargeRate = 1
@@ -448,7 +448,7 @@ class Resistor(CompetitorItem):
     return super().summarize() + "<" + str(self.dischargeRate)
 
 # adds a constant to power flow
-class Adder(CompetitorItem):
+class Adder(Item):
   def __init__(self):
     super().__init__()
     self.addition = 0.01
@@ -477,7 +477,7 @@ class Adder(CompetitorItem):
     return super().summarize() + "+" + str(self.addition)
 
 # reads an input and gives up to that much power each time it is requested
-class Splitter(CompetitorItem):
+class Splitter(Item):
   def __init__(self):
     super().__init__()
     self.maxInput = 1
@@ -498,7 +498,7 @@ class Splitter(CompetitorItem):
     return Splitter()
 
 # a joiner takes power from two inputs
-class Joiner(CompetitorItem):
+class Joiner(Item):
   def __init__(self):
     super().__init__()
     self.declareOutput()
@@ -516,7 +516,7 @@ class Joiner(CompetitorItem):
     return Joiner()
 
 # an If allows power through if the signal is above a threshold
-class If(CompetitorItem):
+class If(Item):
   def __init__(self):
     super().__init__()
     self.threshold = 0.05
@@ -536,7 +536,7 @@ class If(CompetitorItem):
     return If()
 
 # a Capacitor stores energy
-class Capacitor(CompetitorItem):
+class Capacitor(Item):
   def __init__(self):
     super().__init__()
     self.energy = 0

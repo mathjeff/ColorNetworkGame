@@ -445,20 +445,23 @@ class Item(object):
   def summarize(self):
     return type(self).__name__
 
-  def formatHelp(self):
-    messages = [self.summarize() + ":\n"]
-    messages.append(" has " + str(self.hitPoints) + " hit points\n")
+  def getHelpMessages(self):
+    messages = [self.summarize() + ":"]
+    messages.append("has " + str(self.hitPoints) + " hit points")
     if len(self.inputsByName) > 0:
-      messages.append(" has " + str(len(self.inputsByName)) + " ports for receiving power:\n")
+      messages.append("has " + str(len(self.inputsByName)) + " ports for receiving power:")
       for key, value in self.inputsByName.items():
-        messages.append("  " + str(key) + " (connected to " + str(value) + ")\n")
+        messages.append("  " + str(key) + " (connected to " + str(value) + ")")
     if len(self.outputNames) > 0:
-      messages.append(" has " + str(len(self.outputNames)) + " outputs")
+      outputMessage = "has " + str(len(self.outputNames)) + " outputs"
       if len(self.outputNames) > 1:
-        messages.append(": ")
-        messages.append(str(self.outputNames))
-      messages.append("\n")
-    return "".join(messages)
+        outputMessage += ": " + str(self.outputNames)
+      messages.append(outputMessage)
+    return messages
+
+  def formatHelp(self):
+    messages = self.getHelpMessages()
+    return "\n ".join(messages)
 
   def describeLinks(self):
     messages = [self.summarize()]
@@ -505,6 +508,12 @@ class Laser(Item):
   def clone(self):
     return Laser()
 
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("attacks items in the opposing robot")
+    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to target a position from 0 to " + str(self.numPossibleTargets))
+    return messages
+
 # disconnects nodes
 class Cutter(Item):
   def __init__(self):
@@ -527,6 +536,12 @@ class Cutter(Item):
 
   def clone(self):
     return Cutter()
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("disconnects items in the opposing robot")
+    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to target a position from 0 to " + str(self.numPossibleTargets))
+    return messages
 
 # holds power and can provide it over time
 class Battery(Item):
@@ -553,6 +568,11 @@ class Battery(Item):
 
   def summarize(self):
     return "Battery:" + str(self.charge)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append(" holds " + str(self.charge) + " charge and can give " + str(self.dischargeRate) + " per turn to other items")
+    return messages
 
 # just has lots of hitpoints
 class Wall(Item):
@@ -592,6 +612,11 @@ class Resistor(Item):
 
   def summarize(self):
     return super().summarize() + "<" + str(self.dischargeRate)
+  
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("allows " + str(self.dischargeRate) + " power to pass through it per turn")
+    return messages
 
 # adds a constant to power flow
 class Adder(Item):
@@ -622,6 +647,11 @@ class Adder(Item):
   def summarize(self):
     return super().summarize() + "+" + str(self.addition)
 
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("consumes up to " + str(self.addition) + " input power plus up to " + str(self.maxInput) + " input signal and outputs the sum")
+    return messages
+
 # reads an input and gives up to that much power each time it is requested
 class Splitter(Item):
   def __init__(self):
@@ -643,6 +673,11 @@ class Splitter(Item):
   def clone(self):
     return Splitter()
 
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("reads an input and gives up to that much power each time any item requests it")
+    return messages
+
 # a joiner takes power from two inputs
 class Joiner(Item):
   def __init__(self):
@@ -660,6 +695,11 @@ class Joiner(Item):
 
   def clone(self):
     return Joiner()
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("takes power from two inputs")
+    return messages
 
 # an If allows power through if the signal is above a threshold
 class If(Item):
@@ -680,6 +720,14 @@ class If(Item):
 
   def clone(self):
     return If()
+
+  def summarise(self):
+    return super().summarize() + ">" + str(self.threshold)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("allows power through if the signal is above " + str(self.threshold))
+    return messages
 
 # a Capacitor stores energy
 class Capacitor(Item):
@@ -706,6 +754,12 @@ class Capacitor(Item):
 
   def summarize(self):
     return super().summarize() + " " + str(self.energy) + "/" + str(self.maxEnergy)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("can store up to " + str(self.maxEnergy) + " energy and release it at any time")
+    messages.append("can output " + str(self.signalOutputFraction) + " of the stored energy as an output signal")
+    return messages
 
 # a Shield defends against damage
 class Shield(Item):
@@ -737,9 +791,21 @@ class Shield(Item):
   def clone(self):
     return Shield()
 
+  def getDefenseText(self):
+    return str(int(self.defenseFraction * 100)) + "%"
+
   def summarize(self):
-    defenseText = str(int(self.defenseFraction * 100)) + "%"
-    return super().summarize() + " " + defenseText + " +/-" + str(self.radius)
+    return super().summarize() + " " + self.getDefenseText() + " +/-" + str(self.radius)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    
+    messages.append("defends items up to " + str(self.radius) + " space away from the target, decreasing damage received by " + self.getDefenseText())
+    messages.append("requires " + str(self.requiredEnergy) + " power per turn to function")
+    messages.append("targets itself by default")
+    messages.append("can be aimed up to " + str(self.maxPossibleDistance) + " spaces away by setting distance input to " + str(self.maxSignalPower))
+    messages.append("will aim to the left if the direction input is nonzero")
+    return messages
 
 # represents an attack
 class Attack(object):

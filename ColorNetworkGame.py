@@ -266,14 +266,14 @@ class CustomizationStoryNode(SimpleStoryNode):
     while True:
       self.showStatus()
       menu = Menu()
-      if len(self.player.items) > 0:
-        menu.addChoice("Add all items to network", -1)
-      menu.addChoice("Done", -2)
       network = self.player.network
       for i in range(network.size()):
         item = network.nodes[i]
         index = network.getPosition(item)
         menu.addChoice("Edit #" + str(index) + " " + item.describeLinks(), i)
+      if len(self.player.items) > 0:
+        menu.addChoice("Add all items to network", -1)
+      menu.addChoice("Done", -2)
       choice = menu.chooseValue()
       print("")
       if choice == -1:

@@ -125,6 +125,7 @@ class ShopStoryNode(SimpleStoryNode):
     self.items.append([Joiner(), 1])
     self.items.append([If(), 1])
     self.items.append([Capacitor(), 1])
+    self.items.append([Shield(), 1])
 
   def process(self):
     while True:
@@ -561,6 +562,40 @@ class Capacitor(Item):
   def summarize(self):
     return super().summarize() + " " + str(self.energy) + "/" + str(self.maxEnergy)
 
+# a Shield defends against damage
+class Shield(Item):
+  def __init__(self):
+    super().__init__()
+    self.defenseFraction = 0.5
+    self.radius = 1
+    self.requiredEnergy = 3
+    self.maxSignalPower = 1
+    self.maxPossibleDistance = 100
+    self.declareInputs(["power", "distance", "direction"])
+
+  def act(self, competitor):
+    energy = self.tryAcquirePower("power", self.requiredEnergy)
+    distanceSignal = self.tryAcquirePower("distance", self.maxSignalPower)
+    directionSignal = self.tryAcquirePower("direction", self.maxSignalPower)
+    if energy >= self.requiredEnergy:
+      ourPosition = competitor.getPosition(self)
+      distance = int(self.maxPossibleDistance * distanceSignal / self.maxSignalPower)
+      if directionSignal > 0:
+        position = ourPosition - distance
+      else:
+        position = ourPosition + distance
+      competitor.createShield(position, self.radius, self.defenseFraction)
+      print("created shield " + str(self.defenseFraction) + " from positions " + str(position - self.radius) + " to " + str(position + self.radius))
+    else:
+      print("power " + str(energy) + " not enough to power " + self.summarize())
+
+  def clone(self):
+    return Shield()
+
+  def summarize(self):
+    defenseText = str(int(self.defenseFraction * 100)) + "%"
+    return super().summarize() + " " + defenseText + " +/-" + str(self.radius)
+
 # represents an attack
 class Attack(object):
   def __init__(self):
@@ -591,16 +626,24 @@ class Competitor(object):
   def __init__(self, name, network):
     self.name = name
     self.network = network
+    self.nodePositions = None
     self.enemy = None
     self.incomingAttacks = []
+    self.clearShields()
 
   def nodesAct(self):
     print(str(self.name) + "'s turn:")
+    self.clearShields()
     for node in self.network:
       node.act(self)
 
   def getNumActiveNodes(self):
     return len(self.network)
+
+  def getPosition(self, node):
+    if self.nodePositions is None:
+      self.nodePositions = {self.network[i] : i for i in range(len(self.network))}
+    return self.nodePositions[node]
 
   def getStatus(self):
     messages = []
@@ -611,6 +654,9 @@ class Competitor(object):
       node = self.network[i]
       messages.append(node.summarize())
     return "".join(messages)
+
+  def clearShields(self):
+    self.incomingDamageMultipliers = [1] * len(self.network)
 
   def addIncomingAttack(self, attack):
     self.incomingAttacks.append(attack)
@@ -640,7 +686,19 @@ class Competitor(object):
     if nodeIndex >= len(self.network):
       return # miss
     node = self.network[nodeIndex]
+    multiplier = self.incomingDamageMultipliers[nodeIndex]
+    if multiplier != 1:
+      result = amount * multiplier
+      print("shields changed damage at " + str(nodeIndex) + " from " + str(amount) + " to " + str(result))
+      amount = result
     node.receiveDamage(amount)
+
+  def createShield(self, position, radius, defenseFraction):
+    damageMultiplier = 1 - defenseFraction
+    startIndex = max(0, position - radius)
+    endIndex = min(len(self.incomingDamageMultipliers), position + radius + 1)
+    for i in range(startIndex, endIndex):
+      self.incomingDamageMultipliers[i] *= damageMultiplier
 
   def disconnectEnemy(self, nodeIndex):
     self.enemy.addIncomingAttack(CutAttack(nodeIndex))

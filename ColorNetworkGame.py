@@ -1,5 +1,7 @@
 #!python
 
+import textwrap
+
 class StoryNode(object):
   def __init__(self):
     return
@@ -26,7 +28,7 @@ class Menu(object):
     while True:
       choiceText = input("")
       number = 0
-      if len(self.choices) == 1:
+      if len(self.choices) <= 1:
         return 0 # there's only one choice so we return it
       try:
         number = int(choiceText)
@@ -79,6 +81,71 @@ class MessageStoryNode(SimpleStoryNode):
   def process(self):
     print(self.text)
     input("(press Enter)")
+
+# a SageStoryNode gives the user information
+class SageStoryNode(SimpleStoryNode):
+  def __init__(self, welcomeText, treeText):
+    super().__init__()
+    treeText = textwrap.dedent(treeText)
+    self.tree = self.parseTree(welcomeText, treeText)
+    if len(self.tree.children) < 1:
+      raise Exception("Conversation is empty!")
+
+  def process(self):
+    # start at the beginning of the conversation
+    currentNode = self.tree
+    while currentNode is not None:
+      # output next response
+      print(currentNode.text)
+      # wait for player
+      menu = Menu()
+      for query, response in currentNode.children.items():
+        menu.addChoice(query, response)
+      menu.addChoice("Back", currentNode.parent)
+      currentNode = menu.chooseValue()
+
+  def parseTree(self, welcomeText, text):
+    stack = [SageNode(welcomeText)]
+    previousIndent = -1
+    lines = text.split("\n")
+    for lineIndex in range(len(lines)):
+      line = lines[lineIndex]
+      indent = self.getIndent(line)
+      content = line[indent:]
+      if len(content) == 0:
+        continue
+      separator = ":"
+      separatorIndex = content.find(separator)
+      if separatorIndex < 0:
+        raise Exception("Separator '" + separator + "' not found in line '" + line + "'")
+      query = content[:separatorIndex]
+      response = content[separatorIndex+1:]
+      if indent <= previousIndent:
+        stack = stack[:indent+1]
+      if indent > previousIndent + 1:
+        raise Exception("Error parsing line " + str(lineIndex) + ": '" + str(line) + "': indent " + str(indent) + " too much more than previous " + str(previousIndent))
+      newNode = SageNode(response)
+      stack[indent].addChild(query, newNode)
+      stack.append(newNode)
+      previousIndent = indent
+    return stack[0]
+
+  def getIndent(self, line):
+    for i in range(len(line)):
+      if line[i] != " ":
+        return i
+    return len(line)
+
+# a node in the SageStoryNode's conversation
+class SageNode(object):
+  def __init__(self, text):
+    self.text = text
+    self.children = {}
+    self.parent = None
+
+  def addChild(self, query, child):
+    self.children[query] = child
+    child.parent = self
 
 # a CompetitionStoryNode runs a competition
 class CompetitionStoryNode(StoryNode):
@@ -272,9 +339,29 @@ class MarketStoryNode(MenuStoryNode):
     tester.setNext(self)
     customizer = CustomizationStoryNode(player)
     customizer.setNext(self)
+    sage = SageStoryNode("Greetings", """
+    What is this place?:This is a robot competition
+     Can I get a robot?:You can buy robot parts in a shop and assemble them yourself
+      How do I assemble a robot?:Put the pieces in some order and then connect the ones that need power to the ones that provide power
+     How do robot competitions work?:Two robots attack each other until one has no pieces left or time runs out. Then the robot with the most pieces remaining wins
+      How do robots attack?:Some items will attack a piece of the other robot if you give them power
+    Will I be happy here?:It depends. This place is still a work in progress, but what are you looking for?
+     I'd love to participate in a robot competition:Excellent! I expect you will like it.
+     I like hard math problems:This place has been designed for you, actually.
+      Wow!:Yes, and if you're familiar with The Python, you may be able to change it further to your liking.
+       What's The Python?:If you are worthy, you will find it yourself.
+     I want easy math problems:I'm sure you will be able to enjoy some of our kiddie events.
+     I'm looking for an incredible story:We don't have any plans for that right now - you might want to head somewhere else.
+     I want to adventure with beautiful people:[The sage blinks twice] Well, I'm more wrinkled than I used to be but I think you'll find us to be beautiful on the inside.
+    What makes you a sage?:I know many things.
+     So where should I go next?:Try the shop.
+     Really? What else do you know?:Are you familiar with https://github.com/mathjeff/JeffsKnowledgeGraph ?
+    """)
+    sage.setNext(self)
     self.addChoice("shop", shop)
     self.addChoice("test", tester)
     self.addChoice("customize", customizer)
+    self.addChoice("talk to the sage", sage)
 
   def setNext(self, nextNode):
     self.addChoice("Bye!", nextNode)

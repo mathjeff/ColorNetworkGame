@@ -1157,10 +1157,13 @@ class StoryGenerator(object):
 # information about an item
 class ItemData(object):
   def __init__(self, item, name, complexity, cost):
-    self.item = item
+    self.item = item.clone()
     self.name = name
     self.complexity = complexity
     self.cost = cost
+
+  def clone(self):
+    return ItemData(self.item, self.name, self.complexity, self.cost)
 
 # a collection of ItemData
 class ItemDataFactory(object):
@@ -1194,8 +1197,11 @@ class ItemDataFactory(object):
         index += 1
       name = name + str(index)
     itemData = ItemData(item, name, complexity, baseCost)
+    self.addItemData(itemData)
+
+  def addItemData(self, itemData):
     self.contents.append(itemData)
-    self.contentsByName[name] = itemData
+    self.contentsByName[itemData.name] = itemData
 
   def getItemByName(self, name):
     result = self.contentsByName.get(name)
@@ -1206,8 +1212,23 @@ class ItemDataFactory(object):
   def getAll(self):
     return self.contents[:]
 
+  def cloneAndMutateRandomItem(self):
+    index = random.randint(0, len(self.contents) - 1)
+    mutated = self.mutateRandomly(self.contents[index], 0.1)
+    self.addItemData(mutated)
+
+  def mutateRandomly(self, itemData, maxFractionChange):
+    result = itemData.clone()
+    properties = dict(result.item.properties)
+    for key, value in properties.items():
+      fractionChange = random.uniform(-maxFractionChange, maxFractionChange)
+      properties[key] = value * (1 + fractionChange)
+    result.item.putProperties(properties)
+    return result
+
 itemDataFactory = ItemDataFactory()
 itemDataFactory.loadDefaults()
+itemDataFactory.cloneAndMutateRandomItem()
 
 def makePlayer():
   player = GamePlayer("Player")

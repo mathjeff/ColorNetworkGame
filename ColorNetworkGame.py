@@ -283,6 +283,7 @@ class CustomizationStoryNode(SimpleStoryNode):
     return menu.chooseValue()
 
   def chooseNetworkItemOutput(self, description):
+    print(description)
     menu = Menu()
     menu.addChoice("None", None)
     for item in self.player.network.nodes:

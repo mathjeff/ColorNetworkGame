@@ -1,6 +1,6 @@
 #!python
 
-import random, textwrap
+import json, os, random, textwrap
 
 class StoryNode(object):
   def __init__(self):
@@ -1165,41 +1165,33 @@ class ItemData(object):
   def clone(self):
     return ItemData(self.item, self.name, self.complexity, self.cost)
 
+  def toDict(self):
+    result = {}
+    result["type"] = type(self.item).__name__
+    result["name"] = self.name
+    result["complexity"] = self.complexity
+    result["cost"] = self.cost
+    result["properties"] = self.item.properties
+    return result
+
 # a collection of ItemData
 class ItemDataFactory(object):
   def __init__(self):
     self.contents = []
     self.contentsByName = {}
 
-  def loadFile(self):
-    raise Exception("Not implemented yet")
-
-  def loadDefaults(self):
-    self.contents = []
-    self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 1, 2)
-    self.add(Cutter({"requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 1, 2)
-    self.add(Battery({"maxCharge": 100, "dischargeRate": 3}),1, 2)
-    self.add(Wall({"hitPoints": 4}), 1, 1)
-    self.add(Resistor({"dischargeRate": 0.01}), 2, 1)
-    self.add(Adder({"addition": 0.01, "maxInput": 10}), 2, 1)
-    self.add(Splitter({"maxInput": 1}), 2, 1)
-    self.add(Joiner({}), 2, 1)
-    self.add(If({"threshold": 0.05}), 2, 1)
-    self.add(Capacitor({"maxEnergy": 10, "signalOutputFraction": 0.01}), 2, 1)
-    self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": 4, "maxSignalPower": 1, "maxPossibleDistance": 100}), 2, 2)
-    self.add(PowerUsageSensor({"radius": 1, "requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100, "outputRatio": 0.01}), 3, 1)
-
   def add(self, item, complexity, baseCost):
     name = type(item).__name__
+    self.addItemData(ItemData(item, name, complexity, baseCost))
+
+  def addItemData(self, itemData):
+    name = itemData.name
     if name in self.contentsByName:
       index = 2
       while (name + str(index)) in self.contentsByName:
         index += 1
       name = name + str(index)
-    itemData = ItemData(item, name, complexity, baseCost)
-    self.addItemData(itemData)
-
-  def addItemData(self, itemData):
+    itemData.name = name
     self.contents.append(itemData)
     self.contentsByName[itemData.name] = itemData
 
@@ -1226,8 +1218,60 @@ class ItemDataFactory(object):
     result.item.putProperties(properties)
     return result
 
-itemDataFactory = ItemDataFactory()
-itemDataFactory.loadDefaults()
+# a collection of predefined ItemData
+class DefaultItemDataFactory(ItemDataFactory):
+  def __init__(self):
+    super().__init__()
+    self.loadDefaults()
+
+  def loadDefaults(self):
+    self.contents = []
+    self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 1, 2)
+    self.add(Cutter({"requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 1, 2)
+    self.add(Battery({"maxCharge": 100, "dischargeRate": 3}),1, 2)
+    self.add(Wall({"hitPoints": 4}), 1, 1)
+    self.add(Resistor({"dischargeRate": 0.01}), 2, 1)
+    self.add(Adder({"addition": 0.01, "maxInput": 10}), 2, 1)
+    self.add(Splitter({"maxInput": 1}), 2, 1)
+    self.add(Joiner({}), 2, 1)
+    self.add(If({"threshold": 0.05}), 2, 1)
+    self.add(Capacitor({"maxEnergy": 10, "signalOutputFraction": 0.01}), 2, 1)
+    self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": 4, "maxSignalPower": 1, "maxPossibleDistance": 100}), 2, 2)
+    self.add(PowerUsageSensor({"radius": 1, "requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100, "outputRatio": 0.01}), 3, 1)
+
+
+# a collection of ItemData saved to a file
+class FileItemDataFactory(ItemDataFactory):
+  def __init__(self, defaultFactory, filepath):
+    super().__init__()
+    self.defaultFactory = defaultFactory
+    self.loadFile()
+    self.filepath = filepath
+    if os.path.isfile(filepath):
+      self.loadFile()
+    else:
+      self.loadDefaults()
+      self.saveFile()
+
+  def loadFile(self):
+    return # not implemented yet
+
+  def saveFile(self):
+    text = self.serialize()
+    with open(self.filepath, 'w') as f:
+      f.write(text)
+
+  def serialize(self):
+    components = []
+    for component in self.getAll():
+      components.append(component.toDict())
+    return json.dumps(components, indent = 2)
+
+  def loadDefaults(self):
+    for itemData in self.defaultFactory.getAll():
+      self.addItemData(itemData)
+
+itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), "./data/profile")
 itemDataFactory.cloneAndMutateRandomItem()
 
 def makePlayer():

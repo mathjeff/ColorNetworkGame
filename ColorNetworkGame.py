@@ -369,14 +369,31 @@ class StoryNodeRunner(object):
     while self.currentMenu is not None:
       self.currentMenu = self.currentMenu.getNext()
 
+# An ItemProperties describes the properties that are used by an Item
+# It doesn't describe other things like its cost or complexity
+class ItemProperties(object):
+  def __init__(self, properties):
+    self.properties = properties
+
+  def get(self, name):
+    result = self.properties.get(name)
+    if result is None:
+      raise Exception("property '" + name + "' not in " + str(list(self.properties.keys())))
+    return result
+
 # represents an object that a Competitor can use
 class Item(object):
-  def __init__(self):
+  def __init__(self, properties):
     self.hitPoints = 1
     self.inputsByName = {}
     self.outputNames = []
     self.powerAcquiredLastTurn = 0
     self.acquiringPower = False
+    self.putProperties(ItemProperties(properties))
+    self.properties = properties
+
+  def putProperties(self, properties):
+    raise Exception("putProperties not implemented in " + str(self))
 
   def addInput(self, linkType, otherItem, outputName = None):
     if outputName not in otherItem.outputNames:
@@ -475,13 +492,15 @@ class Output(object):
 
 # attacks based on power and signal
 class Laser(Item):
-  def __init__(self, requiredPower, damage, maxSignalPower, maxPossibleTarget):
-    super().__init__()
-    self.requiredPower = requiredPower
-    self.damage = damage
-    self.maxSignalPower = maxSignalPower
-    self.maxPossibleTarget = maxPossibleTarget
+  def __init__(self, properties):
+    super().__init__(properties)
     self.declareInputs(["power", "control"])
+
+  def putProperties(self, properties):
+    self.requiredPower = properties.get("requiredPower")
+    self.damage = properties.get("damage")
+    self.maxSignalPower = properties.get("maxSignalPower")
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
 
   def act(self, competitor):
     super().act(competitor)
@@ -496,7 +515,7 @@ class Laser(Item):
     competitor.applyEnemyDamage(targetIndex, damage)
 
   def clone(self):
-    return Laser(self.requiredPower, self.damage, self.maxSignalPower, self.maxPossibleTarget)
+    return Laser(self.properties)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
@@ -506,11 +525,13 @@ class Laser(Item):
 
 # disconnects nodes
 class Cutter(Item):
-  def __init__(self, requiredPower, maxSignalPower, maxPossibleTarget):
-    super().__init__()
-    self.requiredPower = requiredPower
-    self.maxSignalPower = maxSignalPower
-    self.maxPossibleTarget = maxPossibleTarget
+  def __init__(self, properties):
+    super().__init__(properties)
+
+  def putProperties(self, properties):
+    self.requiredPower = properties.get("requiredPower")
+    self.maxSignalPower = properties.get("maxSignalPower")
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
     self.declareInputs(["power", "control"])
 
   def act(self, competitor):
@@ -526,7 +547,7 @@ class Cutter(Item):
         print("cutter insufficient power: " + str(power) + " < " + str(self.requiredPower))
 
   def clone(self):
-    return Cutter(self.requiredPower, self.maxSignalPower, self.maxPossibleTarget)
+    return Cutter(self.properties)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
@@ -536,11 +557,13 @@ class Cutter(Item):
 
 # holds power and can provide it over time
 class Battery(Item):
-  def __init__(self, maxPower, dischargeRate):
-    super().__init__()
-    self.charge = maxPower
-    self.dischargeRate = dischargeRate
+  def __init__(self, properties):
+    super().__init__(properties)
     self.declareOutput()
+
+  def putProperties(self, properties):
+    self.charge = properties.get("maxCharge")
+    self.dischargeRate = properties.get("dischargeRate")
     self.readyToDischarge = self.dischargeRate
 
   def act(self, competitor):
@@ -556,7 +579,7 @@ class Battery(Item):
     return amount
 
   def clone(self):
-    return Battery(self.charge, self.dischargeRate)
+    return Battery(self.properties)
 
   def summarize(self):
     return "Battery:" + str(self.charge)
@@ -568,24 +591,28 @@ class Battery(Item):
 
 # just has lots of hitpoints
 class Wall(Item):
-  def __init__(self, hitPoints):
-    super().__init__()
-    self.hitPoints = hitPoints
+  def __init__(self, properties):
+    super().__init__(properties)
+
+  def putProperties(self, properties):
+    self.hitPoints = properties.get("hitPoints")
 
   def summarize(self):
     return "Wall:" + str(self.hitPoints)
 
   def clone(self):
-    return Wall(self.hitPoints)
+    return Wall(self.properties)
 
 # limits power flow
 class Resistor(Item):
-  def __init__(self, dischargeRate):
-    super().__init__()
-    self.dischargeRate = dischargeRate
+  def __init__(self, properties):
+    super().__init__(properties)
     self.readyToDischarge = 0
     self.declareOutput()
     self.declareInputs(["power"])
+
+  def putProperties(self, properties):
+    self.dischargeRate = properties.get("dischargeRate")
 
   def act(self, competitor):
     super().act(competitor)
@@ -601,7 +628,7 @@ class Resistor(Item):
     return amount
 
   def clone(self):
-    return Resistor(self.dischargeRate)
+    return Resistor(self.properties)
 
   def summarize(self):
     return super().summarize() + "<" + str(self.dischargeRate)
@@ -613,13 +640,15 @@ class Resistor(Item):
 
 # adds a constant to power flow
 class Adder(Item):
-  def __init__(self, addition, maxInput):
-    super().__init__()
-    self.addition = addition
-    self.maxInput = maxInput
+  def __init__(self, properties):
+    super().__init__(properties)
     self.readyToDischarge = 0
     self.declareOutput()
     self.declareInputs(["power", "signal"])
+
+  def putProperties(self, properties):
+    self.addition = properties.get("addition")
+    self.maxInput = properties.get("maxInput")
 
   def act(self, competitor):
     super().act(competitor)
@@ -636,7 +665,7 @@ class Adder(Item):
     return amount
 
   def clone(self):
-    return Adder(self.addition, self.maxInput)
+    return Adder(self.properties)
 
   def summarize(self):
     return super().summarize() + "+" + str(self.addition)
@@ -648,12 +677,14 @@ class Adder(Item):
 
 # reads an input and gives up to that much power each time it is requested
 class Splitter(Item):
-  def __init__(self, maxInput):
-    super().__init__()
-    self.maxInput = maxInput
+  def __init__(self, properties):
+    super().__init__(properties)
     self.signal = 0
     self.declareOutput()
     self.declareInputs(["power", "signal"])
+
+  def putProperties(self, properties):
+    self.maxInput = properties.get("maxInput")
 
   def act(self, competitor):
     super().act(competitor)
@@ -666,7 +697,7 @@ class Splitter(Item):
     return power
 
   def clone(self):
-    return Splitter(self.maxInput)
+    return Splitter(self.properties)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
@@ -675,10 +706,13 @@ class Splitter(Item):
 
 # a joiner takes power from two inputs
 class Joiner(Item):
-  def __init__(self):
-    super().__init__()
+  def __init__(self, properties):
+    super().__init__(properties)
     self.declareOutput()
     self.declareInputs(["input1", "input2"])
+
+  def putProperties(self, properties):
+    return
 
   def tryGetPower(self, requested, outputName):
     if requested <= 0:
@@ -689,7 +723,7 @@ class Joiner(Item):
     return power
 
   def clone(self):
-    return Joiner()
+    return Joiner({})
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
@@ -698,12 +732,14 @@ class Joiner(Item):
 
 # an If allows power through if the signal is above a threshold
 class If(Item):
-  def __init__(self, threshold):
-    super().__init__()
-    self.threshold = threshold
+  def __init__(self, properties):
+    super().__init__(properties)
     self.declareOutput()
     self.on = False
     self.declareInputs(["power", "signal"])
+
+  def putProperties(self, properties):
+    self.threshold = properties.get("threshold")
 
   def act(self, competitor):
     super().act(competitor)
@@ -715,7 +751,7 @@ class If(Item):
     return 0
 
   def clone(self):
-    return If(self.threshold)
+    return If(self.properties)
 
   def summarise(self):
     return super().summarize() + ">" + str(self.threshold)
@@ -727,13 +763,15 @@ class If(Item):
 
 # a Capacitor stores energy
 class Capacitor(Item):
-  def __init__(self, maxEnergy, signalOutputFraction):
-    super().__init__()
+  def __init__(self, properties):
+    super().__init__(properties)
     self.energy = 0
-    self.maxEnergy = maxEnergy
-    self.signalOutputFraction = signalOutputFraction
     self.declareOutputs(["power", "signal"])
     self.declareInputs(["power"])
+
+  def putProperties(self, properties):
+    self.maxEnergy = properties.get("maxEnergy")
+    self.signalOutputFraction = properties.get("signalOutputFraction")
 
   def act(self, competitor):
     super().act(competitor)
@@ -747,7 +785,7 @@ class Capacitor(Item):
     return amount
 
   def clone(self):
-    return Capacitor(self.energy, self.signalOutputFraction)
+    return Capacitor(self.properties)
 
   def summarize(self):
     return super().summarize() + " " + str(self.energy) + "/" + str(self.maxEnergy)
@@ -760,14 +798,16 @@ class Capacitor(Item):
 
 # a Shield defends against damage
 class Shield(Item):
-  def __init__(self, defenseFraction, radius, requiredEnergy, maxSignalPower, maxPossibleDistance):
-    super().__init__()
-    self.defenseFraction = defenseFraction
-    self.radius = radius
-    self.requiredEnergy = requiredEnergy
-    self.maxSignalPower = maxSignalPower
-    self.maxPossibleDistance = maxPossibleDistance
+  def __init__(self, properties):
+    super().__init__(properties)
     self.declareInputs(["power", "distance", "direction"])
+
+  def putProperties(self, properties):
+    self.defenseFraction = properties.get("defenseFraction")
+    self.radius = properties.get("radius")
+    self.requiredEnergy = properties.get("requiredPower")
+    self.maxSignalPower = properties.get("maxSignalPower")
+    self.maxPossibleDistance = properties.get("maxPossibleDistance")
 
   def act(self, competitor):
     super().act(competitor)
@@ -787,7 +827,7 @@ class Shield(Item):
       print("power " + str(energy) + " not enough to power " + self.summarize())
 
   def clone(self):
-    return Shield(self.defenseFraction, self.radius, self.requiredEnergy, self.maxSignalPower, self.maxPossibleDistance)
+    return Shield(self.properties)
 
   def getDefenseText(self):
     return str(int(self.defenseFraction * 100)) + "%"
@@ -807,16 +847,18 @@ class Shield(Item):
 
 # senses power usage
 class PowerUsageSensor(Item):
-  def __init__(self, radius, requiredPower, maxSignalPower, maxPossibleTarget, outputRatio):
-    super().__init__()
-    self.radius = radius
-    self.requiredPower = requiredPower
-    self.maxSignalPower = maxSignalPower
-    self.maxPossibleTarget = maxPossibleTarget
-    self.outputRatio = outputRatio
+  def __init__(self, properties):
+    super().__init__(properties)
     self.reading = 0
     self.declareInputs(["power", "positionSignal"])
     self.declareOutput()
+
+  def putProperties(self, properties):
+    self.radius = properties.get("radius")
+    self.requiredPower = properties.get("requiredPower")
+    self.maxSignalPower = properties.get("maxSignalPower")
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
+    self.outputRatio = properties.get("outputRatio")
 
   def act(self, competitor):
     super().act(competitor)
@@ -841,7 +883,7 @@ class PowerUsageSensor(Item):
     return amount
 
   def clone(self):
-    return PowerUsageSensor(self.radius, self.requiredPower, self.maxSignalPower, self.maxPossibleTarget, self.outputRatio)
+    return PowerUsageSensor(self.properties)
 
   def summarize(self):
     return super().summarize()
@@ -1131,18 +1173,18 @@ class ItemDataFactory(object):
 
   def loadDefaults(self):
     self.contents = []
-    self.add(Laser(1, 1, 1, 100), 1, 2)
-    self.add(Cutter(1, 1, 100), 1, 2)
-    self.add(Battery(100, 3),1, 2)
-    self.add(Wall(4), 1, 1)
-    self.add(Resistor(0.01), 2, 1)
-    self.add(Adder(0.01, 10), 2, 1)
-    self.add(Splitter(1), 2, 1)
-    self.add(Joiner(), 2, 1)
-    self.add(If(0.05), 2, 1)
-    self.add(Capacitor(10, 0.01), 2, 1)
-    self.add(Shield(0.5, 1, 4, 1, 100), 2, 2)
-    self.add(PowerUsageSensor(1, 1, 1, 100, 0.01), 3, 1)
+    self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 1, 2)
+    self.add(Cutter({"requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 1, 2)
+    self.add(Battery({"maxCharge": 100, "dischargeRate": 3}),1, 2)
+    self.add(Wall({"hitPoints": 4}), 1, 1)
+    self.add(Resistor({"dischargeRate": 0.01}), 2, 1)
+    self.add(Adder({"addition": 0.01, "maxInput": 10}), 2, 1)
+    self.add(Splitter({"maxInput": 1}), 2, 1)
+    self.add(Joiner({}), 2, 1)
+    self.add(If({"threshold": 0.05}), 2, 1)
+    self.add(Capacitor({"maxEnergy": 10, "signalOutputFraction": 0.01}), 2, 1)
+    self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": 4, "maxSignalPower": 1, "maxPossibleDistance": 100}), 2, 2)
+    self.add(PowerUsageSensor({"radius": 1, "requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100, "outputRatio": 0.01}), 3, 1)
 
   def add(self, item, complexity, baseCost):
     name = type(item).__name__

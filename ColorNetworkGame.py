@@ -482,6 +482,9 @@ class Output(object):
       result = result + " " + self.outputName
     return result
 
+  def __str__(self):
+    return self.summarize()
+
 # attacks based on power and signal
 class Laser(Item):
   def __init__(self):

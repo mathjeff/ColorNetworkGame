@@ -366,8 +366,8 @@ class MarketStoryNode(MenuStoryNode):
     """)
     sage.setNext(self)
     self.addChoice("shop", shop)
-    self.addChoice("test", tester)
     self.addChoice("customize", customizer)
+    self.addChoice("test", tester)
     self.addChoice("talk to the sage", sage)
 
   def setNext(self, nextNode):

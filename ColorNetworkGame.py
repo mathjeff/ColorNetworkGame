@@ -99,9 +99,9 @@ class SageStoryNode(SimpleStoryNode):
       print(currentNode.text)
       # wait for player
       menu = Menu()
+      menu.addChoice("Back", currentNode.parent)
       for query, response in currentNode.children.items():
         menu.addChoice(query, response)
-      menu.addChoice("Back", currentNode.parent)
       currentNode = menu.chooseValue()
 
   def parseTree(self, welcomeText, text):

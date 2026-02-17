@@ -503,7 +503,7 @@ class Laser(Item):
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("attacks items in the opposing robot")
-    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to target a position from 0 to " + str(self.maxPossibleTarget))
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
 
 # disconnects nodes
@@ -533,7 +533,7 @@ class Cutter(Item):
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("disconnects items in the opposing robot")
-    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to target a position from 0 to " + str(self.maxPossibleTarget))
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
 
 # holds power and can provide it over time
@@ -803,8 +803,8 @@ class Shield(Item):
     messages.append("defends items up to " + str(self.radius) + " space away from the target, decreasing damage received by " + self.getDefenseText())
     messages.append("requires " + str(self.requiredEnergy) + " power per turn to function")
     messages.append("targets itself by default")
-    messages.append("can be aimed up to " + str(self.maxPossibleDistance) + " spaces away by setting distance input to " + str(self.maxSignalPower))
-    messages.append("will aim to the left if the direction input is nonzero")
+    messages.append("can be aimed up to " + str(self.maxPossibleDistance) + " spaces away from itself by setting distance input power to " + str(self.maxSignalPower))
+    messages.append("will aim to the left if the direction input power is nonzero")
     return messages
 
 # senses power usage
@@ -851,7 +851,7 @@ class PowerUsageSensor(Item):
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("Measures power usage with radius " + str(self.radius) + " from the target position in the opposing robot")
-    messages.append("Set the signal to a value from 0 to " + str(self.maxSignalPower) + " to measure a position from 0 to " + str(self.maxPossibleTarget))
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
 
 # represents an attack

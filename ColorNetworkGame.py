@@ -1165,15 +1165,6 @@ class ItemData(object):
   def clone(self):
     return ItemData(self.item, self.name, self.complexity, self.cost)
 
-  def toDict(self):
-    result = {}
-    result["type"] = type(self.item).__name__
-    result["name"] = self.name
-    result["complexity"] = self.complexity
-    result["cost"] = self.cost
-    result["properties"] = self.item.properties
-    return result
-
 # a collection of ItemData
 class ItemDataFactory(object):
   def __init__(self):
@@ -1218,6 +1209,30 @@ class ItemDataFactory(object):
     result.item.putProperties(properties)
     return result
 
+  def parseItemDataList(self, jsonObjects):
+    result = []
+    for o in jsonObjects:
+      result.append(self.parseItemData(o))
+    return result
+
+  def parseItemData(self, jsonObject):
+    name = jsonObject["name"]
+    item = self.getItemByName(name).clone()
+    item.putProperties(jsonObject["properties"])
+    complexity = jsonObject["complexity"]
+    cost = jsonObject["cost"]
+    itemData = ItemData(item, name, complexity, cost)
+    return itemData
+
+  def itemDataToDict(self, itemData):
+    result = {}
+    result["type"] = type(itemData.item).__name__
+    result["name"] = itemData.name
+    result["complexity"] = itemData.complexity
+    result["cost"] = itemData.cost
+    result["properties"] = itemData.item.properties
+    return result
+
 # a collection of predefined ItemData
 class DefaultItemDataFactory(ItemDataFactory):
   def __init__(self):
@@ -1245,7 +1260,6 @@ class FileItemDataFactory(ItemDataFactory):
   def __init__(self, defaultFactory, filepath):
     super().__init__()
     self.defaultFactory = defaultFactory
-    self.loadFile()
     self.filepath = filepath
     if os.path.isfile(filepath):
       self.loadFile()
@@ -1254,6 +1268,16 @@ class FileItemDataFactory(ItemDataFactory):
       self.saveFile()
 
   def loadFile(self):
+    json = self.readFile()
+    items = self.defaultFactory.parseItemDataList(json)
+    for item in items:
+      self.addItemData(item)
+
+  def readFile(self):
+    print("Loading item data from " + str(self.filepath))
+    with open(self.filepath) as f:
+      return json.load(f)
+
     return # not implemented yet
 
   def saveFile(self):
@@ -1264,7 +1288,7 @@ class FileItemDataFactory(ItemDataFactory):
   def serialize(self):
     components = []
     for component in self.getAll():
-      components.append(component.toDict())
+      components.append(self.itemDataToDict(component))
     return json.dumps(components, indent = 2)
 
   def loadDefaults(self):

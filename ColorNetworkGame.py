@@ -23,7 +23,7 @@ class Menu(object):
   def chooseIndex(self):
     for i in range(len(self.choices)):
       option = self.choices[i][0]
-      print(str(i) + ": " + option)
+      print(str(i + 1) + ": " + option) # first display index is 1
     choiceText = ""
     while True:
       choiceText = input("")
@@ -31,15 +31,15 @@ class Menu(object):
       if len(self.choices) <= 1:
         return 0 # there's only one choice so we return it
       try:
-        number = int(choiceText)
+        number = int(choiceText) - 1 # first display index is 1
       except Exception as e:
         print("Choose a number!")
         continue
       if number < 0:
-        print("Choose a number >= 0")
+        print("Choose a number >= 1")
         continue
       if number >= len(self.choices):
-        print("Choose a number <= " + str(len(self.choices) - 1))
+        print("Choose a number <= " + str(len(self.choices)))
         continue
       return number
 

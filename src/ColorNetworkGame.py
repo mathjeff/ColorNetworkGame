@@ -31,9 +31,26 @@ class DefaultItemDataFactory(ItemDataFactory):
 
 profile = Profile("../data/profile/")
 itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
-previousRunLog = RunLog(profile.getLatestPath("runlog"))
-runLog = RunLog(profile.getNextFilepath("runlog"))
+runLog = RunLog(profile.getLatestPath("runlog"))
+
+print("Welcome to ColorNetwork!")
+def offerChangeSettings():
+  global itemDataFactory
+  print("Choose settings for this game")
+  menu = Menu()
+  menu.addChoice("Same as last run", "Same")
+  menu.addChoice("Different from last run", "Different")
+  choice = menu.chooseValue()
+  if choice == "Different":
+    print("Creating something different")
+    profile.incrementVersion("items")
+    itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
+    return
+  print("Keeping settings the same as previous game")
+offerChangeSettings()
+
 profile.incrementVersion("runlog")
+runLog = RunLog(profile.getLatestPath("runlog"))
 profile.save()
 
 def makePlayer():

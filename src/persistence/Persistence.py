@@ -198,7 +198,6 @@ class Profile(object):
   # Should only be called after data has already been saved for that service
   def incrementVersion(self, name):
     self.versions[name] = self.getNextVersion(name)
-    self.save()
 
   # gets the latest filepath for a service
   def getLatestPath(self, name):
@@ -244,6 +243,7 @@ class Profile(object):
       f.write(text)
 
   def save(self):
+    self.validate()
     self.write()
     self.garbageCollect()
 
@@ -262,8 +262,7 @@ class Profile(object):
     if os.path.isfile(path):
       os.remove(path)
     else:
-      print("shutil.rmtree " + str(path))
-      #shutil.rmtree(path)
+      shutil.rmtree(path)
 
   def getServicePath(self, serviceName):
     return os.path.join(self.dataDir, serviceName)

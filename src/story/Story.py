@@ -411,9 +411,7 @@ class StoryGenerator(object):
   def create(self):
     player = self.player
     # create intro
-    welcome = MessageStoryNode("Welcome to ColorNetwork!")
     firstMarket = self.makeMarket(0)
-    welcome.setNext(firstMarket)
     firstOpponent = self.makeCompetition(0)
     firstMarket.setNext(firstOpponent)
     currentNode = firstOpponent
@@ -437,7 +435,7 @@ class StoryGenerator(object):
 
     success = MessageStoryNode("Success!")
     currentNode.setNext(success)
-    return welcome
+    return firstMarket
 
   def makeMarket(self, index):
     return MarketStoryNode("market-" + str(index), self.player, self.itemDataFactory, self.runLog)

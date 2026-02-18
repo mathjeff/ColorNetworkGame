@@ -1299,6 +1299,8 @@ class FileItemDataFactory(ItemDataFactory):
     return # not implemented yet
 
   def saveFile(self):
+    if os.path.exists(self.filepath):
+      raise Exception("File exists: " + str(self.filepath))
     parentPath = os.path.dirname(self.filepath)
     os.makedirs(parentPath, exist_ok = True)
     text = self.serialize()
@@ -1360,6 +1362,8 @@ class RunLog(object):
       return json.load(f)
 
   def writeEntry(self, path, entry):
+    if os.path.exists(path):
+      raise Exception("File exists: " + str(self.path))
     text = json.dumps(entry, indent = 2)
     with open(path, 'w') as f:
       f.write(text)

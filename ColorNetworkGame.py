@@ -1169,14 +1169,15 @@ class StoryGenerator(object):
 
 # information about an item
 class ItemData(object):
-  def __init__(self, item, name, complexity, cost):
+  def __init__(self, item, name, popularity, complexity, cost):
     self.item = item.clone()
     self.name = name
+    self.popularity = popularity
     self.complexity = complexity
     self.cost = cost
 
   def clone(self):
-    return ItemData(self.item, self.name, self.complexity, self.cost)
+    return ItemData(self.item, self.name, self.popularity, self.complexity, self.cost)
 
 # a collection of ItemData
 class ItemDataFactory(object):
@@ -1184,9 +1185,9 @@ class ItemDataFactory(object):
     self.contents = []
     self.contentsByName = {}
 
-  def add(self, item, complexity, baseCost):
+  def add(self, item, popularity, complexity, baseCost):
     name = type(item).__name__
-    self.addItemData(ItemData(item, name, complexity, baseCost))
+    self.addItemData(ItemData(item, name, popularity, complexity, baseCost))
 
   def addItemData(self, itemData):
     name = itemData.name
@@ -1202,7 +1203,7 @@ class ItemDataFactory(object):
   def cloneItemNamed(self, name):
     result = self.contentsByName.get(name)
     if result is None:
-      raise Exception("'" + name + "' not found in " + str(list(self.contentsByName.keys())))
+      raise Exception("'" + str(name) + "' not found in " + str(list(self.contentsByName.keys())))
     return result.item.clone()
 
   def getAll(self):
@@ -1234,15 +1235,17 @@ class ItemDataFactory(object):
     name = jsonObject["name"]
     item = self.cloneItemNamed(name)
     item.setProperties(jsonObject["properties"])
+    popularity = jsonObject["popularity"]
     complexity = jsonObject["complexity"]
     cost = jsonObject["cost"]
-    itemData = ItemData(item, name, complexity, cost)
+    itemData = ItemData(item, name, popularity, complexity, cost)
     return itemData
 
   def itemDataToDict(self, itemData):
     result = {}
     result["type"] = type(itemData.item).__name__
     result["name"] = itemData.name
+    result["popularity"] = itemData.popularity
     result["complexity"] = itemData.complexity
     result["cost"] = itemData.cost
     result["properties"] = itemData.item.properties
@@ -1256,18 +1259,19 @@ class DefaultItemDataFactory(ItemDataFactory):
 
   def loadDefaults(self):
     self.contents = []
-    self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 1, 2)
-    self.add(Cutter({"requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 1, 2)
-    self.add(Battery({"maxCharge": 100, "dischargeRate": 3}),1, 2)
-    self.add(Wall({"hitPoints": 4}), 1, 1)
-    self.add(Resistor({"dischargeRate": 0.01}), 2, 1)
-    self.add(Adder({"addition": 0.01, "maxInput": 10}), 2, 1)
-    self.add(Splitter({"maxInput": 1}), 2, 1)
-    self.add(Joiner({}), 2, 1)
-    self.add(If({"threshold": 0.05}), 2, 1)
-    self.add(Capacitor({"maxEnergy": 10, "signalOutputFraction": 0.01}), 2, 1)
-    self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": 4, "maxSignalPower": 1, "maxPossibleDistance": 100}), 2, 2)
-    self.add(PowerUsageSensor({"radius": 1, "requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100, "outputRatio": 0.01}), 3, 1)
+    # self.add(type(properties), popularity, complexity, cost)
+    self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 2, 1, 2)
+    self.add(Cutter({"requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100}), 2, 1, 2)
+    self.add(Battery({"maxCharge": 100, "dischargeRate": 3}), 2, 1, 2)
+    self.add(Wall({"hitPoints": 4}), 2, 1, 1)
+    self.add(Resistor({"dischargeRate": 0.01}), 1, 2, 1)
+    self.add(Adder({"addition": 0.01, "maxInput": 10}), 1, 2, 1)
+    self.add(Splitter({"maxInput": 1}), 1, 2, 1)
+    self.add(Joiner({}), 1, 2, 1)
+    self.add(If({"threshold": 0.05}), 1, 2, 1)
+    self.add(Capacitor({"maxEnergy": 10, "signalOutputFraction": 0.01}), 1, 2, 1)
+    self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": 4, "maxSignalPower": 1, "maxPossibleDistance": 100}), 2, 2, 2)
+    self.add(PowerUsageSensor({"radius": 1, "requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100, "outputRatio": 0.01}), 1, 3, 1)
 
 
 # a collection of ItemData saved to a file

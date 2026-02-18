@@ -31,7 +31,9 @@ class DefaultItemDataFactory(ItemDataFactory):
 
 profile = Profile("../data/profile/")
 itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
-runLog = RunLog(profile.getLatestPath("runlog"))
+previousRunLog = RunLog(profile.getLatestPath("runlog"))
+runLog = RunLog(profile.getNextFilepath("runlog"))
+profile.incrementVersion("runlog")
 profile.save()
 
 def makePlayer():
@@ -43,7 +45,7 @@ def makeStory():
   length = 10
   difficulty = 1
   complexity = 1
-  welcome = StoryGenerator(gamePlayer, length, difficulty, complexity, itemDataFactory).create()
+  welcome = StoryGenerator(gamePlayer, length, difficulty, complexity, itemDataFactory, runLog).create()
 
   return StoryNodeRunner(welcome)
 

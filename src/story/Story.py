@@ -54,7 +54,12 @@ class MenuStoryNode(StoryNode):
 
   def getNext(self):
     print(self.text)
-    return self.menu.chooseValue()
+    result = self.menu.chooseValue()
+    self.onGoTo(result)
+    return result
+
+  def onGoTo(self, choice):
+    return
 
   def addChoice(self, text, result):
     self.menu.addChoice(text, result)
@@ -175,6 +180,8 @@ class ShopStoryNode(SimpleStoryNode):
     super().__init__()
     self.player = player
     self.contents = itemDataFactory.getAll()
+    self.purchasedItems = []
+    self.itemDataFactory = itemDataFactory
 
   def process(self):
     while True:
@@ -200,9 +207,11 @@ class ShopStoryNode(SimpleStoryNode):
       if cost > self.player.money:
         print("Not enough money: " + str(player.money) + " < " + str(cost))
         continue
-      item = self.contents[itemIndex].item
+      itemData = self.contents[itemIndex]
+      item = itemData.item
       print("Enjoy your " + item.summarize() + "!")
       self.player.addItem(item)
+      self.purchasedItems.append(itemData)
       self.player.money -= cost
       del self.contents[itemIndex]
 
@@ -221,6 +230,15 @@ class ShopStoryNode(SimpleStoryNode):
     else:
       item = self.contents[choice].item
       print(item.formatHelp())
+
+  def updateRunLog(self, nodeName, runLog):
+    content = {}
+    content["purchased"] = self.serializeItemData(self.purchasedItems)
+    content["remaining"] = self.serializeItemData(self.contents)
+    runLog.add(nodeName, content)
+
+  def serializeItemData(self, itemData):
+    return [self.itemDataFactory.itemDataToDict(d) for d in itemData]
 
 class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player, itemDataFactory):
@@ -328,10 +346,12 @@ class CustomizationStoryNode(SimpleStoryNode):
     self.player.network.insert(item, choice)
 
 class MarketStoryNode(MenuStoryNode):
-  def __init__(self, player, itemDataFactory):
+  def __init__(self, nodeName, player, itemDataFactory, runLog):
     super().__init__("Welcome to the market")
-    shop = ShopStoryNode(player, itemDataFactory)
-    shop.setNext(self)
+    self.nodeName = nodeName
+    self.runLog = runLog
+    self.shop = ShopStoryNode(player, itemDataFactory)
+    self.shop.setNext(self)
     tester = TestingStoryNode(player, itemDataFactory)
     tester.setNext(self)
     customizer = CustomizationStoryNode(player)
@@ -355,13 +375,19 @@ class MarketStoryNode(MenuStoryNode):
      Really? What else do you know?:Are you familiar with https://github.com/mathjeff/JeffsKnowledgeGraph ?
     """)
     sage.setNext(self)
-    self.addChoice("shop", shop)
+    self.addChoice("shop", self.shop)
     self.addChoice("customize", customizer)
     self.addChoice("test", tester)
     self.addChoice("talk to the sage", sage)
+    self.exitNode = None
 
   def setNext(self, nextNode):
     self.addChoice("Bye!", nextNode)
+    self.exitNode = nextNode
+
+  def onGoTo(self, nextNode):
+    if nextNode == self.exitNode:
+      self.shop.updateRunLog(self.nodeName, self.runLog)
 
 # a StoryNodeRunner follows a path of StoryNode objects
 class StoryNodeRunner(object):
@@ -374,12 +400,13 @@ class StoryNodeRunner(object):
 
 # creates a StoryNode network
 class StoryGenerator(object):
-  def __init__(self, player, targetLength, difficulty, complexity, itemDataFactory):
+  def __init__(self, player, targetLength, difficulty, complexity, itemDataFactory, runLog):
     self.player = player
     self.targetLength = targetLength
     self.difficulty = difficulty
     self.complexity = complexity
     self.itemDataFactory = itemDataFactory
+    self.runLog = runLog
 
   def create(self):
     player = self.player
@@ -413,7 +440,7 @@ class StoryGenerator(object):
     return welcome
 
   def makeMarket(self, index):
-    return MarketStoryNode(self.player, self.itemDataFactory)
+    return MarketStoryNode("market-" + str(index), self.player, self.itemDataFactory, self.runLog)
 
   def makeCompetition(self, index):
     opponent = makeEasyOpponent(self.itemDataFactory)

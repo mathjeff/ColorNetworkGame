@@ -142,14 +142,12 @@ class RunLog(object):
     self.entries = {}
     os.makedirs(self.filepath, exist_ok = True)
 
-  def clear(self):
-    self.entries = []
-    for file in self.getFiles():
-      os.remove(file)
+  def add(self, name, content):
+    self.addEntry(RunLogEntry(name, content))
 
   def addEntry(self, entry):
     self.putEntryInMemory(entry)
-    entryPath = os.path.join(self.filepath, name)
+    entryPath = os.path.join(self.filepath, entry.name)
     self.writeEntry(entryPath, entry)
 
   def putEntryInMemory(self, entry):
@@ -167,6 +165,7 @@ class RunLog(object):
 
   def loadFile(self, file):
     entry = self.readFile(file)
+    entry.name = os.path.basename(file)
     self.addEntry(entry)
 
   def readFile(self, file):
@@ -175,8 +174,8 @@ class RunLog(object):
 
   def writeEntry(self, path, entry):
     if os.path.exists(path):
-      raise Exception("File exists: " + str(self.path))
-    text = json.dumps(entry, indent = 2)
+      raise Exception("File exists: " + str(path))
+    text = json.dumps(entry.content, indent = 2)
     with open(path, 'w') as f:
       f.write(text)
 

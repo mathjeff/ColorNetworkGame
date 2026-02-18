@@ -373,13 +373,19 @@ class StoryNodeRunner(object):
 # It doesn't describe other things like its cost or complexity
 class ItemProperties(object):
   def __init__(self, properties):
-    self.properties = properties
+    self.properties = dict(properties)
 
   def get(self, name):
     result = self.properties.get(name)
     if result is None:
       raise Exception("property '" + name + "' not in " + str(list(self.properties.keys())))
     return result
+
+  def keys(self):
+    return self.properties.keys()
+
+  def __str__(self):
+    return str(self.properties)
 
 # represents an object that a Competitor can use
 class Item(object):
@@ -389,11 +395,14 @@ class Item(object):
     self.outputNames = []
     self.powerAcquiredLastTurn = 0
     self.acquiringPower = False
-    self.putProperties(ItemProperties(properties))
+    self.setProperties(properties)
+
+  def setProperties(self, properties):
+    self.loadProperties(ItemProperties(properties))
     self.properties = properties
 
-  def putProperties(self, properties):
-    raise Exception("putProperties not implemented in " + str(self))
+  def loadProperties(self, properties):
+    raise Exception("loadProperties not implemented in " + str(self))
 
   def addInput(self, linkType, otherItem, outputName = None):
     if outputName not in otherItem.outputNames:
@@ -496,7 +505,7 @@ class Laser(Item):
     super().__init__(properties)
     self.declareInputs(["power", "control"])
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.requiredPower = properties.get("requiredPower")
     self.damage = properties.get("damage")
     self.maxSignalPower = properties.get("maxSignalPower")
@@ -532,7 +541,7 @@ class Cutter(Item):
   def __init__(self, properties):
     super().__init__(properties)
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.requiredPower = properties.get("requiredPower")
     self.maxSignalPower = properties.get("maxSignalPower")
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
@@ -565,7 +574,7 @@ class Battery(Item):
     super().__init__(properties)
     self.declareOutput()
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.charge = properties.get("maxCharge")
     self.dischargeRate = properties.get("dischargeRate")
     self.readyToDischarge = self.dischargeRate
@@ -598,7 +607,7 @@ class Wall(Item):
   def __init__(self, properties):
     super().__init__(properties)
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.hitPoints = properties.get("hitPoints")
 
   def summarize(self):
@@ -615,7 +624,7 @@ class Resistor(Item):
     self.declareOutput()
     self.declareInputs(["power"])
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.dischargeRate = properties.get("dischargeRate")
 
   def act(self, competitor):
@@ -650,7 +659,7 @@ class Adder(Item):
     self.declareOutput()
     self.declareInputs(["power", "signal"])
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.addition = properties.get("addition")
     self.maxInput = properties.get("maxInput")
 
@@ -687,7 +696,7 @@ class Splitter(Item):
     self.declareOutput()
     self.declareInputs(["power", "signal"])
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.maxInput = properties.get("maxInput")
 
   def act(self, competitor):
@@ -715,7 +724,7 @@ class Joiner(Item):
     self.declareOutput()
     self.declareInputs(["input1", "input2"])
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     return
 
   def tryGetPower(self, requested, outputName):
@@ -742,7 +751,7 @@ class If(Item):
     self.on = False
     self.declareInputs(["power", "signal"])
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.threshold = properties.get("threshold")
 
   def act(self, competitor):
@@ -773,7 +782,7 @@ class Capacitor(Item):
     self.declareOutputs(["power", "signal"])
     self.declareInputs(["power"])
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.maxEnergy = properties.get("maxEnergy")
     self.signalOutputFraction = properties.get("signalOutputFraction")
 
@@ -806,7 +815,7 @@ class Shield(Item):
     super().__init__(properties)
     self.declareInputs(["power", "distance", "direction"])
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.defenseFraction = properties.get("defenseFraction")
     self.radius = properties.get("radius")
     self.requiredEnergy = properties.get("requiredPower")
@@ -857,7 +866,7 @@ class PowerUsageSensor(Item):
     self.declareInputs(["power", "positionSignal"])
     self.declareOutput()
 
-  def putProperties(self, properties):
+  def loadProperties(self, properties):
     self.radius = properties.get("radius")
     self.requiredPower = properties.get("requiredPower")
     self.maxSignalPower = properties.get("maxSignalPower")
@@ -1206,11 +1215,13 @@ class ItemDataFactory(object):
 
   def mutateRandomly(self, itemData, maxFractionChange):
     result = itemData.clone()
-    properties = dict(result.item.properties)
-    for key, value in properties.items():
+    oldProperties = itemData.item.properties
+    newProperties = {}
+    for key in oldProperties.keys():
+      value = oldProperties.get(key)
       fractionChange = random.uniform(-maxFractionChange, maxFractionChange)
-      properties[key] = value * (1 + fractionChange)
-    result.item.putProperties(properties)
+      newProperties[key] = value * (1 + fractionChange)
+    result.item.setProperties(newProperties)
     return result
 
   def parseItemDataList(self, jsonObjects):
@@ -1222,7 +1233,7 @@ class ItemDataFactory(object):
   def parseItemData(self, jsonObject):
     name = jsonObject["name"]
     item = self.cloneItemNamed(name)
-    item.putProperties(jsonObject["properties"])
+    item.setProperties(jsonObject["properties"])
     complexity = jsonObject["complexity"]
     cost = jsonObject["cost"]
     itemData = ItemData(item, name, complexity, cost)

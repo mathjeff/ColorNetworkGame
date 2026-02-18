@@ -1468,12 +1468,6 @@ profile.save()
 
 def makePlayer():
   player = GamePlayer("Player")
-  #battery1 = Battery()
-  #laser1 = Laser()
-  #laser1.addInput("power", battery1)
-  #player.network.addItem(Wall())
-  #player.network.addItem(battery1)
-  #player.network.addItem(laser1)
   return player
 
 def makeEasyOpponent():

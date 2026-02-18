@@ -1317,6 +1317,55 @@ class FileItemDataFactory(ItemDataFactory):
 itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), "./data/items")
 itemDataFactory.cloneAndMutateRandomItem()
 
+# stores information about something from the player's run
+class RunLogEntry(object):
+  def __init__(self, name, content):
+    self.name = name
+    self.content = content
+
+# saves information about the player's current run
+class RunLog(object):
+  def __init__(self, filepath):
+    self.filepath = filepath
+    self.entries = {}
+    os.makedirs(self.filepath, exist_ok = True)
+
+  def clear(self):
+    self.entries = []
+    for file in self.getFiles():
+      os.remove(file)
+
+  def addEntry(self, entry):
+    self.putEntryInMemory(entry)
+    entryPath = os.path.join(self.filepath, name)
+    self.writeEntry(entryPath, entry)
+
+  def putEntryInMemory(self, entry):
+    name = entry.name
+    self.entries[name] = entry
+
+  def load(self):
+    for file in self.getFiles():
+      self.loadFile(file)
+
+  def getFiles(self):
+    filenames = os.path.listdir(self.filepath)
+    results = [os.path.join(self.filepath, filename) for filename in filenames]
+    return results
+
+  def loadFile(self, file):
+    entry = self.readFile(file)
+    self.addEntry(entry)
+
+  def readFile(self, file):
+    with open(self.filepath) as f:
+      return json.load(f)
+
+  def writeEntry(self, path, entry):
+    text = json.dumps(entry, indent = 2)
+    with open(path, 'w') as f:
+      f.write(text)
+
 def makePlayer():
   player = GamePlayer("Player")
   #battery1 = Battery()

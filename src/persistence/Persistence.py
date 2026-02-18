@@ -19,6 +19,7 @@ class ItemDataFactory(object):
   def __init__(self):
     self.contents = []
     self.contentsByName = {}
+    self.contentsByType = {}
 
   def add(self, item, popularity, complexity, baseCost):
     name = type(item).__name__
@@ -34,11 +35,18 @@ class ItemDataFactory(object):
     itemData.name = name
     self.contents.append(itemData)
     self.contentsByName[itemData.name] = itemData
+    self.contentsByType[type(itemData.item).__name__] = itemData
 
   def cloneItemNamed(self, name):
     result = self.contentsByName.get(name)
     if result is None:
       raise Exception("'" + str(name) + "' not found in " + str(list(self.contentsByName.keys())))
+    return result.item.clone()
+
+  def cloneItemWithType(self, itemType):
+    result = self.contentsByType.get(itemType)
+    if result is None:
+      raise Exception("'" + str(itemType) + "' not found in " + str(list(self.contentsByType.keys())))
     return result.item.clone()
 
   def getAll(self):
@@ -68,7 +76,8 @@ class ItemDataFactory(object):
 
   def parseItemData(self, jsonObject):
     name = jsonObject["name"]
-    item = self.cloneItemNamed(name)
+    itemType = jsonObject["type"]
+    item = self.cloneItemWithType(itemType)
     item.setProperties(jsonObject["properties"])
     popularity = jsonObject["popularity"]
     complexity = jsonObject["complexity"]

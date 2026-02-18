@@ -1314,7 +1314,7 @@ class FileItemDataFactory(ItemDataFactory):
     for itemData in self.defaultFactory.getAll():
       self.addItemData(itemData)
 
-itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), "./data/profile")
+itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), "./data/items")
 itemDataFactory.cloneAndMutateRandomItem()
 
 def makePlayer():

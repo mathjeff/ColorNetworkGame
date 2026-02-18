@@ -1,6 +1,6 @@
 #!python
 
-import json, os, random, textwrap
+import json, os, random, shutil, textwrap
 
 class StoryNode(object):
   def __init__(self):
@@ -1293,13 +1293,14 @@ class FileItemDataFactory(ItemDataFactory):
       self.addItemData(item)
 
   def readFile(self):
-    print("Loading item data from " + str(self.filepath))
     with open(self.filepath) as f:
       return json.load(f)
 
     return # not implemented yet
 
   def saveFile(self):
+    parentPath = os.path.dirname(self.filepath)
+    os.makedirs(parentPath, exist_ok = True)
     text = self.serialize()
     with open(self.filepath, 'w') as f:
       f.write(text)
@@ -1313,9 +1314,6 @@ class FileItemDataFactory(ItemDataFactory):
   def loadDefaults(self):
     for itemData in self.defaultFactory.getAll():
       self.addItemData(itemData)
-
-itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), "./data/items")
-itemDataFactory.cloneAndMutateRandomItem()
 
 # stores information about something from the player's run
 class RunLogEntry(object):
@@ -1365,6 +1363,104 @@ class RunLog(object):
     text = json.dumps(entry, indent = 2)
     with open(path, 'w') as f:
       f.write(text)
+
+# Keeps track of the versions of player data across games
+# Doesn't actually save the player data: that still has to be done by other classes
+class Profile(object):
+  def __init__(self, filepath):
+    self.dataDir = filepath
+    self.metadataPath = os.path.join(self.dataDir, "metadata")
+    self.versions = {}
+    self.targetNumBackups = 1
+    if os.path.isfile(self.metadataPath):
+      self.load()
+
+  # gets the filepath to use for the next version of the given service
+  def getNextFilepath(self, name):
+    return self.getServiceVersionPath(name, self.getNextVersion(name))
+
+  # Increments the stored version to use for the given service
+  # Should only be called after data has already been saved for that service
+  def incrementVersion(self, name):
+    self.versions[name] = self.getNextVersion(name)
+    self.save()
+
+  # gets the latest filepath for a service
+  def getLatestPath(self, name):
+    version = self.getVersion(name)
+    return self.getServiceVersionPath(name, version)
+
+  # gets the version to use for the next version of the given service
+  def getNextVersion(self, name):
+    return self.getVersion(name) + 1
+
+  # gets the latest version of a service
+  def getVersion(self, name):
+    if name not in self.versions:
+      self.versions[name] = 1
+    return self.versions[name]
+
+  # gets the filepath for a service
+  def getServiceVersionPath(self, name, version):
+    return os.path.join(self.getServicePath(name), str(version))
+
+  def load(self):
+    try:
+      self.versions = self.readFile()
+    except Exception as e:
+      raise Exception("Failed to read " + str(self.metadataPath), e)
+    self.validate()
+
+  # verifies that we have data for each service
+  def validate(self):
+    for key in self.versions.keys():
+      path = self.getLatestPath(key)
+      if not os.path.exists(path):
+        raise Exception("Path does not exist: " + path + "! Try inspecting " + str(self.dataDir) + " to see if the data can be recovered")
+
+  def readFile(self):
+    print("Loading profile data from " + str(self.metadataPath))
+    with open(self.metadataPath) as f:
+      return json.load(f)
+
+  def write(self):
+    text = json.dumps(self.versions, indent = 2)
+    with open(self.metadataPath, 'w') as f:
+      f.write(text)
+
+  def save(self):
+    self.write()
+    self.garbageCollect()
+
+  def garbageCollect(self):
+    for name in self.versions.keys():
+      savedVersions = self.listSavedVersions(name)
+      latestVersion = self.versions[name]
+      if latestVersion not in savedVersions:
+        raise Exception("error in garbage collection: version '" + str(latestVersion) + "' not found in versions " + str(savedVersions) + " for service " + str(name))
+      for version in savedVersions:
+        if version < latestVersion - self.targetNumBackups:
+          self.removeServiceVersion(name, version)
+
+  def removeServiceVersion(self, name, version):
+    path = self.getServiceVersionPath(name, version)
+    if os.path.isfile(path):
+      os.remove(path)
+    else:
+      print("shutil.rmtree " + str(path))
+      #shutil.rmtree(path)
+
+  def getServicePath(self, serviceName):
+    return os.path.join(self.dataDir, serviceName)
+
+  def listSavedVersions(self, serviceName):
+    files = os.listdir(self.getServicePath(serviceName))
+    return [int(file) for file in files]
+
+profile = Profile("./data/profile/")
+itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
+runLog = RunLog(profile.getLatestPath("runlog"))
+profile.save()
 
 def makePlayer():
   player = GamePlayer("Player")

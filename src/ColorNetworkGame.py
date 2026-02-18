@@ -1461,7 +1461,7 @@ class Profile(object):
     files = os.listdir(self.getServicePath(serviceName))
     return [int(file) for file in files]
 
-profile = Profile("./data/profile/")
+profile = Profile("../data/profile/")
 itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
 runLog = RunLog(profile.getLatestPath("runlog"))
 profile.save()

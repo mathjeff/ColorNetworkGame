@@ -517,9 +517,13 @@ class Laser(Item):
   def clone(self):
     return Laser(self.properties)
 
+  def summarize(self):
+    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.damage)
+
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("attacks items in the opposing robot")
+    messages.append("requires at least " + str(self.requiredPower) + " energy in one turn and then deals " + str(self.damage) + " damage")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
 

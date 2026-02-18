@@ -50,9 +50,11 @@ def offerChangeSettings():
     itemDataFactory.saveFile()
     return
   print("Keeping settings the same as previous game")
-offerChangeSettings()
 
-profile.incrementVersion("runlog")
+if runLog.nonEmpty():
+  offerChangeSettings()
+  profile.incrementVersion("runlog")
+
 runLog = RunLog(profile.getLatestPath("runlog"))
 profile.save()
 

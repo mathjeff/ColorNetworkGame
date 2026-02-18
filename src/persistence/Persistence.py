@@ -153,6 +153,10 @@ class RunLog(object):
     self.filepath = filepath
     self.entries = {}
     os.makedirs(self.filepath, exist_ok = True)
+    self.load()
+
+  def nonEmpty(self):
+    return len(self.entries) > 0
 
   def add(self, name, content):
     self.addEntry(RunLogEntry(name, content))
@@ -171,17 +175,18 @@ class RunLog(object):
       self.loadFile(file)
 
   def getFiles(self):
-    filenames = os.path.listdir(self.filepath)
+    filenames = os.listdir(self.filepath)
     results = [os.path.join(self.filepath, filename) for filename in filenames]
     return results
 
   def loadFile(self, file):
-    entry = self.readFile(file)
-    entry.name = os.path.basename(file)
-    self.addEntry(entry)
+    contents = self.readFile(file)
+    name = os.path.basename(file)
+    entry = RunLogEntry(name, contents)
+    self.putEntryInMemory(entry)
 
   def readFile(self, file):
-    with open(self.filepath) as f:
+    with open(file) as f:
       return json.load(f)
 
   def writeEntry(self, path, entry):

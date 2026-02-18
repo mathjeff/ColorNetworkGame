@@ -1190,11 +1190,11 @@ class ItemDataFactory(object):
     self.contents.append(itemData)
     self.contentsByName[itemData.name] = itemData
 
-  def getItemByName(self, name):
+  def cloneItemNamed(self, name):
     result = self.contentsByName.get(name)
     if result is None:
       raise Exception("'" + name + "' not found in " + str(list(self.contentsByName.keys())))
-    return result.item
+    return result.item.clone()
 
   def getAll(self):
     return self.contents[:]
@@ -1221,7 +1221,7 @@ class ItemDataFactory(object):
 
   def parseItemData(self, jsonObject):
     name = jsonObject["name"]
-    item = self.getItemByName(name).clone()
+    item = self.cloneItemNamed(name)
     item.putProperties(jsonObject["properties"])
     complexity = jsonObject["complexity"]
     cost = jsonObject["cost"]
@@ -1314,10 +1314,10 @@ def makePlayer():
 
 def makeEasyOpponent():
   player = GamePlayer("Test Opponent")
-  battery1 = itemDataFactory.getItemByName("Battery")
-  laser1 = itemDataFactory.getItemByName("Laser")
+  battery1 = itemDataFactory.cloneItemNamed("Battery")
+  laser1 = itemDataFactory.cloneItemNamed("Laser")
   laser1.addInput("power", battery1)
-  player.network.addItem(itemDataFactory.getItemByName("Wall"))
+  player.network.addItem(itemDataFactory.cloneItemNamed("Wall"))
   player.network.addItem(laser1)
   player.network.addItem(battery1)
   return player

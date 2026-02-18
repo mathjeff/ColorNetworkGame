@@ -96,7 +96,6 @@ class FileItemDataFactory(ItemDataFactory):
       self.loadFile()
     else:
       self.loadDefaults()
-      self.saveFile()
 
   def loadFile(self):
     json = self.readFile()
@@ -109,6 +108,10 @@ class FileItemDataFactory(ItemDataFactory):
       return json.load(f)
 
     return # not implemented yet
+
+  def ensureSaved(self):
+    if not os.path.exists(self.filepath):
+      self.saveFile()
 
   def saveFile(self):
     if os.path.exists(self.filepath):

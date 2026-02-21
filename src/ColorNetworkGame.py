@@ -29,7 +29,7 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": 4, "maxSignalPower": 1, "maxPossibleDistance": 100}), 2, 2, 2)
     self.add(PowerUsageSensor({"radius": 1, "requiredPower": 1, "maxSignalPower": 1, "maxPossibleTarget": 100, "outputRatio": 0.01}), 1, 3, 1)
 
-profile = Profile("../data/profile/")
+profile = Profile("data/profile/")
 itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
 itemDataFactory.ensureSaved()
 runLog = RunLog(profile.getLatestPath("runlog"))

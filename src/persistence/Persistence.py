@@ -168,6 +168,14 @@ class RunLogShopEntry(RunLogEntry):
   def getType(self):
     return "market"
 
+class RunLogCompetitionEntry(RunLogEntry):
+  def __init__(self, name, successful):
+    super().__init__(name)
+    self.successful = successful
+
+  def getType(self):
+    return "competition"
+
 # saves information about the player's current run
 class RunLog(object):
   def __init__(self, filepath, itemDataFactory): # needs an item factory to validate and parse the log
@@ -187,6 +195,9 @@ class RunLog(object):
   def getShopEntries(self):
     return self.getEntriesWithType("market")
 
+  def getCompetitionEntries(self):
+    return self.getEntriesWithType("competition")
+
   def getEntriesWithType(self, entryType):
     results = [entry for entry in self.entries.values() if entry.getType() == entryType]
     return results
@@ -204,6 +215,9 @@ class RunLog(object):
       contents["purchased"] = self.itemDataFactory.itemDataListToDict(entry.purchased)
       contents["remaining"] = self.itemDataFactory.itemDataListToDict(entry.remaining)
       return contents
+    if entryType == "competition":
+      contents["successful"] = entry.successful
+      return contents
     raise Exception("Unrecognized entry type '" + entryType + "'")
 
   def dictToEntry(self, name, contents):
@@ -213,6 +227,8 @@ class RunLog(object):
       purchased = self.itemDataFactory.parseItemDataList(contents["purchased"])
       remaining = self.itemDataFactory.parseItemDataList(contents["remaining"])
       return RunLogShopEntry(name, purchased, remaining)
+    if entryType == "competition":
+      return RunLogCompetitionEntry(name, contents["successful"])
     raise Exception("Unrecognized entry type '" + entryType + "'")
 
   def load(self):

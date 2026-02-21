@@ -157,17 +157,19 @@ class SageNode(object):
 
 # a CompetitionStoryNode runs a competition
 class CompetitionStoryNode(SimpleStoryNode):
-  def __init__(self, index, player, opponent):
+  def __init__(self, index, player, opponent, runLog):
     super().__init__()
     self.index = index
     self.player = player
     self.opponent = opponent
+    self.runLog = runLog
 
   def process(self):
     print("Room " + str(self.index) + ": you enter a competition with " + str(self.opponent.name))
     competition = Competition([self.player, self.opponent])
     result = competition.run()
     print("")
+    self.updateRunLog(result)
     if result is None:
       print("Tie!\n")
     else:
@@ -182,6 +184,10 @@ class CompetitionStoryNode(SimpleStoryNode):
         else:
           print("Loss limit (" + str(self.player.numLosses) + ") reached. Bye!")
           sys.exit(0)
+
+  def updateRunLog(self, successful):
+    entry = RunLogCompetitionEntry(str(self.index), successful)
+    self.runLog.addEntry(entry)
 
 class ShopStoryNode(SimpleStoryNode):
   def __init__(self, player, complexity, itemDataFactory):
@@ -295,8 +301,11 @@ class ShopStoryNode(SimpleStoryNode):
 
 class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player, itemDataFactory):
-    super().__init__(-1, player, makeOpponent(1, itemDataFactory))
+    super().__init__(-1, player, makeOpponent(1, itemDataFactory), None)
     self.nextNode = None
+
+  def updateRunLog(self, successful):
+    return # don't save test results
 
 class CustomizationStoryNode(SimpleStoryNode):
   def __init__(self, player):
@@ -464,7 +473,7 @@ class StoryGenerator(object):
     player = self.player
     # create intro
     firstMarket = self.makeMarket(0)
-    firstOpponent = self.competitionBuilder.buildCompetition(player, 0, self.itemDataFactory)
+    firstOpponent = self.competitionBuilder.buildCompetition(player, 0, self.itemDataFactory, self.runLog)
     firstMarket.setNext(firstOpponent)
     currentNode = firstOpponent
 
@@ -483,7 +492,7 @@ class StoryGenerator(object):
         currentNode = market
         numMarketsRemaining -= 1
         continue
-      competition = self.competitionBuilder.buildCompetition(player, index, self.itemDataFactory)
+      competition = self.competitionBuilder.buildCompetition(player, index, self.itemDataFactory, self.runLog)
       currentNode.setNext(competition)
       currentNode = competition
 
@@ -507,10 +516,10 @@ class CompetitionBuilder(object):
       self.setupDefaults()
       self.save(filepath)
 
-  def buildCompetition(self, player, roomIndex, itemDataFactory):
+  def buildCompetition(self, player, roomIndex, itemDataFactory, runLog):
     difficulty = self.getDifficulty(roomIndex)
     opponent = makeOpponent(difficulty, itemDataFactory)
-    competition = CompetitionStoryNode(roomIndex, player, opponent)
+    competition = CompetitionStoryNode(roomIndex, player, opponent, runLog)
     return competition
 
   def getMaxLength(self):

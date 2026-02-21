@@ -198,9 +198,19 @@ class ShopStoryNode(SimpleStoryNode):
     if len(simpleItems) < targetNumItems:
       results = simpleItems[:]
     candidates = simpleItems + complexItems
+    # compute some item weights based on their popularity
+    weightedCandidates = []
+    for candidate in candidates:
+      count = candidate.popularity
+      while count > 0:
+        weightedCandidates.append(candidate)
+        count -= 1
+      if count > 0:
+        if random.uniform(1) < count:
+          weightedCandidates.append(candidate)
     # complete the store with random simple or complicated items
     while len(results) < targetNumItems:
-      results.append(random.choice(candidates))
+      results.append(random.choice(weightedCandidates))
     return results
 
   def process(self):

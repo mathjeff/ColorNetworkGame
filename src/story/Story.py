@@ -176,12 +176,32 @@ class CompetitionStoryNode(SimpleStoryNode):
         print("Failure\n")
 
 class ShopStoryNode(SimpleStoryNode):
-  def __init__(self, player, itemDataFactory):
+  def __init__(self, player, complexity, itemDataFactory):
     super().__init__()
     self.player = player
-    self.contents = itemDataFactory.getAll()
+    self.contents = self.chooseContents(complexity, itemDataFactory)
     self.purchasedItems = []
     self.itemDataFactory = itemDataFactory
+
+  def chooseContents(self, complexity, itemDataFactory):
+    simpleItems = []
+    complexItems = []
+    for itemData in itemDataFactory.getAll():
+      if itemData.complexity <= complexity:
+        simpleItems.append(itemData)
+      else:
+        if itemData.complexity <= complexity + 1:
+          complexItems.append(itemData)
+    # include all simple items if there is space
+    results = []
+    targetNumItems = 10
+    if len(simpleItems) < targetNumItems:
+      results = simpleItems[:]
+    candidates = simpleItems + complexItems
+    # complete the store with random simple or complicated items
+    while len(results) < targetNumItems:
+      results.append(random.choice(candidates))
+    return results
 
   def process(self):
     while True:
@@ -344,11 +364,11 @@ class CustomizationStoryNode(SimpleStoryNode):
     self.player.network.insert(item, choice)
 
 class MarketStoryNode(MenuStoryNode):
-  def __init__(self, nodeName, player, itemDataFactory, runLog):
+  def __init__(self, nodeName, player, complexity, itemDataFactory, runLog):
     super().__init__("Welcome to the market")
     self.nodeName = nodeName
     self.runLog = runLog
-    self.shop = ShopStoryNode(player, itemDataFactory)
+    self.shop = ShopStoryNode(player, complexity, itemDataFactory)
     self.shop.setNext(self)
     tester = TestingStoryNode(player, itemDataFactory)
     tester.setNext(self)
@@ -436,7 +456,10 @@ class StoryGenerator(object):
     return firstMarket
 
   def makeMarket(self, index):
-    return MarketStoryNode(str(index), self.player, self.itemDataFactory, self.runLog)
+    fractionComplete = index / self.targetLength
+    nodeComplexity = 1 + fractionComplete * (self.complexity - 1)
+    nodeName = str(index)
+    return MarketStoryNode(nodeName, self.player, nodeComplexity, self.itemDataFactory, self.runLog)
 
   def makeCompetition(self, index):
     opponent = makeEasyOpponent(self.itemDataFactory)

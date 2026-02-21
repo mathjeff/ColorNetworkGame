@@ -125,7 +125,7 @@ def makeStory():
   gamePlayer = makePlayer()
   length = 10
   difficulty = 1
-  complexity = 1
+  complexity = 3
   welcome = StoryGenerator(gamePlayer, length, difficulty, complexity, itemDataFactory, runLog).create()
 
   return StoryNodeRunner(welcome)

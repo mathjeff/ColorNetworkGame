@@ -235,7 +235,7 @@ class ShopStoryNode(SimpleStoryNode):
       itemIndex = choice
       cost = self.contents[itemIndex].cost
       if cost > self.player.money:
-        print("Not enough money: " + str(player.money) + " < " + str(cost))
+        print("Not enough money: " + str(self.player.money) + " < " + str(cost))
         continue
       itemData = self.contents[itemIndex]
       item = itemData.item.clone()

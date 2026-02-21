@@ -40,14 +40,15 @@ def offerChangeSettings():
   print("Choose settings for this game")
   menu = Menu()
   menu.addChoice("Same as last run", "Same")
-  menu.addChoice("Different from last run", "Different")
+  menu.addChoice("Easier than last run", "Easier")
   choice = menu.chooseValue()
-  if choice == "Different":
-    print("Creating something different")
+  if choice == "Easier":
+    print("Creating something easier")
     profile.incrementVersion("items")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
-    itemDataFactory.cloneAndMutateRandomItem()
-    itemDataFactory.saveFile()
+    for itemData in itemDataFactory.getAll():
+      itemData.cost /= 1.1
+    itemDataFactory.ensureSaved()
     return
   print("Keeping settings the same as previous game")
 

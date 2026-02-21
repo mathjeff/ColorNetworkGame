@@ -240,14 +240,17 @@ class Profile(object):
       self.versions = self.readFile()
     except Exception as e:
       raise Exception("Failed to read " + str(self.metadataPath), e)
-    self.validate()
+    try:
+      self.validate()
+    except Exception as e:
+      raise Exception("Loaded data is not valid! try inspecting " + str(self.dataDir) + " to see if the data can be recovered", e)
 
   # verifies that we have data for each service
   def validate(self):
     for key in self.versions.keys():
       path = self.getLatestPath(key)
       if not os.path.exists(path):
-        raise Exception("Path does not exist: " + path + "! Try inspecting " + str(self.dataDir) + " to see if the data can be recovered")
+        raise Exception("Path does not exist: " + path)
 
   def readFile(self):
     print("Loading profile data from " + str(self.metadataPath))
@@ -260,7 +263,10 @@ class Profile(object):
       f.write(text)
 
   def save(self):
-    self.validate()
+    try:
+      self.validate()
+    except Exception as e:
+      raise Exception("Internal error: must save service data before saving Profile data", e)
     self.write()
     self.garbageCollect()
 

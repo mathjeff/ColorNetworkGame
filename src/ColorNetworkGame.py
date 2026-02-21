@@ -49,10 +49,7 @@ def getItemPurchaseCounts(runLog, itemDataFactory):
 print("Welcome to ColorNetwork!")
 def raiseDifficulty(multiplier, purchaseCounts):
   global itemDataFactory
-  print("Creating something harder")
-  # make a new item factory based on the previous one
-  profile.incrementVersion("items")
-  itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+  # raise prices of items that were purchased the most
   averageCostMultiplier = multiplier
   totalNumPurchases = sum(purchaseCounts.values())
   numPossibleItems = len(itemDataFactory.getAll())
@@ -67,12 +64,23 @@ def raiseDifficulty(multiplier, purchaseCounts):
 
 def lowerDifficulty(multiplier):
   global itemDataFactory
-  print("Creating something easier")
-  # make a new item factory based on the previous one
-  profile.incrementVersion("items")
-  itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+  # lower all prices equally
   for itemData in itemDataFactory.getAll():
     itemData.cost /= multiplier
+
+def adjustShopFrequencies(multiplier, purchaseCounts):
+  # raise the popularity of items that were purchased more
+  oldWeight = 1 / multiplier
+  newWeight = 1 - oldWeight
+  totalNumPurchases = sum(purchaseCounts.values())
+  totalPopularity = sum([itemData.popularity for itemData in itemDataFactory.getAll()])
+  popularityPerPurchase = totalPopularity / totalNumPurchases
+  for itemName in purchaseCounts:
+    itemTemplate = itemDataFactory.getTemplateNamed(itemName)
+    oldPopularity = itemTemplate.popularity
+    newPopularity = oldPopularity * oldWeight + purchaseCounts[itemName] * popularityPerPurchase * newWeight
+    print("changing popularity of " + itemName + " from " + str(oldPopularity) + " to " + str(newPopularity))
+    itemTemplate.popularity = newPopularity
 
 def offerChangeSettings():
   global itemDataFactory
@@ -87,21 +95,20 @@ def offerChangeSettings():
   menu.addChoice("Harder than last run", "Harder")
   menu.addChoice("Different than last run", "Different")
   choice = menu.chooseValue()
-  difficultyMultiplier = 1.1
-  if choice == "Harder":
-    raiseDifficulty(difficultyMultiplier, purchaseCounts)
-    itemDataFactory.ensureSaved()
+  if choice == "Same":
+    print("Keeping settings the same as previous game")
     return
-  if choice == "Easier":
-    lowerDifficulty(difficultyMultiplier)
-    itemDataFactory.ensureSaved()
-    return
-  if choice == "Different":
-    raiseDifficulty(difficultyMultiplier, purchaseCounts)
-    lowerDifficulty(difficultyMultiplier)
-    itemDataFactory.ensureSaved()
-    return
-  print("Keeping settings the same as previous game")
+  # make a new item factory based on the previous one
+  profile.incrementVersion("items")
+  itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+  changeMultiplier = 1.1
+  if choice == "Harder" or choice == "Different":
+    raiseDifficulty(changeMultiplier, purchaseCounts)
+  if choice == "Easier" or choice == "Different":
+    lowerDifficulty(changeMultiplier)
+  adjustShopFrequencies(changeMultiplier, purchaseCounts)
+  itemDataFactory.ensureSaved()
+  print("Ok!")
 
 if runLog.nonEmpty():
   offerChangeSettings()

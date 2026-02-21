@@ -208,7 +208,7 @@ class ShopStoryNode(SimpleStoryNode):
         print("Not enough money: " + str(player.money) + " < " + str(cost))
         continue
       itemData = self.contents[itemIndex]
-      item = itemData.item
+      item = itemData.item.clone()
       print("Enjoy your " + item.summarize() + "!")
       self.player.addItem(item)
       self.purchasedItems.append(itemData)

@@ -211,7 +211,24 @@ class ShopStoryNode(SimpleStoryNode):
     # complete the store with random simple or complicated items
     while len(results) < targetNumItems:
       results.append(random.choice(weightedCandidates))
+    # randomize the costs somewhat, and round them
+    for i in range(len(results)):
+      itemData = results[i].clone()
+      itemData.cost = self.round(itemData.cost * random.uniform(2.0/3.0, 4.0/3.0))
+      results[i] = itemData
     return results
+
+  # rounds to the first two decimal places
+  def round(self, value):
+    multiplier = 1
+    radix = 10
+    while value > 100:
+      value /= radix
+      multiplier *= radix
+    while value < 10:
+      value *= radix
+      multiplier /= radix
+    return round(value) * multiplier
 
   def process(self):
     while True:

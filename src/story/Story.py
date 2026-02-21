@@ -232,10 +232,8 @@ class ShopStoryNode(SimpleStoryNode):
       print(item.formatHelp())
 
   def updateRunLog(self, nodeName, runLog):
-    content = {}
-    content["purchased"] = self.serializeItemData(self.purchasedItems)
-    content["remaining"] = self.serializeItemData(self.contents)
-    runLog.add(nodeName, content)
+    entry = RunLogShopEntry(nodeName, self.purchasedItems, self.contents)
+    runLog.addEntry(entry)
 
   def serializeItemData(self, itemData):
     return [self.itemDataFactory.itemDataToDict(d) for d in itemData]
@@ -438,7 +436,7 @@ class StoryGenerator(object):
     return firstMarket
 
   def makeMarket(self, index):
-    return MarketStoryNode("market-" + str(index), self.player, self.itemDataFactory, self.runLog)
+    return MarketStoryNode(str(index), self.player, self.itemDataFactory, self.runLog)
 
   def makeCompetition(self, index):
     opponent = makeEasyOpponent(self.itemDataFactory)

@@ -32,22 +32,73 @@ class DefaultItemDataFactory(ItemDataFactory):
 profile = Profile("data/profile/")
 itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
 itemDataFactory.ensureSaved()
-runLog = RunLog(profile.getLatestPath("runlog"))
+runLog = RunLog(profile.getLatestPath("runlog"), itemDataFactory)
+
+def getItemPurchaseCounts(runLog, itemDataFactory):
+  counts = {}
+  for itemData in itemDataFactory.getAll():
+    counts[itemData.name] = 0
+  shopEntries = runLog.getShopEntries()
+  for entry in shopEntries:
+    for itemData in entry.purchased:
+      name = itemData.name
+      count = counts.get(name, 0)
+      counts[name] = count + 1
+  return counts
 
 print("Welcome to ColorNetwork!")
+def raiseDifficulty(multiplier, purchaseCounts):
+  global itemDataFactory
+  print("Creating something harder")
+  # make a new item factory based on the previous one
+  profile.incrementVersion("items")
+  itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+  averageCostMultiplier = multiplier
+  totalNumPurchases = sum(purchaseCounts.values())
+  numPossibleItems = len(itemDataFactory.getAll())
+  increasePerPurchase = (averageCostMultiplier - 1) * numPossibleItems / totalNumPurchases
+  for itemName, purchaseCount in purchaseCounts.items():
+    if purchaseCount > 0:
+      itemData = itemDataFactory.getTemplateNamed(itemName)
+      oldCost = itemData.cost
+      newCost = oldCost * (1 + purchaseCount * increasePerPurchase)
+      print("increasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being bought " + str(purchaseCount) + "/" + str(totalNumPurchases) + " times")
+      itemData.cost = newCost
+
+def lowerDifficulty(multiplier):
+  global itemDataFactory
+  print("Creating something easier")
+  # make a new item factory based on the previous one
+  profile.incrementVersion("items")
+  itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+  for itemData in itemDataFactory.getAll():
+    itemData.cost /= multiplier
+
 def offerChangeSettings():
   global itemDataFactory
+  purchaseCounts = getItemPurchaseCounts(runLog, itemDataFactory)
+  numPurchases = sum(purchaseCounts.values())
+  if numPurchases < 1:
+    return # didn't buy anything
   print("Choose settings for this game")
   menu = Menu()
   menu.addChoice("Same as last run", "Same")
   menu.addChoice("Easier than last run", "Easier")
+  menu.addChoice("Harder than last run", "Harder")
+  menu.addChoice("Different than last run", "Different")
   choice = menu.chooseValue()
+  difficultyMultiplier = 1.1
+  if choice == "Harder":
+    raiseDifficulty(difficultyMultiplier, purchaseCounts)
+    itemDataFactory.ensureSaved()
+    return
   if choice == "Easier":
-    print("Creating something easier")
-    profile.incrementVersion("items")
-    itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
-    for itemData in itemDataFactory.getAll():
-      itemData.cost /= 1.1
+    lowerDifficulty(difficultyMultiplier)
+    itemDataFactory.ensureSaved()
+    return
+  if choice == "Different":
+    raiseDifficulty(difficultyMultiplier, purchaseCounts)
+    lowerDifficulty(difficultyMultiplier)
     itemDataFactory.ensureSaved()
     return
   print("Keeping settings the same as previous game")
@@ -56,7 +107,7 @@ if runLog.nonEmpty():
   offerChangeSettings()
   profile.incrementVersion("runlog")
 
-runLog = RunLog(profile.getLatestPath("runlog"))
+runLog = RunLog(profile.getLatestPath("runlog"), itemDataFactory)
 profile.save()
 
 def makePlayer():

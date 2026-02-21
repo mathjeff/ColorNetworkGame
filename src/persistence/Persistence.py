@@ -37,11 +37,14 @@ class ItemDataFactory(object):
     self.contentsByName[itemData.name] = itemData
     self.contentsByType[type(itemData.item).__name__] = itemData
 
-  def cloneItemNamed(self, name):
+  def getTemplateNamed(self, name):
     result = self.contentsByName.get(name)
     if result is None:
       raise Exception("'" + str(name) + "' not found in " + str(list(self.contentsByName.keys())))
-    return result.item.clone()
+    return result
+
+  def cloneItemNamed(self, name):
+    return self.getTemplateNamed(name).item.clone()
 
   def cloneItemWithType(self, itemType):
     result = self.contentsByType.get(itemType)
@@ -84,6 +87,12 @@ class ItemDataFactory(object):
     cost = jsonObject["cost"]
     itemData = ItemData(item, name, popularity, complexity, cost)
     return itemData
+
+  def itemDataListToDict(self, itemDataList):
+    result = []
+    for itemData in itemDataList:
+      result.append(self.itemDataToDict(itemData))
+    return result
 
   def itemDataToDict(self, itemData):
     result = {}
@@ -141,34 +150,70 @@ class FileItemDataFactory(ItemDataFactory):
     for itemData in self.defaultFactory.getAll():
       self.addItemData(itemData)
 
-# stores information about something from the player's run
+# information stored in the RunLog
 class RunLogEntry(object):
-  def __init__(self, name, content):
+  def __init__(self, name):
     self.name = name
-    self.content = content
+
+  def getType():
+    raise Exception("getType() not defined in " + str(self))
+
+# stores information about vising a shop into the RunLog
+class RunLogShopEntry(RunLogEntry):
+  def __init__(self, name, purchased, remaining):
+    super().__init__(name)
+    self.purchased = purchased
+    self.remaining = remaining
+
+  def getType(self):
+    return "market"
 
 # saves information about the player's current run
 class RunLog(object):
-  def __init__(self, filepath):
+  def __init__(self, filepath, itemDataFactory): # needs an item factory to validate and parse the log
     self.filepath = filepath
     self.entries = {}
     os.makedirs(self.filepath, exist_ok = True)
+    self.itemDataFactory = itemDataFactory
     self.load()
 
   def nonEmpty(self):
     return len(self.entries) > 0
 
-  def add(self, name, content):
-    self.addEntry(RunLogEntry(name, content))
-
   def addEntry(self, entry):
     self.putEntryInMemory(entry)
-    entryPath = os.path.join(self.filepath, entry.name)
-    self.writeEntry(entryPath, entry)
+    self.writeEntry(entry)
+
+  def getShopEntries(self):
+    return self.getEntriesWithType("market")
+
+  def getEntriesWithType(self, entryType):
+    results = [entry for entry in self.entries.values() if entry.getType() == entryType]
+    return results
 
   def putEntryInMemory(self, entry):
     name = entry.name
     self.entries[name] = entry
+
+  def entryToDict(self, entry):
+    contents = {}
+    entryType = entry.getType()
+    contents["type"] = entryType
+    contents["name"] = entry.name
+    if entryType == "market":
+      contents["purchased"] = self.itemDataFactory.itemDataListToDict(entry.purchased)
+      contents["remaining"] = self.itemDataFactory.itemDataListToDict(entry.remaining)
+      return contents
+    raise Exception("Unrecognized entry type '" + entryType + "'")
+
+  def dictToEntry(self, name, contents):
+    entryType = contents["type"]
+    if entryType == "market":
+      name = contents["name"]
+      purchased = self.itemDataFactory.parseItemDataList(contents["purchased"])
+      remaining = self.itemDataFactory.parseItemDataList(contents["remaining"])
+      return RunLogShopEntry(name, purchased, remaining)
+    raise Exception("Unrecognized entry type '" + entryType + "'")
 
   def load(self):
     for file in self.getFiles():
@@ -182,19 +227,25 @@ class RunLog(object):
   def loadFile(self, file):
     contents = self.readFile(file)
     name = os.path.basename(file)
-    entry = RunLogEntry(name, contents)
+    entry = self.dictToEntry(name, contents)
     self.putEntryInMemory(entry)
 
   def readFile(self, file):
     with open(file) as f:
       return json.load(f)
 
-  def writeEntry(self, path, entry):
+  def writeEntry(self, entry):
+    path = os.path.join(self.filepath, entry.getType() + "-" + entry.name)
+
     if os.path.exists(path):
       raise Exception("File exists: " + str(path))
-    text = json.dumps(entry.content, indent = 2)
+    content = self.entryToDict(entry)
+    text = json.dumps(content, indent = 2)
     with open(path, 'w') as f:
       f.write(text)
+
+  def getEntries(self):
+    return self.entries.values()
 
 # Keeps track of the versions of player data across games
 # Doesn't actually save the player data: that still has to be done by other classes

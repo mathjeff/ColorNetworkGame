@@ -3,7 +3,7 @@
 from competition.Competition import *
 from items.Items import *
 
-import random, textwrap
+import random, sys, textwrap
 
 class StoryNode(object):
   def __init__(self):
@@ -164,7 +164,6 @@ class CompetitionStoryNode(SimpleStoryNode):
     self.opponent = opponent
 
   def process(self):
-    print("Room #" + str(self.index))
     print("You enter a competition with " + str(self.opponent.name))
     competition = Competition([self.player, self.opponent])
     result = competition.run()
@@ -176,6 +175,13 @@ class CompetitionStoryNode(SimpleStoryNode):
         print("Success! You defeated " + str(self.opponent.name) + "\n")
       else:
         print("Failure\n")
+        self.player.numLosses += 1
+        hitpoints = self.player.getHitpoints()
+        if hitpoints > 0:
+          print("You may continue until " + str(hitpoints) + " more losses")
+        else:
+          print("Loss limit (" + str(self.player.numLosses) + ") reached. Bye!")
+          sys.exit(0)
 
 class ShopStoryNode(SimpleStoryNode):
   def __init__(self, player, complexity, itemDataFactory):
@@ -549,12 +555,16 @@ class GamePlayer(object):
     self.money = 100
     self.items = []
     self.network = Network()
+    self.numLosses = 0
 
   def addItem(self, item):
     self.items.append(item)
 
   def buildCompetitor(self):
     return Competitor(self.name, self.network.clone())
+
+  def getHitpoints(self):
+    return 3 - self.numLosses
 
 def makeOpponent(difficulty, itemDataFactory):
   player = GamePlayer("Opponent")

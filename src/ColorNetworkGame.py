@@ -49,10 +49,9 @@ def getItemPurchaseCounts(runLog, itemDataFactory):
 
 print("Welcome to ColorNetwork!")
 
-def raiseCosts(multiplier, purchaseCounts):
+def raiseCosts(averageCostMultiplier, purchaseCounts):
   global itemDataFactory
   # raise prices of items that were purchased the most
-  averageCostMultiplier = multiplier
   totalNumPurchases = sum(purchaseCounts.values())
   numPossibleItems = len(itemDataFactory.getAll())
   increasePerPurchase = (averageCostMultiplier - 1) * numPossibleItems / totalNumPurchases
@@ -84,13 +83,30 @@ def adjustShopFrequencies(multiplier, purchaseCounts):
     print("changing popularity of " + itemName + " from " + str(oldPopularity) + " to " + str(newPopularity))
     itemTemplate.popularity = newPopularity
 
-def decrementLength():
-  competitionBuilder.decrementLength()
-  profile.incrementVersion("rooms")
+def rescaleRoomDifficulties(difficultyMultiplier, competitionResults):
+  for i in range(competitionBuilder.getMaxLength()):
+    difficulty = competitionBuilder.getDifficulty(i)
+    competitionBuilder.rescaleDifficulty(i, difficultyMultiplier)
+    newDifficulty = competitionBuilder.getDifficulty(i)
+    print("Rescaled difficulty at " + str(i) + " from " + str(difficulty) + " to " + str(newDifficulty))
 
-def incrementLength():
-  competitionBuilder.incrementLength()
-  profile.incrementVersion("rooms")
+def lowerRoomDifficulties(difficultyMultiplier, competitionResults):
+  numFailures = 0
+  for entry in competitionResults:
+    if not entry.successful:
+      numFailures += 1
+  if numFailures < 1:
+    # if there is no data, then rescale all difficulty settings by the same amount
+    rescaleRoomDifficulties(1 / difficultyMultiplier, competitionResults)
+    return
+  multiplierPerFailure = pow(difficultyMultiplier, competitionBuilder.getMaxLength() / numFailures)
+  for entry in competitionResults:
+    if not entry.successful:
+      index = int(entry.name)
+      difficulty = competitionBuilder.getDifficulty(index)
+      competitionBuilder.rescaleDifficulty(index, 1 / multiplierPerFailure)
+      newDifficulty = competitionBuilder.getDifficulty(index)
+      print("Rescaled difficulty at " + str(index) + " from " + str(difficulty) + " to " + str(newDifficulty))
 
 def offerChangeSettings():
   global itemDataFactory
@@ -98,6 +114,7 @@ def offerChangeSettings():
   numPurchases = sum(purchaseCounts.values())
   if numPurchases < 1:
     return # didn't buy anything
+  competitionResults = runLog.getCompetitionEntries()
   print("Choose settings for this game")
   menu = Menu()
   menu.addChoice("Same as last run", "Same")
@@ -113,25 +130,37 @@ def offerChangeSettings():
   changeMultiplier = 1.1
   # adjust length if requested
   if choice == "Shorter":
-    decrementLength()
+    competitionBuilder.decrementLength()
+    profile.incrementVersion("rooms")
   if choice == "Longer":
-    incrementLength()
+    competitionBuilder.decrementLength()
+    profile.incrementVersion("rooms")
   # adjust difficulty if requested
   if choice in ["Easier", "Harder"]:
     # make a new item factory based on the previous one
     profile.incrementVersion("items")
+    profile.incrementVersion("rooms")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
     if choice == "Harder":
       raiseCosts(changeMultiplier, purchaseCounts)
+      rescaleRoomDifficulties(changeMultiplier, competitionResults)
     if choice == "Easier":
       lowerCosts(changeMultiplier)
+      lowerRoomDifficulties(changeMultiplier, competitionResults)
     adjustShopFrequencies(changeMultiplier, purchaseCounts)
+
   if choice == "Different":
     profile.incrementVersion("items")
+    profile.incrementVersion("rooms")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+    # adjust costs
     raiseCosts(changeMultiplier, purchaseCounts)
     lowerCosts(changeMultiplier)
+    # adjust item frequencies
     adjustShopFrequencies(changeMultiplier, purchaseCounts)
+    # adjust room difficulties
+    rescaleRoomDifficulties(changeMultiplier, competitionResults)
+    lowerRoomDifficulties(changeMultiplier, competitionResults)
   itemDataFactory.ensureSaved()
   competitionBuilder.ensureSaved(profile.getLatestPath("rooms"))
 

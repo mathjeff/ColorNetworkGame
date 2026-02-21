@@ -204,6 +204,8 @@ class RunLog(object):
 
   def putEntryInMemory(self, entry):
     name = entry.name
+    if name in self.entries:
+      raise Exception("Duplicate RunLog entries with name " + str(name) + "!")
     self.entries[name] = entry
 
   def entryToDict(self, entry):
@@ -220,10 +222,10 @@ class RunLog(object):
       return contents
     raise Exception("Unrecognized entry type '" + entryType + "'")
 
-  def dictToEntry(self, name, contents):
+  def dictToEntry(self, contents):
     entryType = contents["type"]
+    name = contents["name"]
     if entryType == "market":
-      name = contents["name"]
       purchased = self.itemDataFactory.parseItemDataList(contents["purchased"])
       remaining = self.itemDataFactory.parseItemDataList(contents["remaining"])
       return RunLogShopEntry(name, purchased, remaining)
@@ -242,8 +244,7 @@ class RunLog(object):
 
   def loadFile(self, file):
     contents = self.readFile(file)
-    name = os.path.basename(file)
-    entry = self.dictToEntry(name, contents)
+    entry = self.dictToEntry(contents)
     self.putEntryInMemory(entry)
 
   def readFile(self, file):

@@ -473,13 +473,13 @@ class StoryGenerator(object):
     player = self.player
     # create intro
     firstMarket = self.makeMarket(0)
-    firstOpponent = self.competitionBuilder.buildCompetition(player, 0, self.itemDataFactory, self.runLog)
+    firstOpponent = self.competitionBuilder.buildCompetition(player, 1, self.itemDataFactory, self.runLog)
     firstMarket.setNext(firstOpponent)
     currentNode = firstOpponent
 
     # create main content
     numMarketsRemaining = max(1, int(self.targetLength / 20))
-    index = 0
+    index = 1
     while True:
       index += 1
       if index >= self.targetLength:
@@ -527,6 +527,9 @@ class CompetitionBuilder(object):
 
   def getDifficulty(self, roomIndex):
     return self.difficulties[roomIndex]
+
+  def rescaleDifficulty(self, roomIndex, difficulty):
+    self.difficulties[roomIndex] *= difficulty
 
   def decrementLength(self):
     if len(self.difficulties) > 2:

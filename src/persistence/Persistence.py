@@ -50,7 +50,7 @@ class ItemDataFactory(object):
     return result.item.clone()
 
   def getAll(self):
-    return self.contents[:]
+    return self.contents
 
   def cloneAndMutateRandomItem(self):
     index = random.randint(0, len(self.contents) - 1)

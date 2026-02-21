@@ -287,7 +287,7 @@ class ShopStoryNode(SimpleStoryNode):
 
 class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player, itemDataFactory):
-    super().__init__(player, makeEasyOpponent(itemDataFactory))
+    super().__init__(player, makeOpponent(1, itemDataFactory))
     self.nextNode = None
 
 class CustomizationStoryNode(SimpleStoryNode):
@@ -489,7 +489,7 @@ class StoryGenerator(object):
     return MarketStoryNode(nodeName, self.player, nodeComplexity, self.itemDataFactory, self.runLog)
 
   def makeCompetition(self, index):
-    opponent = makeEasyOpponent(self.itemDataFactory)
+    opponent = makeOpponent(index, self.itemDataFactory)
     competition = CompetitionStoryNode(self.player, opponent)
     return competition
 
@@ -554,12 +554,27 @@ class GamePlayer(object):
   def buildCompetitor(self):
     return Competitor(self.name, self.network.clone())
 
-def makeEasyOpponent(itemDataFactory):
-  player = GamePlayer("Test Opponent")
-  battery1 = itemDataFactory.cloneItemNamed("Battery")
-  laser1 = itemDataFactory.cloneItemNamed("Laser")
-  laser1.addInput("power", battery1)
-  player.network.addItem(itemDataFactory.cloneItemNamed("Wall"))
-  player.network.addItem(laser1)
-  player.network.addItem(battery1)
+def makeOpponent(difficulty, itemDataFactory):
+  player = GamePlayer("Opponent")
+  network = player.network
+  batteries = []
+  lasers = []
+  for i in range(difficulty):
+    choice = random.randint(0, 2)
+    if choice == 0:
+      battery = itemDataFactory.cloneItemNamed("Battery")
+      network.addItem(battery)
+      batteries.append(battery)
+      continue
+    if choice == 1:
+      laser = itemDataFactory.cloneItemNamed("Laser")
+      network.addItem(laser)
+      lasers.append(laser)
+      continue
+    if choice == 2:
+      network.addItem(itemDataFactory.cloneItemNamed("Wall"))
+      continue
+  if len(batteries) > 0:
+    for laser in lasers:
+      laser.addInput("power", random.choice(batteries))
   return player

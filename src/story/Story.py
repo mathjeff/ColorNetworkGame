@@ -531,6 +531,10 @@ class CompetitionBuilder(object):
   def loadFile(self, filepath):
     self.difficulties = self.readFile(filepath)
 
+  def ensureSaved(self, filepath):
+    if not os.path.isfile(filepath):
+      self.save(filepath)
+
   def save(self, filepath):
     if os.path.exists(filepath):
       raise Exception("File exists: " + str(filepath))

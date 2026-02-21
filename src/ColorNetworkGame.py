@@ -49,7 +49,7 @@ def getItemPurchaseCounts(runLog, itemDataFactory):
 
 print("Welcome to ColorNetwork!")
 
-def raiseDifficulty(multiplier, purchaseCounts):
+def raiseCosts(multiplier, purchaseCounts):
   global itemDataFactory
   # raise prices of items that were purchased the most
   averageCostMultiplier = multiplier
@@ -64,7 +64,7 @@ def raiseDifficulty(multiplier, purchaseCounts):
       print("increasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being bought " + str(purchaseCount) + "/" + str(totalNumPurchases) + " times")
       itemData.cost = newCost
 
-def lowerDifficulty(multiplier):
+def lowerCosts(multiplier):
   global itemDataFactory
   # lower all prices equally
   for itemData in itemDataFactory.getAll():
@@ -87,12 +87,10 @@ def adjustShopFrequencies(multiplier, purchaseCounts):
 def decrementLength():
   competitionBuilder.decrementLength()
   profile.incrementVersion("rooms")
-  competitionBuilder.save(profile.getLatestPath("rooms"))
 
 def incrementLength():
   competitionBuilder.incrementLength()
   profile.incrementVersion("rooms")
-  competitionBuilder.save(profile.getLatestPath("rooms"))
 
 def offerChangeSettings():
   global itemDataFactory
@@ -124,17 +122,18 @@ def offerChangeSettings():
     profile.incrementVersion("items")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
     if choice == "Harder":
-      raiseDifficulty(changeMultiplier, purchaseCounts)
+      raiseCosts(changeMultiplier, purchaseCounts)
     if choice == "Easier":
-      lowerDifficulty(changeMultiplier)
+      lowerCosts(changeMultiplier)
     adjustShopFrequencies(changeMultiplier, purchaseCounts)
   if choice == "Different":
     profile.incrementVersion("items")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
-    raiseDifficulty(changeMultiplier, purchaseCounts)
-    lowerDifficulty(changeMultiplier)
+    raiseCosts(changeMultiplier, purchaseCounts)
+    lowerCosts(changeMultiplier)
     adjustShopFrequencies(changeMultiplier, purchaseCounts)
   itemDataFactory.ensureSaved()
+  competitionBuilder.ensureSaved(profile.getLatestPath("rooms"))
 
   print("Ok!")
 

@@ -157,12 +157,14 @@ class SageNode(object):
 
 # a CompetitionStoryNode runs a competition
 class CompetitionStoryNode(SimpleStoryNode):
-  def __init__(self, player, opponent):
+  def __init__(self, index, player, opponent):
     super().__init__()
+    self.index = index
     self.player = player
     self.opponent = opponent
 
   def process(self):
+    print("Room #" + str(self.index))
     print("You enter a competition with " + str(self.opponent.name))
     competition = Competition([self.player, self.opponent])
     result = competition.run()
@@ -287,7 +289,7 @@ class ShopStoryNode(SimpleStoryNode):
 
 class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player, itemDataFactory):
-    super().__init__(player, makeOpponent(1, itemDataFactory))
+    super().__init__(-1, player, makeOpponent(1, itemDataFactory))
     self.nextNode = None
 
 class CustomizationStoryNode(SimpleStoryNode):
@@ -490,7 +492,7 @@ class StoryGenerator(object):
 
   def makeCompetition(self, index):
     opponent = makeOpponent(index, self.itemDataFactory)
-    competition = CompetitionStoryNode(self.player, opponent)
+    competition = CompetitionStoryNode(index, self.player, opponent)
     return competition
 
 # represents a network of items

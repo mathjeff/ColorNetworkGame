@@ -32,6 +32,7 @@ class DefaultItemDataFactory(ItemDataFactory):
 profile = Profile("data/profile/")
 itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
 itemDataFactory.ensureSaved()
+competitionBuilder = CompetitionBuilder(profile.getLatestPath("rooms"))
 runLog = RunLog(profile.getLatestPath("runlog"), itemDataFactory)
 
 def getItemPurchaseCounts(runLog, itemDataFactory):
@@ -47,6 +48,7 @@ def getItemPurchaseCounts(runLog, itemDataFactory):
   return counts
 
 print("Welcome to ColorNetwork!")
+
 def raiseDifficulty(multiplier, purchaseCounts):
   global itemDataFactory
   # raise prices of items that were purchased the most
@@ -82,6 +84,16 @@ def adjustShopFrequencies(multiplier, purchaseCounts):
     print("changing popularity of " + itemName + " from " + str(oldPopularity) + " to " + str(newPopularity))
     itemTemplate.popularity = newPopularity
 
+def decrementLength():
+  competitionBuilder.decrementLength()
+  profile.incrementVersion("rooms")
+  competitionBuilder.save(profile.getLatestPath("rooms"))
+
+def incrementLength():
+  competitionBuilder.incrementLength()
+  profile.incrementVersion("rooms")
+  competitionBuilder.save(profile.getLatestPath("rooms"))
+
 def offerChangeSettings():
   global itemDataFactory
   purchaseCounts = getItemPurchaseCounts(runLog, itemDataFactory)
@@ -93,21 +105,37 @@ def offerChangeSettings():
   menu.addChoice("Same as last run", "Same")
   menu.addChoice("Easier than last run", "Easier")
   menu.addChoice("Harder than last run", "Harder")
+  menu.addChoice("Shorter than last run", "Shorter")
+  menu.addChoice("Longer than last run", "Longer")
   menu.addChoice("Different than last run", "Different")
   choice = menu.chooseValue()
   if choice == "Same":
     print("Keeping settings the same as previous game")
     return
-  # make a new item factory based on the previous one
-  profile.incrementVersion("items")
-  itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
   changeMultiplier = 1.1
-  if choice == "Harder" or choice == "Different":
+  # adjust length if requested
+  if choice == "Shorter":
+    decrementLength()
+  if choice == "Longer":
+    incrementLength()
+  # adjust difficulty if requested
+  if choice in ["Easier", "Harder"]:
+    # make a new item factory based on the previous one
+    profile.incrementVersion("items")
+    itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+    if choice == "Harder":
+      raiseDifficulty(changeMultiplier, purchaseCounts)
+    if choice == "Easier":
+      lowerDifficulty(changeMultiplier)
+    adjustShopFrequencies(changeMultiplier, purchaseCounts)
+  if choice == "Different":
+    profile.incrementVersion("items")
+    itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
     raiseDifficulty(changeMultiplier, purchaseCounts)
-  if choice == "Easier" or choice == "Different":
     lowerDifficulty(changeMultiplier)
-  adjustShopFrequencies(changeMultiplier, purchaseCounts)
+    adjustShopFrequencies(changeMultiplier, purchaseCounts)
   itemDataFactory.ensureSaved()
+
   print("Ok!")
 
 if runLog.nonEmpty():
@@ -123,10 +151,7 @@ def makePlayer():
 
 def makeStory():
   gamePlayer = makePlayer()
-  length = 10
-  difficulty = 1
-  complexity = 3
-  welcome = StoryGenerator(gamePlayer, length, difficulty, complexity, itemDataFactory, runLog).create()
+  welcome = StoryGenerator(gamePlayer, competitionBuilder, itemDataFactory, runLog).create()
 
   return StoryNodeRunner(welcome)
 

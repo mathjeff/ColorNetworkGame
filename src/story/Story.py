@@ -164,7 +164,7 @@ class CompetitionStoryNode(SimpleStoryNode):
     self.opponent = opponent
 
   def process(self):
-    print("You enter a competition with " + str(self.opponent.name))
+    print("Room " + str(self.index) + ": you enter a competition with " + str(self.opponent.name))
     competition = Competition([self.player, self.opponent])
     result = competition.run()
     print("")
@@ -453,11 +453,10 @@ class StoryNodeRunner(object):
 
 # creates a StoryNode network
 class StoryGenerator(object):
-  def __init__(self, player, targetLength, difficulty, complexity, itemDataFactory, runLog):
+  def __init__(self, player, competitionBuilder, itemDataFactory, runLog):
     self.player = player
-    self.targetLength = targetLength
-    self.difficulty = difficulty
-    self.complexity = complexity
+    self.targetLength = competitionBuilder.getMaxLength()
+    self.competitionBuilder = competitionBuilder
     self.itemDataFactory = itemDataFactory
     self.runLog = runLog
 
@@ -465,41 +464,91 @@ class StoryGenerator(object):
     player = self.player
     # create intro
     firstMarket = self.makeMarket(0)
-    firstOpponent = self.makeCompetition(0)
+    firstOpponent = self.competitionBuilder.buildCompetition(player, 0, self.itemDataFactory)
     firstMarket.setNext(firstOpponent)
     currentNode = firstOpponent
 
     # create main content
     numMarketsRemaining = max(1, int(self.targetLength / 20))
     index = 0
-    while index < self.targetLength:
+    while True:
+      index += 1
+      if index >= self.targetLength:
+        break
       lengthRemaining = self.targetLength - index
       rand = random.randint(0, lengthRemaining)
-      index += 1
       if rand < numMarketsRemaining:
         market = self.makeMarket(index)
         currentNode.setNext(market)
         currentNode = market
         numMarketsRemaining -= 1
         continue
-      competition = self.makeCompetition(index)
+      competition = self.competitionBuilder.buildCompetition(player, index, self.itemDataFactory)
       currentNode.setNext(competition)
       currentNode = competition
 
-    success = MessageStoryNode("Success!")
+    success = MessageStoryNode("You win!")
     currentNode.setNext(success)
     return firstMarket
 
   def makeMarket(self, index):
     fractionComplete = index / self.targetLength
-    nodeComplexity = 1 + fractionComplete * (self.complexity - 1)
+    maxComplexity = 4
+    nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
     nodeName = str(index)
     return MarketStoryNode(nodeName, self.player, nodeComplexity, self.itemDataFactory, self.runLog)
 
-  def makeCompetition(self, index):
-    opponent = makeOpponent(index, self.itemDataFactory)
-    competition = CompetitionStoryNode(index, self.player, opponent)
+# builds competitions and keeps track of difficulty
+class CompetitionBuilder(object):
+  def __init__(self, filepath):
+    if os.path.isfile(filepath):
+      self.loadFile(filepath)
+    else:
+      self.setupDefaults()
+      self.save(filepath)
+
+  def buildCompetition(self, player, roomIndex, itemDataFactory):
+    difficulty = self.getDifficulty(roomIndex)
+    opponent = makeOpponent(difficulty, itemDataFactory)
+    competition = CompetitionStoryNode(roomIndex, player, opponent)
     return competition
+
+  def getMaxLength(self):
+    return len(self.difficulties)
+
+  def getDifficulty(self, roomIndex):
+    return self.difficulties[roomIndex]
+
+  def decrementLength(self):
+    if len(self.difficulties) > 2:
+      self.difficulties = self.difficulties[:-1]
+
+  def incrementLength(self):
+    lastDifficulty = self.difficulties[-1]
+    nextDifficulty = lastDifficulty * (len(self.difficulties) + 1) / len(self.difficulties)
+    self.difficulties.append(nextDifficulty)
+
+  def loadFile(self, filepath):
+    self.difficulties = self.readFile(filepath)
+
+  def save(self, filepath):
+    if os.path.exists(filepath):
+      raise Exception("File exists: " + str(filepath))
+    parentPath = os.path.dirname(filepath)
+    os.makedirs(parentPath, exist_ok = True)
+    text = self.serialize()
+    with open(filepath, 'w') as f:
+      f.write(text)
+
+  def readFile(self, filepath):
+    with open(filepath) as f:
+      return json.load(f)
+
+  def serialize(self):
+    return str(self.difficulties)
+
+  def setupDefaults(self):
+    self.difficulties = [i for i in range(10)]
 
 # represents a network of items
 class Network(object):
@@ -571,7 +620,7 @@ def makeOpponent(difficulty, itemDataFactory):
   network = player.network
   batteries = []
   lasers = []
-  for i in range(difficulty):
+  for i in range(int(difficulty)):
     choice = random.randint(0, 2)
     if choice == 0:
       battery = itemDataFactory.cloneItemNamed("Battery")

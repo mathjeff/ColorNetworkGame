@@ -54,21 +54,41 @@ def getItemPurchaseCounts(runLog, itemDataFactory):
       counts[name] = count + 1
   return counts
 
+def getItemSkipCounts(runLog, itemDataFactory):
+  counts = {}
+  for itemData in itemDataFactory.getAll():
+    counts[itemData.name] = 0
+  shopEntries = runLog.getShopEntries()
+  for entry in shopEntries:
+    for itemData in entry.remaining:
+      name = itemData.name
+      count = counts.get(name, 0)
+      counts[name] = count + 1
+  return counts
+
 print("Welcome to ColorNetwork!")
 
-def raiseCosts(averageCostMultiplier, purchaseCounts):
+def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
+  # if an item was more likely to be purchased when it was offered, then raise its price
   global itemDataFactory
-  # raise prices of items that were purchased the most
-  totalNumPurchases = sum(purchaseCounts.values())
+  # compute how likely an item was to be purchased if it was offered
+  purchaseFractions = {}
+  for itemName, numPurchases in purchaseCounts.items():
+    numSkips = skipCounts[itemName]
+    numOffers = numPurchases + numSkips
+    if numPurchases > 0:
+      purchaseFraction = numPurchases / numOffers
+      purchaseFractions[itemName] = purchaseFraction
+  sumPurchaseFractions = sum(purchaseFractions.values())
   numPossibleItems = len(itemDataFactory.getAll())
-  increasePerPurchase = (averageCostMultiplier - 1) * numPossibleItems / totalNumPurchases
-  for itemName, purchaseCount in purchaseCounts.items():
-    if purchaseCount > 0:
-      itemData = itemDataFactory.getTemplateNamed(itemName)
-      oldCost = itemData.cost
-      newCost = oldCost * (1 + purchaseCount * increasePerPurchase)
-      print("increasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being bought " + str(purchaseCount) + "/" + str(totalNumPurchases) + " times")
-      itemData.cost = newCost
+  increasePerPurchaseFraction = (averageCostMultiplier - 1) * numPossibleItems / sumPurchaseFractions
+
+  for itemName, purchaseFraction in purchaseFractions.items():
+    itemData = itemDataFactory.getTemplateNamed(itemName)
+    oldCost = itemData.cost
+    newCost = oldCost * (1 + purchaseFraction * increasePerPurchaseFraction)
+    print("increasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being bought " + str(purchaseCounts[itemName]) + " times and skipped " + str(skipCounts[itemName]) + " times")
+    itemData.cost = newCost
 
 def lowerCosts(multiplier):
   global itemDataFactory
@@ -121,6 +141,7 @@ def offerChangeSettings():
   numPurchases = sum(purchaseCounts.values())
   if numPurchases < 1:
     return # didn't buy anything
+  skipCounts = getItemSkipCounts(runLog, itemDataFactory)
   competitionResults = runLog.getCompetitionEntries()
   print("Choose settings for this game")
   menu = Menu()
@@ -159,13 +180,13 @@ def offerChangeSettings():
     profile.incrementVersion("rooms")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
     if choice == "Harder":
-      raiseCosts(costIncrease * costShift, purchaseCounts)
+      raiseCosts(costIncrease * costShift, purchaseCounts, skipCounts)
       lowerCosts(costShift)
       rescaleRoomDifficulties(roomDifficultyIncrease, competitionResults)
       profile.incrementVersion("rooms")
       competitionBuilder.incrementLength()
     if choice == "Easier":
-      raiseCosts(costIncrease, purchaseCounts)
+      raiseCosts(costIncrease, purchaseCounts, skipCounts)
       lowerCosts(costIncrease * costShift)
       lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)
     adjustShopFrequencies(popularityShift, purchaseCounts)
@@ -174,7 +195,7 @@ def offerChangeSettings():
     profile.incrementVersion("rooms")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
     # adjust costs
-    raiseCosts(costShift, purchaseCounts)
+    raiseCosts(costShift, purchaseCounts, skipCounts)
     lowerCosts(costShift)
     # adjust item frequencies
     adjustShopFrequencies(popularityShift, purchaseCounts)

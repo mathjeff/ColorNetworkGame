@@ -176,8 +176,9 @@ class CompetitionStoryNode(SimpleStoryNode):
     else:
       if result:
         print("Success! You defeated " + str(self.opponent.name) + "\n")
-        self.player.money += self.rewardMoney
-        print("You gain "  + str(self.rewardMoney) + " money and have " + str(self.player.money) + " money")
+        if self.rewardMoney != 0:
+          self.player.money += self.rewardMoney
+          print("You gain "  + str(self.rewardMoney) + " money and have " + str(self.player.money) + " money")
       else:
         print("Failure\n")
         self.player.hitpoints -= 1

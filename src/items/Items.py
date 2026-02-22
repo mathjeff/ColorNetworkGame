@@ -191,6 +191,9 @@ class Cutter(Item):
   def clone(self):
     return Cutter(self.properties)
 
+  def summarize(self):
+    return super().summarize() + " " + str(self.requiredPower) + "->"
+
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("disconnects items in the opposing robot")
@@ -224,7 +227,7 @@ class Battery(Item):
     return Battery(self.properties)
 
   def summarize(self):
-    return "Battery:" + str(self.charge)
+    return "Battery " + str(self.charge) + "/" + str(self.dischargeRate)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
@@ -343,7 +346,7 @@ class Splitter(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("reads an input and gives up to that much power each time any item requests it")
+    messages.append("reads an input and tries to give up to that much power each time any item requests it")
     return messages
 
 # a joiner takes power from two inputs
@@ -395,7 +398,7 @@ class If(Item):
   def clone(self):
     return If(self.properties)
 
-  def summarise(self):
+  def summarize(self):
     return super().summarize() + ">" + str(self.threshold)
 
   def getHelpMessages(self):
@@ -475,7 +478,7 @@ class Shield(Item):
     return str(int(self.defenseFraction * 100)) + "%"
 
   def summarize(self):
-    return super().summarize() + " " + self.getDefenseText() + " +/-" + str(self.radius)
+    return super().summarize() + " " + str(self.requiredEnergy) + "->" + self.getDefenseText() + " +/-" + str(self.radius)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()

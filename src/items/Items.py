@@ -209,7 +209,7 @@ class Battery(Item):
   def loadProperties(self, properties):
     self.charge = properties.get("maxCharge")
     self.dischargeRate = properties.get("dischargeRate")
-    self.readyToDischarge = self.dischargeRate
+    self.readyToDischarge = 0
 
   def act(self, competitor):
     super().act(competitor)

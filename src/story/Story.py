@@ -347,7 +347,7 @@ class CustomizationStoryNode(SimpleStoryNode):
       choice = menu.chooseValue()
       print("")
       if choice == -1:
-        self.player.network.nodes += self.player.items
+        self.player.network.addAll(self.player.items)
         self.player.items = []
         continue
       if choice == -2:
@@ -587,6 +587,9 @@ class Network(object):
   def addItem(self, template):
     self.nodes.append(template)
     self.nodePositions = None
+
+  def addAll(self, templates):
+    self.setItems(self.nodes + templates)
 
   def insert(self, item, index):
     self.setItems(self.nodes[:index] + [item] + self.nodes[index:])

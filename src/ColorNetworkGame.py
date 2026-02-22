@@ -127,7 +127,17 @@ def offerChangeSettings():
   if choice == "Same":
     print("Keeping settings the same as previous game")
     return
-  changeMultiplier = 1.1
+
+  # parameters for changing prices
+  costIncrease = 1.01 # how quickly average costs increase when raising difficulty
+  costShift = 1.1 # how quickly individual costs change
+
+  # how quickly item popularity changes (for shops)
+  popularityShift = 1.1
+
+  # how quickly room difficulty changes
+  roomDifficultyIncrease = 1.1 # how quickly difficulty changes in rooms
+
   # adjust length if requested
   if choice == "Shorter":
     profile.incrementVersion("rooms")
@@ -142,26 +152,28 @@ def offerChangeSettings():
     profile.incrementVersion("rooms")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
     if choice == "Harder":
-      raiseCosts(changeMultiplier, purchaseCounts)
-      rescaleRoomDifficulties(changeMultiplier, competitionResults)
+      raiseCosts(costIncrease * costShift, purchaseCounts)
+      lowerCosts(costShift)
+      rescaleRoomDifficulties(roomDifficultyIncrease, competitionResults)
       profile.incrementVersion("rooms")
       competitionBuilder.incrementLength()
     if choice == "Easier":
-      lowerCosts(changeMultiplier)
-      lowerRoomDifficulties(changeMultiplier, competitionResults)
-    adjustShopFrequencies(changeMultiplier, purchaseCounts)
+      raiseCosts(costIncrease, purchaseCounts)
+      lowerCosts(costIncrease * costShift)
+      lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)
+    adjustShopFrequencies(popularityShift, purchaseCounts)
   if choice == "Different":
     profile.incrementVersion("items")
     profile.incrementVersion("rooms")
     itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
     # adjust costs
-    raiseCosts(changeMultiplier, purchaseCounts)
-    lowerCosts(changeMultiplier)
+    raiseCosts(costShift, purchaseCounts)
+    lowerCosts(costShift)
     # adjust item frequencies
-    adjustShopFrequencies(changeMultiplier, purchaseCounts)
+    adjustShopFrequencies(popularityShift, purchaseCounts)
     # adjust room difficulties
-    rescaleRoomDifficulties(changeMultiplier, competitionResults)
-    lowerRoomDifficulties(changeMultiplier, competitionResults)
+    rescaleRoomDifficulties(roomDifficultyIncrease, competitionResults)
+    lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)
   itemDataFactory.ensureSaved()
   competitionBuilder.ensureSaved(profile.getLatestPath("rooms"))
 

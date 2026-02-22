@@ -197,6 +197,12 @@ class ShopStoryNode(SimpleStoryNode):
     self.purchasedItems = []
     self.itemDataFactory = itemDataFactory
 
+  def getTotalCost(self):
+    total = 0
+    for content in self.contents:
+      total += content.cost
+    return total
+
   def chooseContents(self, complexity, itemDataFactory):
     simpleItems = []
     complexItems = []
@@ -455,6 +461,9 @@ class MarketStoryNode(MenuStoryNode):
     self.addChoice("talk to the sage", sage)
     self.exitNode = None
 
+  def getTotalCost(self):
+    return self.shop.getTotalCost()
+
   def setNext(self, nextNode):
     self.addChoice("Bye!", nextNode)
     self.exitNode = nextNode
@@ -483,34 +492,34 @@ class StoryGenerator(object):
 
   def create(self):
     player = self.player
-    # create intro
-    firstMarket = self.makeMarket(0)
-    firstOpponent = self.competitionBuilder.buildCompetition(player, 1, self.itemDataFactory, self.runLog)
-    firstMarket.setNext(firstOpponent)
-    currentNode = firstOpponent
-
-    # create main content
-    numMarketsRemaining = max(1, int(self.targetLength / 20))
-    index = 1
+    estimatedPlayerMoney = player.money
+    firstNode = MessageStoryNode("Let's begin")
+    currentNode = firstNode
+    index = -1
+    previousMarketCost = 0
+    previousNodeIsMarket = False
     while True:
       index += 1
       if index >= self.targetLength:
         break
-      lengthRemaining = self.targetLength - index
-      rand = random.randint(0, lengthRemaining)
-      if rand < numMarketsRemaining:
+      # if we think the player will have a lot of money, offer a shop
+      if (not previousNodeIsMarket) and random.randint(0, estimatedPlayerMoney) >= previousMarketCost / 10:
         market = self.makeMarket(index)
+        previousMarketCost = market.getTotalCost()
         currentNode.setNext(market)
         currentNode = market
-        numMarketsRemaining -= 1
+        estimatedPlayerMoney = int(max(estimatedPlayerMoney - previousMarketCost, estimatedPlayerMoney / 4))
+        previousNodeIsMarket = True
         continue
+      previousNodeIsMarket = False
+      # in most cases, send the player to a competition
       competition = self.competitionBuilder.buildCompetition(player, index, self.itemDataFactory, self.runLog)
       currentNode.setNext(competition)
       currentNode = competition
 
     success = MessageStoryNode("You win!")
     currentNode.setNext(success)
-    return firstMarket
+    return firstNode
 
   def makeMarket(self, index):
     fractionComplete = index / self.targetLength

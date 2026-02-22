@@ -130,11 +130,11 @@ def offerChangeSettings():
   changeMultiplier = 1.1
   # adjust length if requested
   if choice == "Shorter":
-    competitionBuilder.decrementLength()
     profile.incrementVersion("rooms")
+    competitionBuilder.decrementLength()
   if choice == "Longer":
-    competitionBuilder.decrementLength()
     profile.incrementVersion("rooms")
+    competitionBuilder.incrementLength()
   # adjust difficulty if requested
   if choice in ["Easier", "Harder"]:
     # make a new item factory based on the previous one
@@ -144,11 +144,12 @@ def offerChangeSettings():
     if choice == "Harder":
       raiseCosts(changeMultiplier, purchaseCounts)
       rescaleRoomDifficulties(changeMultiplier, competitionResults)
+      profile.incrementVersion("rooms")
+      competitionBuilder.incrementLength()
     if choice == "Easier":
       lowerCosts(changeMultiplier)
       lowerRoomDifficulties(changeMultiplier, competitionResults)
     adjustShopFrequencies(changeMultiplier, purchaseCounts)
-
   if choice == "Different":
     profile.incrementVersion("items")
     profile.incrementVersion("rooms")

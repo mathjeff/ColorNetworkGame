@@ -542,7 +542,7 @@ class StoryGenerator(object):
         previousNodeIsMarket = False
         continue
       # if we think the player will have a lot of money, offer a shop
-      if (not previousNodeIsMarket) and random.randint(0, estimatedPlayerMoney) >= previousMarketCost / 5:
+      if (not previousNodeIsMarket) and (index != self.targetLength - 1) and random.randint(0, estimatedPlayerMoney) >= previousMarketCost / 5:
         market = self.makeMarket(index)
         previousMarketCost = market.getTotalCost()
         currentNode.setNext(market)

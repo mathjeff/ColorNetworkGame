@@ -504,6 +504,16 @@ class MarketStoryNode(MenuStoryNode):
     if nextNode == self.exitNode:
       self.shop.updateRunLog(self.nodeName, self.runLog)
 
+class SuccessStoryNode(SimpleStoryNode):
+  def __init__(self, name, runLog):
+    super().__init__()
+    self.name = name
+    self.runLog = runLog
+
+  def process(self):
+    self.runLog.addEntry(RunLogConclusionEntry(self.name, True))
+    print("You win!")
+
 # a StoryNodeRunner follows a path of StoryNode objects
 class StoryNodeRunner(object):
   def __init__(self, startingMenu):
@@ -558,7 +568,7 @@ class StoryGenerator(object):
       currentNode.setNext(competition)
       currentNode = competition
 
-    success = MessageStoryNode("You win!")
+    success = SuccessStoryNode(str(index), self.runLog)
     currentNode.setNext(success)
     return firstNode
 

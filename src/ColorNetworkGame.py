@@ -143,6 +143,12 @@ def offerChangeSettings():
     return # didn't buy anything
   skipCounts = getItemSkipCounts(runLog, itemDataFactory)
   competitionResults = runLog.getCompetitionEntries()
+  conclusionEntry = runLog.getConclusionEntry()
+  if conclusionEntry is not None and conclusionEntry.successful:
+    print("Your previous game was a victory!")
+  else:
+    print("Your previous game was a loss")
+  print("")
   print("Choose settings for this game")
   menu = Menu()
   menu.addChoice("Same as last run", "Same")

@@ -239,6 +239,22 @@ class ShopStoryNode(SimpleStoryNode):
       itemData = results[i].clone()
       itemData.cost = self.round(itemData.cost * random.uniform(2.0/3.0, 4.0/3.0))
       results[i] = itemData
+    # sort items by description
+    return self.sortItemsByDescription(results)
+
+  def sortItemsByDescription(self, itemDataList):
+    descriptions = [self.describe(itemData) for itemData in itemDataList]
+    itemDataByDescription = {}
+    for itemData in itemDataList:
+      description = self.describe(itemData)
+      itemDataHere = itemDataByDescription.get(description)
+      if itemDataHere is None:
+        itemDataHere = []
+        itemDataByDescription[description] = itemDataHere
+      itemDataHere.append(itemData)
+    results = []
+    for description in sorted(itemDataByDescription.keys()):
+      results = results + itemDataByDescription[description]
     return results
 
   # rounds to the first two decimal places
@@ -262,6 +278,9 @@ class ShopStoryNode(SimpleStoryNode):
     # for medium values we can simply round the number
     return round(value)
 
+  def describe(self, itemData):
+    return itemData.item.summarize() + ": cost = " + str(itemData.cost)
+
   def process(self):
     while True:
       print("")
@@ -271,9 +290,7 @@ class ShopStoryNode(SimpleStoryNode):
       if len(self.contents) > 0:
         menu.addChoice("What are these things?", -2)
       for i in range(len(self.contents)):
-        item = self.contents[i].item
-        cost = self.contents[i].cost
-        menu.addChoice(item.summarize() + ": cost = " + str(cost), i)
+        menu.addChoice(self.describe(self.contents[i]), i)
       choice = menu.chooseValue()
       if choice == -1:
         print("Bye!")

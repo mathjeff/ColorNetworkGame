@@ -157,12 +157,13 @@ class SageNode(object):
 
 # a CompetitionStoryNode runs a competition
 class CompetitionStoryNode(SimpleStoryNode):
-  def __init__(self, index, player, opponent, runLog):
+  def __init__(self, index, player, opponent, rewardMoney, runLog):
     super().__init__()
     self.index = index
     self.player = player
     self.opponent = opponent
     self.runLog = runLog
+    self.rewardMoney = rewardMoney
 
   def process(self):
     print("Room " + str(self.index) + ": you enter a competition with " + str(self.opponent.name))
@@ -175,6 +176,8 @@ class CompetitionStoryNode(SimpleStoryNode):
     else:
       if result:
         print("Success! You defeated " + str(self.opponent.name) + "\n")
+        self.player.money += self.rewardMoney
+        print("You gain "  + str(self.rewardMoney) + " money and have " + str(self.player.money) + " money")
       else:
         print("Failure\n")
         self.player.numLosses += 1
@@ -316,7 +319,7 @@ class ShopStoryNode(SimpleStoryNode):
 
 class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player, itemDataFactory):
-    super().__init__(-1, player, makeOpponent(1, itemDataFactory), None)
+    super().__init__(-1, player, makeOpponent(1, itemDataFactory), 0, None)
     self.nextNode = None
 
   def updateRunLog(self, successful):
@@ -503,7 +506,7 @@ class StoryGenerator(object):
       if index >= self.targetLength:
         break
       # if we think the player will have a lot of money, offer a shop
-      if (not previousNodeIsMarket) and random.randint(0, estimatedPlayerMoney) >= previousMarketCost / 10:
+      if (not previousNodeIsMarket) and random.randint(0, estimatedPlayerMoney) >= previousMarketCost / 5:
         market = self.makeMarket(index)
         previousMarketCost = market.getTotalCost()
         currentNode.setNext(market)
@@ -513,7 +516,9 @@ class StoryGenerator(object):
         continue
       previousNodeIsMarket = False
       # in most cases, send the player to a competition
-      competition = self.competitionBuilder.buildCompetition(player, index, self.itemDataFactory, self.runLog)
+      rewardMoney = 10
+      estimatedPlayerMoney += rewardMoney
+      competition = self.competitionBuilder.buildCompetition(player, index, self.itemDataFactory, rewardMoney, self.runLog)
       currentNode.setNext(competition)
       currentNode = competition
 
@@ -537,10 +542,10 @@ class CompetitionBuilder(object):
       self.setupDefaults()
       self.save(filepath)
 
-  def buildCompetition(self, player, roomIndex, itemDataFactory, runLog):
+  def buildCompetition(self, player, roomIndex, itemDataFactory, rewardMoney, runLog):
     difficulty = self.getDifficulty(roomIndex)
     opponent = makeOpponent(difficulty, itemDataFactory)
-    competition = CompetitionStoryNode(roomIndex, player, opponent, runLog)
+    competition = CompetitionStoryNode(roomIndex, player, opponent, rewardMoney, runLog)
     return competition
 
   def getMaxLength(self):

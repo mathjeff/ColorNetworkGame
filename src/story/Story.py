@@ -363,9 +363,10 @@ class CustomizationStoryNode(SimpleStoryNode):
     print(str(len(self.player.items)) + " unused items")
     for item in self.player.items:
       print("  " + item.summarize())
-    print(str(self.player.network.size()) + " items in network")
-    for item in self.player.network.nodes:
-      print("  " + item.describeLinks())
+    network = self.player.network
+    print(str(network.size()) + " items in network")
+    for item in network.nodes:
+      print("  " + item.describeLinks(network))
     print("")
 
   def process(self):
@@ -378,7 +379,7 @@ class CustomizationStoryNode(SimpleStoryNode):
       for i in range(network.size()):
         item = network.nodes[i]
         displayIndex = i + 1
-        menu.addChoice("Edit #" + str(displayIndex) + " " + item.describeLinks(), i)
+        menu.addChoice("Edit #" + str(displayIndex) + " " + item.describeLinks(network), i)
       if len(self.player.items) > 0:
         menu.addChoice("Add all items to network", -1)
       menu.addChoice("Done", -2)
@@ -395,8 +396,9 @@ class CustomizationStoryNode(SimpleStoryNode):
   def chooseNetworkItem(self, description):
     print(description)
     menu = Menu()
-    for item in self.player.network.nodes:
-      menu.addChoice(item.describeLinks(), item)
+    network = self.player.network
+    for item in network.nodes:
+      menu.addChoice(item.describeLinks(network), item)
     return menu.chooseValue()
 
   def chooseNetworkItemOutput(self, description):
@@ -412,10 +414,11 @@ class CustomizationStoryNode(SimpleStoryNode):
     return menu.chooseValue()
 
   def editItem(self, item):
+    network = self.player.network
     while True:
-      index = self.player.network.getPosition(item)
+      index = network.getPosition(item)
       displayIndex = index + 1
-      print("Editing #" + str(displayIndex) + " " + item.describeLinks())
+      print("Editing #" + str(displayIndex) + " " + item.describeLinks(network))
       menu = Menu()
       menu.addChoice("Move", "Move")
       for linkName in item.inputsByName.keys():
@@ -441,9 +444,10 @@ class CustomizationStoryNode(SimpleStoryNode):
       item.inputsByName[linkName] = dependency
 
   def moveItem(self, item):
-    print("Move " + item.describeLinks() + " where?")
+    network = self.player.network
+    print("Move " + item.describeLinks(network) + " where?")
     menu = Menu()
-    for i in range(self.player.network.size()):
+    for i in range(network.size()):
       displayIndex = i + 1
       menu.addChoice("Position " + str(displayIndex), i)
     menu.addChoice("Remove", -1)

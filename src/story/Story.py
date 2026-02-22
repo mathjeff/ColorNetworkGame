@@ -234,15 +234,24 @@ class ShopStoryNode(SimpleStoryNode):
 
   # rounds to the first two decimal places
   def round(self, value):
-    multiplier = 1
     radix = 10
-    while value > 100:
-      value /= radix
-      multiplier *= radix
-    while value < 10:
-      value *= radix
-      multiplier /= radix
-    return round(value) * multiplier
+    if value > 100:
+      # for large values we have to shrink the number before rounding helps
+      multiplier = 1
+      while value > 100:
+        value /= radix
+        multiplier *= radix
+      return round(value) * multiplier
+    if value < 10:
+      # for small values we have to round the number directly, otherwise we might still get rounding error
+      multiplied = value
+      numShifts = 0
+      while multiplied < 10:
+        multiplied *= 10
+        numShifts += 1
+      return round(value, numShifts)
+    # for medium values we can simply round the number
+    return round(value)
 
   def process(self):
     while True:

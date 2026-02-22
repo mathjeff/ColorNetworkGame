@@ -298,7 +298,7 @@ class ShopStoryNode(SimpleStoryNode):
       print("")
       print("Welcome to the shop! You have " + str(self.player.money) + " money")
       menu = Menu()
-      menu.addChoice("Bye!", -1)
+      menu.addChoice("Done (buying items)", -1)
       if len(self.contents) > 0:
         menu.addChoice("What are these things?", -2)
       for i in range(len(self.contents)):
@@ -382,7 +382,7 @@ class CustomizationStoryNode(SimpleStoryNode):
         menu.addChoice("Edit #" + str(displayIndex) + " " + item.describeLinks(network), i)
       if len(self.player.items) > 0:
         menu.addChoice("Add all items to network", -1)
-      menu.addChoice("Done", -2)
+      menu.addChoice("Done (configuring network)", -2)
       choice = menu.chooseValue()
       print("")
       if choice == -1:
@@ -424,7 +424,7 @@ class CustomizationStoryNode(SimpleStoryNode):
       for linkName in item.inputsByName.keys():
         menu.addChoice("Set input " + linkName, linkName)
       menu.addChoice("Help", "Help")
-      menu.addChoice("Done", "Done")
+      menu.addChoice("Done (editing " + item.summarize() + ")", "Done")
       choice = menu.chooseValue()
       if choice == "Move":
         self.moveItem(item)
@@ -501,7 +501,7 @@ class MarketStoryNode(MenuStoryNode):
     return self.shop.getTotalCost()
 
   def setNext(self, nextNode):
-    self.addChoice("Bye!", nextNode)
+    self.addChoice("Leave (the market)", nextNode)
     self.exitNode = nextNode
 
   def onGoTo(self, nextNode):

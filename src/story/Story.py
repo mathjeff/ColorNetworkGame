@@ -180,17 +180,28 @@ class CompetitionStoryNode(SimpleStoryNode):
         print("You gain "  + str(self.rewardMoney) + " money and have " + str(self.player.money) + " money")
       else:
         print("Failure\n")
-        self.player.numLosses += 1
+        self.player.hitpoints -= 1
         hitpoints = self.player.getHitpoints()
         if hitpoints > 0:
           print("You may continue until " + str(hitpoints) + " more losses")
         else:
-          print("Loss limit (" + str(self.player.numLosses) + ") reached. Bye!")
+          print("Loss limit reached. Bye!")
           sys.exit(0)
 
   def updateRunLog(self, successful):
     entry = RunLogCompetitionEntry(str(self.index), successful)
     self.runLog.addEntry(entry)
+
+class FinalsStoryNode(SimpleStoryNode):
+  def __init__(self, player, numRemainingNodes):
+    self.player = player
+    self.numRemainingNodes = numRemainingNodes
+
+  def process(self):
+    print(str(self.numRemainingNodes) + " events remaining: tournament mode switches to single elimination!")
+    print("Any losses after this point will result in ejection from the tournament. Good luck!")
+    self.player.hitpoints = 1
+    input("")
 
 class ShopStoryNode(SimpleStoryNode):
   def __init__(self, player, complexity, itemDataFactory):
@@ -518,10 +529,17 @@ class StoryGenerator(object):
     index = -1
     previousMarketCost = 0
     previousNodeIsMarket = False
+    finalsLength = player.hitpoints
     while True:
       index += 1
       if index >= self.targetLength:
         break
+      if index == self.targetLength - finalsLength - 1:
+        finalsNode = FinalsStoryNode(player, finalsLength)
+        currentNode.setNext(finalsNode)
+        currentNode = finalsNode
+        previousNodeIsMarket = False
+        continue
       # if we think the player will have a lot of money, offer a shop
       if (not previousNodeIsMarket) and random.randint(0, estimatedPlayerMoney) >= previousMarketCost / 5:
         market = self.makeMarket(index)
@@ -666,7 +684,7 @@ class GamePlayer(object):
     self.money = 100
     self.items = []
     self.network = Network()
-    self.numLosses = 0
+    self.hitpoints = 3
 
   def addItem(self, item):
     self.items.append(item)
@@ -675,7 +693,7 @@ class GamePlayer(object):
     return Competitor(self.name, self.network.clone())
 
   def getHitpoints(self):
-    return 3 - self.numLosses
+    return self.hitpoints
 
 def makeOpponent(difficulty, itemDataFactory):
   player = GamePlayer("Opponent")

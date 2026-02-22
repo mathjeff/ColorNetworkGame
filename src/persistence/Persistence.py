@@ -271,7 +271,7 @@ class Profile(object):
     self.dataDir = filepath
     self.metadataPath = os.path.join(self.dataDir, "metadata")
     self.versions = {}
-    self.targetNumBackups = 1
+    self.targetNumBackups = 10
     if os.path.isfile(self.metadataPath):
       self.load()
 

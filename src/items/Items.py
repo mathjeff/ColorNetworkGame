@@ -158,7 +158,7 @@ class Laser(Item):
     return Laser(self.properties)
 
   def summarize(self):
-    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.damage)
+    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.damage) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
@@ -194,7 +194,7 @@ class Cutter(Item):
     return Cutter(self.properties)
 
   def summarize(self):
-    return super().summarize() + " " + str(self.requiredPower) + "->"
+    return super().summarize() + " " + str(self.requiredPower) + "->" + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()

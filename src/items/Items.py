@@ -323,7 +323,7 @@ class Adder(Item):
     return messages
 
 # reads an input and gives up to that much power each time it is requested
-class Splitter(Item):
+class Fork(Item):
   def __init__(self, properties):
     super().__init__(properties)
     self.signal = 0
@@ -344,11 +344,12 @@ class Splitter(Item):
     return power
 
   def clone(self):
-    return Splitter(self.properties)
+    return Fork(self.properties)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("reads an input and tries to give up to that much power each time any item requests it")
+    messages.append("tries to get up to " + str(maxInput) + " power from an input, and then tries to give up to that much power each time any item requests it")
+    messages.append("This is different from other items that are willing to give all of their power to the first requester and have none left for the next")
     return messages
 
 # a joiner takes power from two inputs
@@ -440,7 +441,7 @@ class Capacitor(Item):
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("can store up to " + str(self.maxEnergy) + " energy and release it at any time")
-    messages.append("can output " + str(self.signalOutputFraction) + " of the stored energy as an output signal")
+    messages.append("can output " + str(self.signalOutputFraction) + " times its stored energy as an output signal")
     return messages
 
 # a Shield defends against damage
@@ -539,4 +540,5 @@ class PowerUsageSensor(Item):
     messages = super().getHelpMessages()
     messages.append("Measures power usage with radius " + str(self.radius) + " from the target position in the opposing robot")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    messages.append("The output will be set to " + str(self.outputRatio) + " times the total power read from the opponent")
     return messages

@@ -30,7 +30,7 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(Resistor({"dischargeRate": 0.01}), 1, 2, 10)
     self.add(Resistor({"dischargeRate": 0.05}), 1, 2, 10)
     self.add(Adder({"addition": 0.01, "maxInput": 10}), 1, 2, 10)
-    self.add(Splitter({"maxInput": 1}), 1, 2, 10)
+    self.add(Fork({"maxInput": 1}), 1, 2, 10)
     self.add(Joiner({}), 1, 2, 10)
     self.add(If({"threshold": 0.01}), 1, 2, 10)
     self.add(If({"threshold": 0.05}), 1, 2, 10)

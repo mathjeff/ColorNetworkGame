@@ -229,7 +229,7 @@ class ShopStoryNode(SimpleStoryNode):
           complexItems.append(itemData)
     # include all simple items if there is space
     results = []
-    targetNumItems = 10
+    targetNumItems = 15
     if len(simpleItems) < targetNumItems:
       results = simpleItems[:]
     candidates = simpleItems + complexItems

@@ -357,7 +357,7 @@ class Joiner(Item):
   def __init__(self, properties):
     super().__init__(properties)
     self.declareOutput()
-    self.declareInputs(["input1", "input2"])
+    self.declareInputs(["input1", "input2", "input3"])
 
   def loadProperties(self, properties):
     return
@@ -368,6 +368,7 @@ class Joiner(Item):
     power = 0
     power += self.tryAcquirePower("input1", requested - power)
     power += self.tryAcquirePower("input2", requested - power)
+    power += self.tryAcquirePower("input3", requested - power)
     return power
 
   def clone(self):
@@ -375,7 +376,7 @@ class Joiner(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("takes power from two inputs")
+    messages.append("takes power from up to three inputs and provides it as output")
     return messages
 
 # an If allows power through if the signal is above a threshold

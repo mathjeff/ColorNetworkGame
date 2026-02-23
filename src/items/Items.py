@@ -245,7 +245,7 @@ class Wall(Item):
     self.hitPoints = properties.get("hitPoints")
 
   def summarize(self):
-    return "Wall:" + str(self.hitPoints)
+    return "Wall " + str(self.hitPoints)
 
   def clone(self):
     return Wall(self.properties)

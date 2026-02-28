@@ -22,7 +22,7 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(Wall({"hitPoints": 4}), 2, 1, 10)
     # self.add(type(properties), popularity, complexity=2, cost)
     self.add(Laser({"requiredPower": 4, "damage": 4, "maxSignalPower": 1, "maxPossibleTarget": 100}), 2, 2, 20)
-    self.add(Laser({"requiredPower": 2, "damage": 2, "maxSignalPower": 2, "maxPossibleTarget": 100}), 2, 2, 20)
+    self.add(Laser({"requiredPower": 2, "damage": 2, "maxSignalPower": 1, "maxPossibleTarget": 100}), 2, 2, 20)
     self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 3, "maxPossibleTarget": 3}), 2, 2, 20)
     self.add(Battery({"maxCharge": 10, "dischargeRate": 3}), 2, 2, 10)
     self.add(Battery({"maxCharge": 100, "dischargeRate": 1}), 2, 2, 10)

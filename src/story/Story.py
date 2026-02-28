@@ -14,35 +14,38 @@ class StoryNode(object):
 
 class Menu(object):
   def __init__(self):
-    self.choices = []
+    self.choicesByIndex = {}
+    self.previousIndex = 0 # first index is 1 by default
 
-  def addChoice(self, text, result):
-    self.choices.append((text, result))
+  def addChoice(self, text, result, index=None):
+    if index is None:
+      index = self.previousIndex + 1
+    self.previousIndex = index
+    self.choicesByIndex[index] = (text, result)
 
   def chooseValue(self):
     index = self.chooseIndex()
-    return self.choices[index][1]
+    return self.choicesByIndex[index][1]
 
   def chooseIndex(self):
-    for i in range(len(self.choices)):
-      option = self.choices[i][0]
-      print(str(i + 1) + ": " + option) # first display index is 1
+    for index in sorted(self.choicesByIndex.keys()):
+      optionText = self.choicesByIndex[index][0]
+      print(str(index) + ": " + optionText)
     choiceText = ""
     while True:
       choiceText = input("")
       number = 0
-      if len(self.choices) <= 1:
-        return 0 # there's only one choice so we return it
+      if len(self.choicesByIndex) <= 1:
+        # there's only one choice so we return it
+        for index in self.choicesByIndex:
+          return index
       try:
-        number = int(choiceText) - 1 # first display index is 1
+        number = int(choiceText)
       except Exception as e:
         print("Choose a number!")
         continue
-      if number < 0:
-        print("Choose a number >= 1")
-        continue
-      if number >= len(self.choices):
-        print("Choose a number <= " + str(len(self.choices)))
+      if number not in self.choicesByIndex:
+        print("Choose an option!")
         continue
       return number
 
@@ -298,19 +301,19 @@ class ShopStoryNode(SimpleStoryNode):
       print("")
       print("Welcome to the shop! You have " + str(self.player.money) + " money")
       menu = Menu()
-      menu.addChoice("Done (buying items)", -1)
+      menu.addChoice("Done (buying items)", 0, 0)
       if len(self.contents) > 0:
-        menu.addChoice("What are these things?", -2)
+        menu.addChoice("What are these things?", 1)
       for i in range(len(self.contents)):
-        menu.addChoice(self.describe(self.contents[i]), i)
+        menu.addChoice(self.describe(self.contents[i]), i + 2)
       choice = menu.chooseValue()
-      if choice == -1:
+      if choice == 0:
         print("Bye!")
         return # done
-      if choice == -2:
+      if choice == 1:
         self.explainItem()
         continue
-      itemIndex = choice
+      itemIndex = choice - 2
       cost = self.contents[itemIndex].cost
       if cost > self.player.money:
         print("Not enough money: " + str(self.player.money) + " < " + str(cost))
@@ -376,7 +379,7 @@ class CustomizationStoryNode(SimpleStoryNode):
     while True:
       self.showStatus()
       menu = Menu()
-      menu.addChoice("Done (configuring network)", "Done")
+      menu.addChoice("Done (configuring network)", "Done", 0)
       if len(self.player.items) > 0:
         menu.addChoice("Add all items to network", "Add")
       if len(network.nodes) > 0:
@@ -433,13 +436,13 @@ class CustomizationStoryNode(SimpleStoryNode):
     print(prompt)
     choiceSet = set(validChoices)
     menu = Menu()
-    menu.addChoice(cancelText, -1)
+    menu.addChoice(cancelText, -1, 0)
     network = self.player.network
     for i in range(len(network.nodes)):
       item = network.nodes[i]
       if item in choiceSet:
-        displayIndex = str(i + 1)
-        menu.addChoice(choicePrefix + " #" + displayIndex + " " + item.describeLinks(network), i)
+        displayIndex = i + 1
+        menu.addChoice(choicePrefix + " #" + str(displayIndex) + " " + item.describeLinks(network), i, displayIndex)
     return menu.chooseValue()
 
   def chooseNetworkItemInput(self, item):

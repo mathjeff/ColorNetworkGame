@@ -45,11 +45,17 @@ class Item(object):
     for linkType in linkTypes:
       self.inputsByName[linkType] = None
 
+  def declaresInputs(self):
+    return len(self.inputsByName) > 0
+
   def declareOutputs(self, linkTypes):
     self.outputNames = linkTypes
 
   def declareOutput(self):
     self.declareOutputs([None])
+
+  def declaresOutputs(self):
+    return len(self.outputNames) > 0
 
   # tries to get power from the given link
   def tryAcquirePower(self, linkType, amount):

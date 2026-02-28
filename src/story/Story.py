@@ -372,33 +372,83 @@ class CustomizationStoryNode(SimpleStoryNode):
   def process(self):
     print("")
     print("Customizing")
+    network = self.player.network
     while True:
       self.showStatus()
       menu = Menu()
-      network = self.player.network
-      for i in range(network.size()):
-        item = network.nodes[i]
-        displayIndex = i + 1
-        menu.addChoice("Edit #" + str(displayIndex) + " " + item.describeLinks(network), i)
+      menu.addChoice("Done (configuring network)", "Done")
       if len(self.player.items) > 0:
-        menu.addChoice("Add all items to network", -1)
-      menu.addChoice("Done (configuring network)", -2)
+        menu.addChoice("Add all items to network", "Add")
+      if len(network.nodes) > 0:
+        menu.addChoice("Move an item", "Move")
+        menu.addChoice("Edit an item", "Edit")
+        menu.addChoice("Remove an item", "Remove")
+        menu.addChoice("Explain an item", "Help")
       choice = menu.chooseValue()
-      print("")
-      if choice == -1:
+      if choice == "Add":
         self.player.network.addAll(self.player.items)
         self.player.items = []
         continue
-      if choice == -2:
+      if choice == "Move":
+        self.moveItems()
+        continue
+      if choice == "Edit":
+        self.linkItems()
+        continue
+      if choice == "Remove":
+        self.removeItems()
+        continue
+      if choice == "Help":
+        self.helpItems()
+        continue
+      if choice == "Done":
         return
-      self.editItem(self.player.network.nodes[choice])
 
-  def chooseNetworkItem(self, description):
-    print(description)
-    menu = Menu()
+  def moveItems(self):
     network = self.player.network
-    for item in network.nodes:
-      menu.addChoice(item.describeLinks(network), item)
+    nodes = network.nodes
+    while True:
+      fromIndex = self.chooseNetworkPosition("Select item to move:", "Done (moving items)", "Move", nodes)
+      if fromIndex < 0:
+        return
+      toIndex = self.chooseNetworkPosition("Select new position:", "Cancel", "Position", nodes)
+      if toIndex < 0:
+        continue
+      item = nodes.pop(fromIndex)
+      nodes.insert(toIndex, item)
+
+  def linkItems(self):
+    nodes = self.player.network.nodes
+    while True:
+      choices = [item for item in nodes if item.declaresInputs()]
+      destIndex = self.chooseNetworkPosition("Select item to link:", "Done (linking items)", "Link", choices)
+      if destIndex < 0:
+        return
+      item = nodes[destIndex]
+      inputName = self.chooseNetworkItemInput(item)
+      source = self.chooseNetworkItemOutput("Select source")
+      item.inputsByName[inputName] = source
+
+  def chooseNetworkPosition(self, prompt, cancelText, choicePrefix, validChoices):
+    print(prompt)
+    choiceSet = set(validChoices)
+    menu = Menu()
+    menu.addChoice(cancelText, -1)
+    network = self.player.network
+    for i in range(len(network.nodes)):
+      item = network.nodes[i]
+      if item in choiceSet:
+        displayIndex = str(i + 1)
+        menu.addChoice(choicePrefix + " #" + displayIndex + " " + item.describeLinks(network), i)
+    return menu.chooseValue()
+
+  def chooseNetworkItemInput(self, item):
+    menu = Menu()
+    for linkName in item.inputsByName.keys():
+      menu.addChoice("Set input " + linkName, linkName)
+      if len(item.inputsByName) == 1:
+        return linkName
+    print("Select input in " + item.describeLinks(self.player.network) + ":")
     return menu.chooseValue()
 
   def chooseNetworkItemOutput(self, description):
@@ -413,53 +463,23 @@ class CustomizationStoryNode(SimpleStoryNode):
         menu.addChoice("#" + str(displayIndex) + " " + output.summarize(), output)
     return menu.chooseValue()
 
-  def editItem(self, item):
-    network = self.player.network
+  def removeItems(self):
+    nodes = self.player.network.nodes
     while True:
-      index = network.getPosition(item)
-      displayIndex = index + 1
-      print("Editing #" + str(displayIndex) + " " + item.describeLinks(network))
-      menu = Menu()
-      menu.addChoice("Move", "Move")
-      for linkName in item.inputsByName.keys():
-        menu.addChoice("Set input " + linkName, linkName)
-      menu.addChoice("Help", "Help")
-      menu.addChoice("Done (editing " + item.summarize() + ")", "Done")
-      choice = menu.chooseValue()
-      if choice == "Move":
-        self.moveItem(item)
-        # if the item is still in the network, keep editing it
-        if item in self.player.network.nodes:
-          continue
-        # if the item is no longer in the network, stop editing it
+      fromIndex = self.chooseNetworkPosition("Select item to remove:", "Done (removing items)", "Remove", nodes)
+      if fromIndex < 0:
         return
-      if choice == "Done":
-        return
-      if choice == "Help":
-        print(item.formatHelp())
-        input("(press Enter)")
-        return
-      linkName = choice
-      dependency = self.chooseNetworkItemOutput("Choose " + linkName + " for " + item.summarize())
-      item.inputsByName[linkName] = dependency
-
-  def moveItem(self, item):
-    network = self.player.network
-    print("Move " + item.describeLinks(network) + " where?")
-    menu = Menu()
-    for i in range(network.size()):
-      displayIndex = i + 1
-      menu.addChoice("Position " + str(displayIndex), i)
-    menu.addChoice("Remove", -1)
-    menu.addChoice("Cancel", -2)
-    choice = menu.chooseValue()
-    if choice == -2:
-      return
-    self.player.network.nodes.remove(item)
-    if choice == -1:
+      item = nodes.pop(fromIndex)
       self.player.items.append(item)
-      return
-    self.player.network.insert(item, choice)
+
+  def helpItems(self):
+    nodes = self.player.network.nodes
+    while True:
+      index = self.chooseNetworkPosition("Explain which item?", "Done (explaining items)", "Explain", nodes)
+      if index < 0:
+        return
+      print(nodes[index].formatHelp())
+      input("(press Enter)")
 
 class MarketStoryNode(MenuStoryNode):
   def __init__(self, nodeName, player, complexity, itemDataFactory, runLog):

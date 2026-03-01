@@ -50,9 +50,12 @@ class Competitor(object):
     self.incomingAttacks = []
     self.clearShields()
 
+  def resetForNewTurn(self):
+    self.clearShields()
+    self.resetPowerMeters()
+
   def nodesAct(self):
     print(str(self.name) + "'s turn:")
-    self.clearShields()
     for node in self.network.nodes:
       node.act(self)
 
@@ -71,6 +74,11 @@ class Competitor(object):
 
   def clearShields(self):
     self.incomingDamageMultipliers = [1] * self.network.size()
+
+  def resetPowerMeters(self):
+    for item in self.network.nodes:
+      item.powerAcquiredLastTurn = item.powerAcquiredThisTurn
+      item.powerAcquiredThisTurn = 0
 
   def addIncomingAttack(self, attack):
     self.incomingAttacks.append(attack)
@@ -167,6 +175,8 @@ class Competition(object):
         print("")
       input("(Press Enter) --------------------")
       print("")
+      for competitor in self.competitors:
+        competitor.resetForNewTurn()
       for competitor in self.competitors:
         competitor.nodesAct()
       for competitor in self.competitors:

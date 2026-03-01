@@ -23,6 +23,7 @@ class Item(object):
     self.inputsByName = {}
     self.outputNames = []
     self.powerAcquiredLastTurn = 0
+    self.powerAcquiredThisTurn = 0
     self.acquiringPower = False
     self.inputPowerDrain = 0
     self.outputPowerDrain = 0
@@ -91,7 +92,7 @@ class Item(object):
     if result > 0:
       print(str(self.summarize()) + " got " + str(result) + " power from " + link.item.summarize())
     self.acquiringPower = False
-    self.powerAcquiredLastTurn += result
+    self.powerAcquiredThisTurn += result
     return result
 
   # tries to get power from the current node
@@ -102,7 +103,7 @@ class Item(object):
     return self.powerAcquiredLastTurn
 
   def act(self, player):
-    self.powerAcquiredLastTurn = 0
+    return
 
   def clone(self):
     raise Exception("clone is not implemented in " + str(self))

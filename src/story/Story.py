@@ -232,7 +232,7 @@ class ShopStoryNode(SimpleStoryNode):
         if itemData.complexity <= complexity + 1:
           complexItems.append(itemData)
     results = []
-    targetNumItems = 15
+    targetNumItems = 10
     if targetNumItems >= len(simpleItems):
       # we can add all simple items, so do that first
       results += simpleItems

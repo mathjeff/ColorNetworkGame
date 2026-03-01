@@ -30,6 +30,15 @@ class CutAttack(Attack):
   def process(self, target):
     target.disconnect(self.index)
 
+class InputPowerDrainAttack(Attack):
+  def __init__(self, index, amount):
+    super().__init__()
+    self.index = index
+    self.amount = amount
+
+  def process(self, target):
+    target.drainInputPower(self.index, self.amount)
+
 # represents an entity that competes with other entities
 class Competitor(object):
   def __init__(self, name, network):
@@ -122,6 +131,17 @@ class Competitor(object):
     if nodeIndex >= network.size():
       return 0
     return network.nodes[nodeIndex].getPowerAcquiredLastTurn()
+
+  def drainEnemyInputPower(self, nodeIndex, amount):
+    if nodeIndex < 0:
+      return
+    network = self.enemy.network
+    if nodeIndex >= network.size():
+      return 0
+    self.enemy.addIncomingAttack(InputPowerDrainAttack(nodeIndex, amount))
+
+  def drainInputPower(self, nodeIndex, amount):
+    self.network.nodes[nodeIndex].drainInputPower(amount)
 
 class Competition(object):
   def __init__(self, gamePlayers):

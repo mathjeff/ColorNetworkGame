@@ -351,7 +351,7 @@ class ShopStoryNode(SimpleStoryNode):
 
 class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player, itemDataFactory):
-    super().__init__(-1, player, makeOpponent(1, itemDataFactory), 0, None)
+    super().__init__(-1, player, makeOpponent(3, itemDataFactory), 0, None)
     self.nextNode = None
 
   def updateRunLog(self, successful):

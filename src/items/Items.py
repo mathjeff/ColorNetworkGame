@@ -183,7 +183,7 @@ class Laser(Item):
     return messages
 
 # disconnects nodes
-class Cutter(Item):
+class InputCutter(Item):
   def __init__(self, properties):
     super().__init__(properties)
 
@@ -199,14 +199,14 @@ class Cutter(Item):
     signal = self.tryAcquirePower("control", self.maxSignalPower)
     targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
     if power >= self.requiredPower:
-      print("cutter cutting at position " + str(targetIndex))
+      print(self.summarize() + " cutting at position " + str(targetIndex))
       competitor.disconnectEnemy(targetIndex)
     else:
       if power > 0:
-        print("cutter insufficient power: " + str(power) + " < " + str(self.requiredPower))
+        print(self.summarize() + " insufficient power: " + str(power) + " < " + str(self.requiredPower))
 
   def clone(self):
-    return Cutter(self.properties)
+    return InputCutter(self.properties)
 
   def summarize(self):
     return super().summarize() + " " + str(self.requiredPower) + "->" + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"

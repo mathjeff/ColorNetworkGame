@@ -222,6 +222,7 @@ class ShopStoryNode(SimpleStoryNode):
     return total
 
   def chooseContents(self, complexity, itemDataFactory):
+    # find a bunch of candidates
     simpleItems = []
     complexItems = []
     for itemData in itemDataFactory.getAll():
@@ -230,25 +231,16 @@ class ShopStoryNode(SimpleStoryNode):
       else:
         if itemData.complexity <= complexity + 1:
           complexItems.append(itemData)
-    # include all simple items if there is space
     results = []
     targetNumItems = 15
-    if len(simpleItems) < targetNumItems:
-      results = simpleItems[:]
-    candidates = simpleItems + complexItems
-    # compute some item weights based on their popularity
-    weightedCandidates = []
-    for candidate in candidates:
-      count = candidate.popularity
-      while count > 0:
-        weightedCandidates.append(candidate)
-        count -= 1
-      if count > 0:
-        if random.uniform(1) < count:
-          weightedCandidates.append(candidate)
-    # complete the store with random simple or complicated items
-    while len(results) < targetNumItems:
-      results.append(random.choice(weightedCandidates))
+    if targetNumItems >= len(simpleItems):
+      # we can add all simple items, so do that first
+      results += simpleItems
+      # next, add some of the remaining complicated items
+      results += self.chooseDistinctRandomWeightedItems(complexItems, targetNumItems - len(results))
+    else:
+      # we can't add all of the simple items, so just add the simple items
+      results += self.chooseDistinctRandomWeightedItems(simpleItems, targetNumItems)
     # randomize the costs somewhat, and round them
     for i in range(len(results)):
       itemData = results[i].clone()
@@ -256,6 +248,35 @@ class ShopStoryNode(SimpleStoryNode):
       results[i] = itemData
     # sort items by description
     return self.sortItemsByDescription(results)
+
+  # choose distinct random items, weighted by popularity
+  def chooseDistinctRandomWeightedItems(self, choices, count):
+    if len(choices) < 1:
+      raise Exception("no choices!")
+    results = []
+    currentChoices = []
+    while len(results) < count:
+      if len(currentChoices) < 1:
+        currentChoices = choices[:]
+      choice = self.chooseRandomWeightedItem(currentChoices)
+      results.append(choice)
+      currentChoices.remove(choice)
+    return results
+
+  # chooses a random item, weighted by popularity
+  def chooseRandomWeightedItem(self, choices):
+    if len(choices) < 1:
+      raise Exception("no choices!")
+    totalPopularity = 0
+    for choice in choices:
+      totalPopularity += choice.popularity
+    number = random.uniform(0, totalPopularity)
+    cumulative = 0
+    for choice in choices:
+      cumulative += choice.popularity
+      if number <= cumulative:
+        return choice
+    raise Exception("random number " + str(number) + " > cumulative " + str(cumulative))
 
   def sortItemsByDescription(self, itemDataList):
     descriptions = [self.describe(itemData) for itemData in itemDataList]

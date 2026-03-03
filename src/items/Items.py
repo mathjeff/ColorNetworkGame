@@ -410,7 +410,7 @@ class Fork(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("tries to get up to " + str(maxInput) + " power from an input, and then tries to give up to that much power each time any item requests it")
+    messages.append("tries to get up to " + str(self.maxInput) + " power from an input, and then tries to give up to that much power each time any item requests it")
     messages.append("This is different from other items that are willing to give all of their power to the first requester and have none left for the next")
     return messages
 

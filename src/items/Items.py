@@ -192,7 +192,7 @@ class Laser(Item):
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
 
-# disconnects nodes
+# disconnects node inputs
 class InputCutter(Item):
   def __init__(self, properties):
     super().__init__(properties)
@@ -210,7 +210,7 @@ class InputCutter(Item):
     targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
     if power >= self.requiredPower:
       print(self.summarize() + " cutting at position " + str(targetIndex))
-      competitor.disconnectEnemy(targetIndex)
+      competitor.disconnectEnemyInputs(targetIndex)
     else:
       if power > 0:
         print(self.summarize() + " insufficient power: " + str(power) + " < " + str(self.requiredPower))
@@ -223,9 +223,46 @@ class InputCutter(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("disconnects items in the opposing robot")
+    messages.append("disconnects inputs from items in the opposing robot")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
+
+# disconnects node outputs
+class OutputCutter(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+
+  def loadProperties(self, properties):
+    self.requiredPower = properties.get("requiredPower")
+    self.maxSignalPower = properties.get("maxSignalPower")
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
+    self.declareInputs(["power", "control"])
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.requiredPower)
+    signal = self.tryAcquirePower("control", self.maxSignalPower)
+    targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
+    if power >= self.requiredPower:
+      print(self.summarize() + " cutting at position " + str(targetIndex))
+      competitor.disconnectEnemyOutputs(targetIndex)
+    else:
+      if power > 0:
+        print(self.summarize() + " insufficient power: " + str(power) + " < " + str(self.requiredPower))
+
+  def clone(self):
+    return OutputCutter(self.properties)
+
+  def summarize(self):
+    return super().summarize() + " " + str(self.requiredPower) + "->" + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("disconnects outputs from items in the opposing robot")
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    return messages
+
+
 
 # holds power and can provide it over time
 class Battery(Item):

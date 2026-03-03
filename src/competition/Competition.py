@@ -23,12 +23,17 @@ class DamageAttack(Attack):
     target.receiveDamage(self.index, self.amount)
 
 class CutAttack(Attack):
-  def __init__(self, index):
+  def __init__(self, index, disconnectInputs, disconnectOutputs):
     super().__init__()
     self.index = index
+    self.disconnectInputs = disconnectInputs
+    self.disconnectOutputs = disconnectOutputs
 
   def process(self, target):
-    target.disconnect(self.index)
+    if self.disconnectInputs:
+      target.disconnectInputs(self.index)
+    if self.disconnectOutputs:
+      target.disconnectOutputs(self.index)
 
 class PowerDrainAttack(Attack):
   def __init__(self, index, inputAmount, outputAmount):
@@ -122,10 +127,10 @@ class Competitor(object):
     for i in range(startIndex, endIndex):
       self.incomingDamageMultipliers[i] *= damageMultiplier
 
-  def disconnectEnemy(self, nodeIndex):
-    self.enemy.addIncomingAttack(CutAttack(nodeIndex))
+  def disconnectEnemyInputs(self, nodeIndex):
+    self.enemy.addIncomingAttack(CutAttack(nodeIndex, True, False))
 
-  def disconnect(self, nodeIndex):
+  def disconnectInputs(self, nodeIndex):
     if nodeIndex < 0:
       return # miss
     if nodeIndex >= self.network.size():
@@ -133,6 +138,21 @@ class Competitor(object):
     node = self.network.nodes[nodeIndex]
     for linkType in node.inputsByName.keys():
       node.inputsByName[linkType] = None
+
+  def disconnectEnemyOutputs(self, nodeIndex):
+    self.enemy.addIncomingAttack(CutAttack(nodeIndex, False, True))
+
+  def disconnectOutputs(self, nodeIndex):
+    if nodeIndex < 0:
+      return # miss
+    if nodeIndex >= self.network.size():
+      return # miss
+    sourceNode = self.network.nodes[nodeIndex]
+    for i in range(self.network.size()):
+      destNode = self.network.nodes[i] # TODO: make this more efficient
+      for linkType, link in sourceNode.inputsByName.items():
+        if link is not None and link.item == sourceNode:
+          destNode.inputsByName[linkType] = None
 
   def getEnemyPowerAcquired(self, nodeIndex):
     if nodeIndex < 0:

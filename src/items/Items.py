@@ -384,6 +384,38 @@ class Adder(Item):
     messages.append("consumes up to " + str(self.addition) + " input power plus up to " + str(self.maxInput) + " input signal and outputs the sum")
     return messages
 
+# Divides power flow by a constant
+class Divider(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.readyToDischarge = 0
+    self.declareOutput()
+    self.declareInputs(["power"])
+
+  def loadProperties(self, properties):
+    divisor = properties.get("divisor")
+    if divisor < 1:
+      raise Exception("Divisor must be >= 1, not " + str(divisor))
+    self.divisor = divisor
+
+  def tryGetPower(self, requested, outputName):
+    if requested < 0:
+      return 0
+    targetInput = requested * self.divisor
+    actualInput = self.tryAcquirePower("power", targetInput)
+    return actualInput / self.divisor
+
+  def clone(self):
+    return Divider(self.properties)
+
+  def summarize(self):
+    return super().summarize() + "/" + str(self.divisor)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("outputs the input power divided by " + str(self.divisor))
+    return messages
+
 # reads an input and gives up to that much power each time it is requested
 class Fork(Item):
   def __init__(self, properties):

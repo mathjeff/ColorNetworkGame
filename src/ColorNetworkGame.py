@@ -34,6 +34,8 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(Adder({"addition": 0.02, "maxInput": 10}), 1, 2, 10)
     self.add(Adder({"addition": 0.03, "maxInput": 10}), 1, 2, 10)
     self.add(Adder({"addition": 0.04, "maxInput": 10}), 1, 2, 10)
+    self.add(Divider({"divisor": 2}), 1, 2, 5)
+    self.add(Divider({"divisor": 5}), 1, 2, 5)
     self.add(Fork({"maxInput": 10}), 1, 2, 10)
     self.add(Joiner({}), 1, 2, 10)
     self.add(If({"threshold": 0.03}), 1, 2, 10)

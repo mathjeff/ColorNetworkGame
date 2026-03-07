@@ -27,7 +27,7 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 3, "maxPossibleTarget": 3}), 2, 2, 20)
     self.add(PowerInputDrainer({"requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100, "radius": 1, "drainPerItem": 1}), 2, 2, 10)
     self.add(PowerOutputDrainer({"requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100, "radius": 1, "drainPerItem": 1}), 2, 2, 10)
-    self.add(Battery({"maxCharge": 10, "dischargeRate": 3}), 2, 2, 10)
+    self.add(Battery({"maxCharge": 10, "dischargeRate": 4}), 2, 2, 10)
     self.add(Battery({"maxCharge": 100, "dischargeRate": 1}), 2, 2, 10)
     self.add(Wall({"hitPoints": 8}), 2, 1, 15)
     self.add(Adder({"addition": 0.1, "maxInput": 10}), 1, 2, 10)

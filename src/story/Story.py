@@ -110,7 +110,7 @@ class SageStoryNode(SimpleStoryNode):
       print(currentNode.text)
       # wait for player
       menu = Menu()
-      menu.addChoice("Back", currentNode.parent)
+      menu.addChoice("Back", currentNode.parent, 0)
       for query, response in currentNode.children.items():
         menu.addChoice(query, response)
       currentNode = menu.chooseValue()

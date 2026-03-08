@@ -132,26 +132,44 @@ class Competitor(object):
 
   def disconnectInputs(self, nodeIndex):
     if nodeIndex < 0:
+      print("No node at position " + str(nodeIndex))
       return # miss
     if nodeIndex >= self.network.size():
+      print("No node at position " + str(nodeIndex))
       return # miss
-    node = self.network.nodes[nodeIndex]
+    network = self.network
+    node = network.nodes[nodeIndex]
+    if len(node.inputsByName) < 1:
+      print("No inputs to disconnect at position " + str(nodeIndex) + ": " + node.describeLinks(network))
+    else:
+      print("Disconnecting inputs at position " + str(nodeIndex) + ": " + node.describeLinks(network))
     for linkType in node.inputsByName.keys():
-      node.inputsByName[linkType] = None
+      existing = node.inputsByName[linkType]
+      if existing is not None:
+        print("Disconnecting input " + linkType + " for " + node.summarize())
+        node.inputsByName[linkType] = None
+      else:
+        print("Input " + linkType + " for " + node.summarize() + " is already disconnected")
 
   def disconnectEnemyOutputs(self, nodeIndex):
     self.enemy.addIncomingAttack(CutAttack(nodeIndex, False, True))
 
   def disconnectOutputs(self, nodeIndex):
     if nodeIndex < 0:
+      print("No node at position " + str(nodeIndex))
       return # miss
-    if nodeIndex >= self.network.size():
+    network = self.network
+    if nodeIndex >= network.size():
+      print("No node at position " + str(nodeIndex))
       return # miss
-    sourceNode = self.network.nodes[nodeIndex]
-    for i in range(self.network.size()):
-      destNode = self.network.nodes[i] # TODO: make this more efficient
+    sourceNode = network.nodes[nodeIndex]
+    print("Disconnecting outputs at position " + str(nodeIndex) + ": node " + sourceNode.summarize())
+
+    for i in range(network.size()):
+      destNode = network.nodes[i] # TODO: make this more efficient
       for linkType, link in sourceNode.inputsByName.items():
         if link is not None and link.item == sourceNode:
+          print("Disconnecting input " + linkType + " for " + destNode.summarize())
           destNode.inputsByName[linkType] = None
 
   def getEnemyPowerAcquired(self, nodeIndex):

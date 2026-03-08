@@ -209,7 +209,7 @@ class InputCutter(Item):
     signal = self.tryAcquirePower("control", self.maxSignalPower)
     targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
     if power >= self.requiredPower:
-      print(self.summarize() + " cutting at position " + str(targetIndex))
+      print(self.summarize() + " trying to cut at position " + str(targetIndex))
       competitor.disconnectEnemyInputs(targetIndex)
     else:
       if power > 0:

@@ -398,7 +398,7 @@ class CustomizationStoryNode(SimpleStoryNode):
     for item in self.player.items:
       print("  " + item.summarize())
     network = self.player.network
-    print(str(network.size()) + " items in network")
+    print(str(network.size()) + " items in network:")
     for item in network.nodes:
       print("  " + item.describeLinks(network))
     print("")
@@ -473,7 +473,7 @@ class CustomizationStoryNode(SimpleStoryNode):
       item = network.nodes[i]
       if item in choiceSet:
         displayIndex = i + 1
-        menu.addChoice(choicePrefix + " #" + str(displayIndex) + " " + item.describeLinks(network), i, displayIndex)
+        menu.addChoice(choicePrefix + " " + item.describeLinks(network), i, displayIndex)
     return menu.chooseValue()
 
   def chooseNetworkItemInput(self, item):

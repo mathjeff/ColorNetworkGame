@@ -130,15 +130,16 @@ class Item(object):
     return "\n ".join(messages)
 
   def describeLinks(self, network):
+    index = network.getPosition(self)
     messages = [self.summarize()]
     for name, value in self.inputsByName.items():
       if value is not None:
-        index = network.getPosition(value.item)
-        displayIndex = index + 1
+        otherIndex = network.getPosition(value.item)
+        displayIndex = otherIndex + 1
         messages.append(name + ": #" + str(displayIndex) + " " + value.summarize())
       else:
         messages.append(name + ": None")
-    return ", ".join(messages)
+    return "#" + str(index + 1) + " " + ", ".join(messages)
 
 # represents an output of an item
 class Output(object):

@@ -171,21 +171,33 @@ class CompetitionStoryNode(SimpleStoryNode):
     self.rewardMoney = rewardMoney
 
   def process(self):
+    # run competition
     print("Room " + str(self.index) + ": you enter a competition with " + str(self.opponent.name))
     competition = Competition([self.player, self.opponent])
     result = competition.run()
+    # output status
     print("")
-    self.updateRunLog(result)
     if result is None:
       print("Tie!\n")
     else:
       if result:
         print("Success! You defeated " + str(self.opponent.name) + "\n")
+      else:
+        print("Failure\n")
+    # process results
+    self.onResult(result)
+
+  def onResult(self, successful):
+    # save the successful
+    entry = RunLogCompetitionEntry(str(self.index), successful)
+    self.runLog.addEntry(entry)
+    # do any updates
+    if successful is not None:
+      if successful:
         if self.rewardMoney != 0:
           self.player.money += self.rewardMoney
           print("You gain "  + str(self.rewardMoney) + " money and have " + str(self.player.money) + " money")
       else:
-        print("Failure\n")
         self.player.hitpoints -= 1
         hitpoints = self.player.getHitpoints()
         if hitpoints > 0:
@@ -193,10 +205,6 @@ class CompetitionStoryNode(SimpleStoryNode):
         else:
           print("Loss limit reached. Bye!")
           sys.exit(0)
-
-  def updateRunLog(self, successful):
-    entry = RunLogCompetitionEntry(str(self.index), successful)
-    self.runLog.addEntry(entry)
 
 class FinalsStoryNode(SimpleStoryNode):
   def __init__(self, player, numRemainingNodes):
@@ -377,7 +385,7 @@ class TestingStoryNode(CompetitionStoryNode):
     super().__init__(-1, player, makeOpponent(3, itemDataFactory), 0, None)
     self.nextNode = None
 
-  def updateRunLog(self, successful):
+  def onResult(self, successful):
     return # don't save test results
 
 class CustomizationStoryNode(SimpleStoryNode):

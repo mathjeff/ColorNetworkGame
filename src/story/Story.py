@@ -20,6 +20,8 @@ class Menu(object):
   def addChoice(self, text, result, index=None):
     if index is None:
       index = self.previousIndex + 1
+    while index in self.choicesByIndex:
+      index += 0.1
     self.previousIndex = index
     self.choicesByIndex[index] = (text, result)
 
@@ -40,7 +42,7 @@ class Menu(object):
         for index in self.choicesByIndex:
           return index
       try:
-        number = int(choiceText)
+        number = float(choiceText)
       except Exception as e:
         print("Choose a number!")
         continue
@@ -480,11 +482,13 @@ class CustomizationStoryNode(SimpleStoryNode):
     menu = Menu()
     menu.addChoice("None", None)
     for item in self.player.network.nodes:
+      index = self.player.network.getPosition(item)
+      outputIndex = 0
       for outputName in item.outputNames:
-        index = self.player.network.getPosition(item)
+        outputIndex += 1
         displayIndex = index + 1
         output = Output(item, outputName)
-        menu.addChoice("#" + str(displayIndex) + " " + output.summarize(), output)
+        menu.addChoice("#" + str(displayIndex) + " " + output.summarize(), output, displayIndex)
     return menu.chooseValue()
 
   def removeItems(self):

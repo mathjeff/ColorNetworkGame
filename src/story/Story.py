@@ -440,16 +440,16 @@ class CustomizationStoryNode(SimpleStoryNode):
 
   def moveItems(self):
     network = self.player.network
-    nodes = network.nodes
     while True:
+      nodes = network.nodes
       fromIndex = self.chooseNetworkPosition("Select item to move:", "Done (moving items)", "Move", nodes)
       if fromIndex < 0:
         return
       toIndex = self.chooseNetworkPosition("Select new position:", "Cancel", "Position", nodes)
       if toIndex < 0:
         continue
-      item = nodes.pop(fromIndex)
-      nodes.insert(toIndex, item)
+      item = network.removeAt(fromIndex)
+      network.insert(toIndex, item)
 
   def linkItems(self):
     nodes = self.player.network.nodes
@@ -500,8 +500,8 @@ class CustomizationStoryNode(SimpleStoryNode):
     return menu.chooseValue()
 
   def removeItems(self):
-    nodes = self.player.network.nodes
     while True:
+      nodes = self.player.network.nodes
       fromIndex = self.chooseNetworkPosition("Select item to remove:", "Done (removing items)", "Remove", nodes)
       if fromIndex < 0:
         return
@@ -711,7 +711,7 @@ class Network(object):
   def addAll(self, templates):
     self.setItems(self.nodes + templates)
 
-  def insert(self, item, index):
+  def insert(self, index, item):
     self.setItems(self.nodes[:index] + [item] + self.nodes[index:])
 
   def setItems(self, nodes):
@@ -747,6 +747,10 @@ class Network(object):
     if self.nodePositions is None:
       self.nodePositions = {self.nodes[i] : i for i in range(len(self.nodes))}
     return self.nodePositions[node]
+
+  def removeAt(self, index):
+    self.nodePositions = None
+    return self.nodes.pop(index)
 
 # represents the player
 class GamePlayer(object):

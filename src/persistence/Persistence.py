@@ -37,6 +37,9 @@ class ItemDataFactory(object):
     self.contentsByName[itemData.name] = itemData
     self.contentsByType[type(itemData.item).__name__] = itemData
 
+  def hasTemplateNamed(self, name):
+    return name in self.contentsByName
+
   def getTemplateNamed(self, name):
     result = self.contentsByName.get(name)
     if result is None:
@@ -112,8 +115,7 @@ class FileItemDataFactory(ItemDataFactory):
     self.filepath = filepath
     if os.path.isfile(filepath):
       self.loadFile()
-    else:
-      self.loadDefaults()
+    self.loadDefaults()
 
   def loadFile(self):
     json = self.readFile()
@@ -146,9 +148,12 @@ class FileItemDataFactory(ItemDataFactory):
       components.append(self.itemDataToDict(component))
     return json.dumps(components, indent = 2)
 
+  # add the default items to this factory, without overwriting existing items
   def loadDefaults(self):
     for itemData in self.defaultFactory.getAll():
-      self.addItemData(itemData)
+      name = itemData.name
+      if not self.hasTemplateNamed(name):
+        self.addItemData(itemData)
 
 # information stored in the RunLog
 class RunLogEntry(object):

@@ -1,3 +1,5 @@
+from energy.Energy import *
+
 # An ItemProperties describes the properties that are used by an Item
 # It doesn't describe other things like its cost or complexity
 class ItemProperties(object):
@@ -68,36 +70,38 @@ class Item(object):
 
   # tries to get power from the given link
   def tryAcquirePower(self, linkType, amount):
-    if amount < 0:
-      return 0 # no power requested
+    if not amount.nonempty():
+      return Energy() # no power requested
     if self.acquiringPower:
-      return 0 # we don't have any power for recursive calls
+      return Energy() # we don't have any power for recursive calls
     if linkType not in self.inputsByName.keys():
       raise Exception("link type " + str(linkType) + " not declared in " + str(self) + ". All declared links: " + str(self.inputsByName))
     link = self.inputsByName.get(linkType)
-    result = 0
+    result = Energy()
     self.acquiringPower = True
     if link is not None:
       if link.item.outputPowerDrain > 0:
-        drained = link.item.tryGetPower(link.item.outputPowerDrain, link.outputName)
-        if drained > 0:
-          link.item.outputPowerDrain -= drained
+        drainRequest = EnergyRequest(Energy(), link.item.outputPowerDrain)
+        drained = link.item.tryGetPower(drainRequest, link.outputName)
+        if drained.getTotal() > 0:
+          link.item.outputPowerDrain -= drained.getTotal()
           print(link.item.summarize() + " output was drained of " + str(drained) + " power")
       if self.inputPowerDrain > 0:
-        drained = link.item.tryGetPower(self.inputPowerDrain, link.outputName)
+        drainRequest = EnergyRequest(Energy(), self.inputPowerDrain)
+        drained = link.item.tryGetPower(drainRequest, link.outputName)
         if drained > 0:
           print(self.summarize() + " input was drained of " + str(drained) + " power")
-        self.inputPowerDrain -= drained
+        self.inputPowerDrain -= drained.getTotal()
       result = link.item.tryGetPower(amount, link.outputName)
-    if result > 0:
+    if result.nonempty():
       print(str(self.summarize()) + " got " + str(result) + " power from " + link.item.summarize())
     self.acquiringPower = False
-    self.powerAcquiredThisTurn += result
+    self.powerAcquiredThisTurn += result.getTotal()
     return result
 
   # tries to get power from the current node
   def tryGetPower(self, amount, outputName):
-    return 0
+    return Energy() # empty
 
   def getPowerAcquiredLastTurn(self):
     return self.powerAcquiredLastTurn
@@ -163,20 +167,20 @@ class Laser(Item):
     self.declareInputs(["power", "control"])
 
   def loadProperties(self, properties):
-    self.requiredPower = properties.get("requiredPower")
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
     self.damage = properties.get("damage")
-    self.maxSignalPower = properties.get("maxSignalPower")
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
 
   def act(self, competitor):
     super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
-    if power >= self.requiredPower:
+    if self.requiredPower.satisfiedBy(power):
       damage = self.damage
     else:
       damage = 0
     signal = self.tryAcquirePower("control", self.maxSignalPower)
-    targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
+    targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
     print("laser applying damage " + str(damage) + " at position " + str(targetIndex))
     competitor.applyEnemyDamage(targetIndex, damage)
 
@@ -199,8 +203,8 @@ class InputCutter(Item):
     super().__init__(properties)
 
   def loadProperties(self, properties):
-    self.requiredPower = properties.get("requiredPower")
-    self.maxSignalPower = properties.get("maxSignalPower")
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
     self.declareInputs(["power", "control"])
 
@@ -208,12 +212,12 @@ class InputCutter(Item):
     super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
     signal = self.tryAcquirePower("control", self.maxSignalPower)
-    targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
-    if power >= self.requiredPower:
+    targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
+    if self.requiredPower.satisfiedBy(power):
       print(self.summarize() + " trying to cut at position " + str(targetIndex))
       competitor.disconnectEnemyInputs(targetIndex)
     else:
-      if power > 0:
+      if power.nonempty():
         print(self.summarize() + " insufficient power: " + str(power) + " < " + str(self.requiredPower))
 
   def clone(self):
@@ -234,8 +238,8 @@ class OutputCutter(Item):
     super().__init__(properties)
 
   def loadProperties(self, properties):
-    self.requiredPower = properties.get("requiredPower")
-    self.maxSignalPower = properties.get("maxSignalPower")
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
     self.declareInputs(["power", "control"])
 
@@ -243,12 +247,12 @@ class OutputCutter(Item):
     super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
     signal = self.tryAcquirePower("control", self.maxSignalPower)
-    targetIndex = int(self.maxPossibleTarget * signal / self.maxSignalPower)
-    if power >= self.requiredPower:
+    targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
+    if self.requiredPower.satisfiedBy(power):
       print(self.summarize() + " cutting at position " + str(targetIndex))
       competitor.disconnectEnemyOutputs(targetIndex)
     else:
-      if power > 0:
+      if power.nonempty():
         print(self.summarize() + " insufficient power: " + str(power) + " < " + str(self.requiredPower))
 
   def clone(self):
@@ -263,8 +267,6 @@ class OutputCutter(Item):
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
 
-
-
 # holds power and can provide it over time
 class Battery(Item):
   def __init__(self, properties):
@@ -272,20 +274,18 @@ class Battery(Item):
     self.declareOutput()
 
   def loadProperties(self, properties):
-    self.charge = properties.get("maxCharge")
+    self.charge = Energy(properties.get("maxCharge"))
     self.dischargeRate = properties.get("dischargeRate")
-    self.readyToDischarge = 0
+    self.readyToDischarge = Energy()
 
   def act(self, competitor):
     super().act(competitor)
-    self.readyToDischarge = min(self.charge, self.dischargeRate)
+    self.readyToDischarge = self.charge.min(self.charge.withConstant(self.dischargeRate))
 
   def tryGetPower(self, requested, outputName):
-    if requested < 0:
-      return
-    amount = min(requested, self.readyToDischarge)
-    self.readyToDischarge -= amount
-    self.charge -= amount
+    amount = requested.chooseFrom(self.readyToDischarge)
+    self.readyToDischarge = self.readyToDischarge.minus(amount)
+    self.charge = self.charge.minus(amount)
     return amount
 
   def clone(self):
@@ -313,66 +313,28 @@ class Wall(Item):
   def clone(self):
     return Wall(self.properties)
 
-# limits power flow
-class Resistor(Item):
-  def __init__(self, properties):
-    super().__init__(properties)
-    self.readyToDischarge = 0
-    self.declareOutput()
-    self.declareInputs(["power"])
-
-  def loadProperties(self, properties):
-    self.dischargeRate = properties.get("dischargeRate")
-
-  def act(self, competitor):
-    super().act(competitor)
-    requestedAmount = self.dischargeRate - self.readyToDischarge
-    receivedAmount = self.tryAcquirePower("power", requestedAmount)
-    self.readyToDischarge += receivedAmount
-
-  def tryGetPower(self, requested, outputName):
-    if requested < 0:
-      return 0
-    amount = min(requested, self.readyToDischarge)
-    self.readyToDischarge -= amount
-    return amount
-
-  def clone(self):
-    return Resistor(self.properties)
-
-  def summarize(self):
-    return super().summarize() + "<" + str(self.dischargeRate)
-  
-  def getHelpMessages(self):
-    messages = super().getHelpMessages()
-    messages.append("allows " + str(self.dischargeRate) + " power to pass through it per turn")
-    return messages
-
-# adds a constant to power flow
+# adds a constant to each color of power
 class Adder(Item):
   def __init__(self, properties):
     super().__init__(properties)
     self.readyToDischarge = 0
     self.declareOutput()
     self.declareInputs(["power", "signal"])
+    self.signal = Energy()
 
   def loadProperties(self, properties):
+    self.maxInput = EnergyRequest(Energy(), properties.get("maxInput"))
     self.addition = properties.get("addition")
-    self.maxInput = properties.get("maxInput")
 
   def act(self, competitor):
     super().act(competitor)
-    signal = self.tryAcquirePower("signal", self.maxInput)
-    power = self.tryAcquirePower("power", self.addition)
-    self.readyToDischarge = power + signal
-    print(self.summarize() + " signal " + str(signal) + " power " + str(power) + " output " + str(self.readyToDischarge))
+    self.signal = self.tryAcquirePower("signal", self.maxInput).getTotal()
+    print(self.summarize() + " signal " + str(self.signal))
 
   def tryGetPower(self, requested, outputName):
-    if requested < 0:
-      return 0
-    amount = min(requested, self.readyToDischarge)
-    self.readyToDischarge -= amount
-    return amount
+    targetOutput = requested.limitToConstant(self.signal + self.addition)
+    power = self.tryAcquirePower("power", targetOutput)
+    return power
 
   def clone(self):
     return Adder(self.properties)
@@ -400,11 +362,9 @@ class Divider(Item):
     self.divisor = divisor
 
   def tryGetPower(self, requested, outputName):
-    if requested < 0:
-      return 0
-    targetInput = requested * self.divisor
+    targetInput = requested.times(self.divisor)
     actualInput = self.tryAcquirePower("power", targetInput)
-    return actualInput / self.divisor
+    return actualInput.dividedBy(self.divisor)
 
   def clone(self):
     return Divider(self.properties)
@@ -430,13 +390,23 @@ class Fork(Item):
 
   def act(self, competitor):
     super().act(competitor)
-    self.signal = self.tryAcquirePower("signal", self.maxInput)
+    self.signals = {}
+
+  def getSignal(self, color):
+    result = self.signals.get(color)
+    if result is None:
+      result = self.tryAcquirePower("signal", EnergyRequest(Energy({color:self.maxInput}, 0)))
+      self.signals[color] = result
+    return result
 
   def tryGetPower(self, requested, outputName):
-    if requested <= 0:
-      return 0
-    power = self.tryAcquirePower("power", min(self.signal, requested))
-    return power
+    # compute signal
+    signal = Energy({})
+    for key in requested.getTypes():
+      signal = signal.plus(self.getSignal(key))
+    # try to acquire
+    result = self.tryAcquirePower("power", signal)
+    return result
 
   def clone(self):
     return Fork(self.properties)
@@ -458,12 +428,10 @@ class Joiner(Item):
     return
 
   def tryGetPower(self, requested, outputName):
-    if requested <= 0:
-      return 0
-    power = 0
-    power += self.tryAcquirePower("input1", requested - power)
-    power += self.tryAcquirePower("input2", requested - power)
-    power += self.tryAcquirePower("input3", requested - power)
+    power = Energy({})
+    power = power.plus(self.tryAcquirePower("input1", requested.minus(power)))
+    power = power.plus(self.tryAcquirePower("input2", requested.minus(power)))
+    power = power.plus(self.tryAcquirePower("input3", requested.minus(power)))
     return power
 
   def clone(self):
@@ -483,11 +451,12 @@ class If(Item):
     self.declareInputs(["power", "signal"])
 
   def loadProperties(self, properties):
-    self.threshold = properties.get("threshold")
+    threshold = properties.get("threshold")
+    self.threshold = EnergyRequest(Energy(), threshold)
 
   def act(self, competitor):
     super().act(competitor)
-    self.on = self.tryAcquirePower("signal", self.threshold) >= self.threshold
+    self.on = self.threshold.satisfiedBy(self.tryAcquirePower("signal", self.threshold))
 
   def tryGetPower(self, requested, outputName):
     if self.on:
@@ -509,23 +478,26 @@ class If(Item):
 class Capacitor(Item):
   def __init__(self, properties):
     super().__init__(properties)
-    self.energy = 0
+    self.energy = Energy()
     self.declareOutputs(["power", "signal"])
     self.declareInputs(["power"])
 
   def loadProperties(self, properties):
-    self.maxEnergy = properties.get("maxEnergy")
+    self.maxEnergy = Energy(properties.get("maxEnergy"))
     self.signalOutputFraction = properties.get("signalOutputFraction")
 
   def act(self, competitor):
     super().act(competitor)
-    self.energy += self.tryAcquirePower("power", self.maxEnergy - self.energy)
+    request = EnergyRequest(self.maxEnergy.minus(self.energy))
+    self.energy = self.energy.plus(self.tryAcquirePower("power", request))
 
   def tryGetPower(self, requested, outputName):
     if outputName == "signal":
-      requested = self.energy * self.signalOutputFraction
-    amount = min(requested, self.energy)
-    self.energy -= amount
+      available = self.energy.times(self.signalOutputFraction)
+    else:
+      available = self.energy
+    amount = requested.chooseFrom(available)
+    self.energy = self.energy.minus(amount)
     return amount
 
   def clone(self):
@@ -549,8 +521,8 @@ class Shield(Item):
   def loadProperties(self, properties):
     self.defenseFraction = properties.get("defenseFraction")
     self.radius = properties.get("radius")
-    self.requiredEnergy = properties.get("requiredPower")
-    self.maxSignalPower = properties.get("maxSignalPower")
+    self.requiredEnergy = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleDistance = properties.get("maxPossibleDistance")
 
   def act(self, competitor):
@@ -558,10 +530,10 @@ class Shield(Item):
     energy = self.tryAcquirePower("power", self.requiredEnergy)
     distanceSignal = self.tryAcquirePower("distance", self.maxSignalPower)
     directionSignal = self.tryAcquirePower("direction", self.maxSignalPower)
-    if energy >= self.requiredEnergy:
+    if self.requiredEnergy.satisfiedBy(energy):
       ourPosition = competitor.network.getPosition(self)
-      distance = int(self.maxPossibleDistance * distanceSignal / self.maxSignalPower)
-      if directionSignal > 0:
+      distance = int(self.maxPossibleDistance * distanceSignal.getTotal() / self.maxSignalPower.getTotal())
+      if directionSignal.nonempty():
         position = ourPosition - distance
       else:
         position = ourPosition + distance
@@ -599,8 +571,8 @@ class PowerUsageSensor(Item):
 
   def loadProperties(self, properties):
     self.radius = properties.get("radius")
-    self.requiredPower = properties.get("requiredPower")
-    self.maxSignalPower = properties.get("maxSignalPower")
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
     self.outputRatio = properties.get("outputRatio")
 
@@ -608,8 +580,8 @@ class PowerUsageSensor(Item):
     super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
     positionSignal = self.tryAcquirePower("positionSignal", self.requiredPower)
-    if power >= self.requiredPower:
-      index = int(self.maxPossibleTarget * positionSignal / self.maxSignalPower)
+    if self.requiredPower.satisfiedBy(power):
+      index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
       reading = 0
       lowIndex = index - self.radius
       highIndex = index + self.radius
@@ -618,12 +590,13 @@ class PowerUsageSensor(Item):
       self.reading = min(reading * self.outputRatio, power)
       print(self.summarize() + " reading opponent total power acquired from " + str(lowIndex) + " to " + str(highIndex) + ", outputting " + str(self.reading))
     else:
-      if power > 0:
+      if power.nonempty():
         print("power " + str(power) + " not enough to power " + self.summarize())
+      self.reading = Energy()
 
   def tryGetPower(self, requested, outputName):
-    amount = min(requested, self.reading)
-    self.reading -= amount
+    result = requested.limitToConstant(self.reading)
+    self.reading = self.reading.minus(result)
     return amount
 
   def clone(self):
@@ -647,8 +620,8 @@ class PowerInputDrainer(Item):
 
   def loadProperties(self, properties):
     self.radius = properties.get("radius")
-    self.requiredPower = properties.get("requiredPower")
-    self.maxSignalPower = properties.get("maxSignalPower")
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
     self.drainPerItem = properties.get("drainPerItem")
 
@@ -656,15 +629,15 @@ class PowerInputDrainer(Item):
     super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
     positionSignal = self.tryAcquirePower("positionSignal", self.maxSignalPower)
-    if power >= self.requiredPower:
-      index = int(self.maxPossibleTarget * positionSignal / self.maxSignalPower)
+    if self.requiredPower.satisfiedBy(power):
+      index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
       lowIndex = index - self.radius
       highIndex = index + self.radius
       for i in range(lowIndex, highIndex + 1):
         competitor.drainEnemyPower(i, self.drainPerItem, 0)
       print(self.summarize() + " draining opponent input power of " + str(self.drainPerItem) + " from each opponent item from " + str(lowIndex + 1) + " to " + str(highIndex + 1))
     else:
-      if power > 0:
+      if power.nonempty():
         print("power " + str(power) + " not enough to power " + self.summarize())
 
   def clone(self):
@@ -688,8 +661,8 @@ class PowerOutputDrainer(Item):
 
   def loadProperties(self, properties):
     self.radius = properties.get("radius")
-    self.requiredPower = properties.get("requiredPower")
-    self.maxSignalPower = properties.get("maxSignalPower")
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
     self.drainPerItem = properties.get("drainPerItem")
 
@@ -697,15 +670,15 @@ class PowerOutputDrainer(Item):
     super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
     positionSignal = self.tryAcquirePower("positionSignal", self.maxSignalPower)
-    if power >= self.requiredPower:
-      index = int(self.maxPossibleTarget * positionSignal / self.maxSignalPower)
+    if self.requiredPower.satisfiedBy(power):
+      index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
       lowIndex = index - self.radius
       highIndex = index + self.radius
       for i in range(lowIndex, highIndex + 1):
         competitor.drainEnemyPower(i, 0, self.drainPerItem)
       print(self.summarize() + " draining opponent output power of " + str(self.drainPerItem) + " from each opponent item from " + str(lowIndex + 1) + " to " + str(highIndex + 1))
     else:
-      if power > 0:
+      if power.nonempty():
         print("power " + str(power) + " not enough to power " + self.summarize())
 
   def clone(self):

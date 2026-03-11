@@ -1,6 +1,7 @@
 #!python
 
 from competition.Competition import *
+from energy.Energy import *
 from items.Items import *
 from persistence.Persistence import *
 from story.Story import *
@@ -15,21 +16,22 @@ class DefaultItemDataFactory(ItemDataFactory):
 
   def loadDefaults(self):
     self.contents = []
+    y = SingleColorBuilder("Y")
     # self.add(type(properties), popularity, complexity=1, cost)
-    self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 10, "maxPossibleTarget": 100}), 2, 1, 20)
-    self.add(Battery({"maxCharge": 100, "dischargeRate": 3}), 2, 1, 20)
+    self.add(Laser({"requiredPower": y.d(1), "damage": 1, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 2, 1, 20)
+    self.add(Battery({"maxCharge": y.d(100), "dischargeRate": 3}), 2, 1, 20)
     self.add(Wall({"hitPoints": 4}), 2, 1, 10)
     # self.add(type(properties), popularity, complexity=2, cost)
-    self.add(InputCutter({"requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100}), 2, 1, 10)
-    self.add(OutputCutter({"requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100}), 2, 1, 10)
-    self.add(Laser({"requiredPower": 4, "damage": 4, "maxSignalPower": 10, "maxPossibleTarget": 100}), 2, 2, 20)
-    self.add(Laser({"requiredPower": 2, "damage": 2, "maxSignalPower": 10, "maxPossibleTarget": 100}), 2, 2, 20)
-    self.add(Laser({"requiredPower": 1, "damage": 1, "maxSignalPower": 3, "maxPossibleTarget": 3}), 2, 2, 20)
-    self.add(PowerInputDrainer({"requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100, "radius": 1, "drainPerItem": 1}), 2, 2, 10)
-    self.add(PowerOutputDrainer({"requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100, "radius": 1, "drainPerItem": 1}), 2, 2, 10)
-    self.add(Battery({"maxCharge": 10, "dischargeRate": 4}), 2, 2, 10)
-    self.add(Battery({"maxCharge": 20, "dischargeRate": 2}), 2, 2, 10)
-    self.add(Battery({"maxCharge": 100, "dischargeRate": 1}), 2, 2, 10)
+    self.add(InputCutter({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 2, 1, 10)
+    self.add(OutputCutter({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 2, 1, 10)
+    self.add(Laser({"requiredPower": y.d(4), "damage": 4, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 2, 2, 20)
+    self.add(Laser({"requiredPower": y.d(2), "damage": 2, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 2, 2, 20)
+    self.add(Laser({"requiredPower": y.d(1), "damage": 1, "maxSignalPower": y.d(3), "maxPossibleTarget": 3}), 2, 2, 20)
+    self.add(PowerInputDrainer({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "radius": 1, "drainPerItem": 1}), 2, 2, 10)
+    self.add(PowerOutputDrainer({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "radius": 1, "drainPerItem": 1}), 2, 2, 10)
+    self.add(Battery({"maxCharge": y.d(10), "dischargeRate": 4}), 2, 2, 10)
+    self.add(Battery({"maxCharge": y.d(20), "dischargeRate": 2}), 2, 2, 10)
+    self.add(Battery({"maxCharge": y.d(100), "dischargeRate": 1}), 2, 2, 10)
     self.add(Wall({"hitPoints": 8}), 2, 1, 15)
     self.add(Adder({"addition": 0.1, "maxInput": 10}), 1, 2, 10)
     self.add(Adder({"addition": 0.2, "maxInput": 10}), 1, 2, 10)
@@ -42,11 +44,11 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(If({"threshold": 0.3}), 1, 2, 10)
     self.add(If({"threshold": 0.5}), 1, 2, 10)
     self.add(If({"threshold": 0.7}), 1, 2, 10)
-    self.add(Capacitor({"maxEnergy": 10, "signalOutputFraction": 0.1}), 2, 2, 10)
+    self.add(Capacitor({"maxEnergy": y.d(10), "signalOutputFraction": 0.1}), 2, 2, 10)
     # self.add(type(properties), popularity, complexity=3, cost)
-    self.add(Shield({"defenseFraction": 1.0, "radius": 0, "requiredPower": 6, "maxSignalPower": 1, "maxPossibleDistance": 1}), 2, 3, 20)
-    self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": 4, "maxSignalPower": 10, "maxPossibleDistance": 100}), 2, 3, 20)
-    self.add(PowerUsageSensor({"radius": 1, "requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100, "outputRatio": 0.1}), 1, 3, 10)
+    self.add(Shield({"defenseFraction": 1.0, "radius": 0, "requiredPower": y.d(6), "maxSignalPower": y.d(1), "maxPossibleDistance": 1}), 2, 3, 20)
+    self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": y.d(4), "maxSignalPower": y.d(10), "maxPossibleDistance": 100}), 2, 3, 20)
+    self.add(PowerUsageSensor({"radius": 1, "requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 1, 3, 10)
 
 profile = Profile("data/profile/")
 itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))

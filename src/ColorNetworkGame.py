@@ -28,6 +28,7 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(PowerInputDrainer({"requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100, "radius": 1, "drainPerItem": 1}), 2, 2, 10)
     self.add(PowerOutputDrainer({"requiredPower": 1, "maxSignalPower": 10, "maxPossibleTarget": 100, "radius": 1, "drainPerItem": 1}), 2, 2, 10)
     self.add(Battery({"maxCharge": 10, "dischargeRate": 4}), 2, 2, 10)
+    self.add(Battery({"maxCharge": 20, "dischargeRate": 2}), 2, 2, 10)
     self.add(Battery({"maxCharge": 100, "dischargeRate": 1}), 2, 2, 10)
     self.add(Wall({"hitPoints": 8}), 2, 1, 15)
     self.add(Adder({"addition": 0.1, "maxInput": 10}), 1, 2, 10)

@@ -156,7 +156,7 @@ class EnergyRequest(object):
       targetPerColor = remainingTarget / len(candidateTypes)
       for i in range(len(candidateTypes) - 1, -1, -1):
         color = candidateTypes[i]
-        availableInThisColor = energy.get(color) - result.getColor()
+        availableInThisColor = energy.get(color) - colorResult.get(color)
         addInThisColor = min(availableInThisColor, targetPerColor)
         # count the amount acquired
         otherResult = otherResult.plus(Energy({color:addInThisColor}))

@@ -189,14 +189,20 @@ class Competitor(object):
       print("No node at position " + str(nodeIndex))
       return # miss
     sourceNode = network.nodes[nodeIndex]
+    if len(sourceNode.outputNames) < 1:
+      print("Node at position " + str(nodeIndex) + " is " + sourceNode.summarize() + " which has no outputs")
+      return
     print("Disconnecting outputs at position " + str(nodeIndex) + ": node " + sourceNode.summarize())
-
+    numDisconnected = 0
     for i in range(network.size()):
       destNode = network.nodes[i] # TODO: make this more efficient
       for linkType, link in destNode.inputsByName.items():
         if link is not None and link.item == sourceNode:
           print("Disconnecting input " + linkType + " for " + destNode.summarize())
           destNode.inputsByName[linkType] = None
+          numDisconnected += 1
+    if numDisconnected < 1:
+      print("No outputs disconnected for " + sourceNode.summarize())
 
   def getEnemyPowerAcquired(self, nodeIndex):
     if nodeIndex < 0:

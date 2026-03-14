@@ -165,7 +165,11 @@ def offerChangeSettings():
   if conclusionEntry is not None and conclusionEntry.successful:
     print("Your previous game was a victory!")
   else:
-    print("Your previous game was a loss")
+    lastEntry = runLog.getLastEntry()
+    when = ""
+    if lastEntry is not None:
+      when = " at round " + lastEntry.name
+    print("Your previous game was a loss" + when)
   print("")
   print("Choose settings for this game")
   menu = Menu()

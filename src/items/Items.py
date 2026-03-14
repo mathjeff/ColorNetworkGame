@@ -731,3 +731,36 @@ class Converter(Item):
     messages = super().getHelpMessages()
     messages.append("converts " + str(self.requiredPower) + " to " + str(self.outputPower) + " every turn")
     return messages
+
+# does equal damage to both competitors
+class Ram(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["power"])
+    self.declareOutput()
+
+  def loadProperties(self, properties):
+    self.maxPower = EnergyRequest(Energy(properties.get("maxPower")))
+    self.damagePerPower = properties.get("damagePerPower")
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.maxPower)
+    damage = power.getTotal() * self.damagePerPower
+    if damage >= 1:
+      competitor.addRamAttack(damage)
+    else:
+      if power.nonempty():
+        print("power " + str(power) + " not enough for " + str(self) + " to do damage")
+
+  def clone(self):
+    return Ram(self.properties)
+
+  def summarize(self):
+    return "Ram <=" + str(self.maxPower) + "->" + str(self.damagePerPower) + "x"
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("Uses up to " + str(self.maxPower) + " energy to deal " + str(self.damagePerPower) + " damage per power to each competitor each turn")
+    messages.append("If this damage destroys an item, it will continue on to subsequent items")
+    return messages

@@ -46,6 +46,14 @@ class PowerDrainAttack(Attack):
     target.drainInputPower(self.index, self.inputAmount)
     target.drainOutputPower(self.index, self.outputAmount)
 
+class RamAttack(Attack):
+  def __init__(self, damage):
+    super().__init__()
+    self.damage = damage
+
+  def process(self, target):
+    target.receiveRamAttack(self.damage)
+
 # represents an entity that competes with other entities
 class Competitor(object):
   def __init__(self, name, network):
@@ -107,6 +115,10 @@ class Competitor(object):
   def applyEnemyDamage(self, nodeIndex, amount):
     self.enemy.addIncomingAttack(DamageAttack(nodeIndex, amount))
 
+  def addRamAttack(self, amount):
+    self.addIncomingAttack(RamAttack(amount))
+    self.enemy.addIncomingAttack(RamAttack(amount))
+
   def receiveDamage(self, nodeIndex, amount):
     if nodeIndex < 0:
       return # miss
@@ -119,6 +131,20 @@ class Competitor(object):
       print("shields changed damage at " + str(nodeIndex) + " from " + str(amount) + " to " + str(result))
       amount = result
     node.receiveDamage(amount)
+
+  def receiveRamAttack(self, amount):
+    index = 0
+    network = self.network
+    nodes = network.nodes
+    while index < len(nodes) and amount > 0:
+      node = nodes[index]
+      if node.hitPoints > 0:
+        amountHere = min(node.hitPoints, amount)
+        print("Ram attack dealing " + str(amountHere) + " damage at position " + str(index) + " to node " + node.describeLinks(network))
+        self.receiveDamage(index, amountHere)
+        amount -= amountHere
+      else:
+        index += 1
 
   def createShield(self, position, radius, defenseFraction):
     damageMultiplier = 1 - defenseFraction

@@ -694,3 +694,40 @@ class PowerOutputDrainer(Item):
     messages.append("Will drain up to " + str(self.drainPerItem) + " energy from each affected item")
     return messages
 
+# converts power from one type to another type
+class Converter(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["power"])
+    self.declareOutput()
+
+  def loadProperties(self, properties):
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.outputPower = Energy(properties.get("outputPower"))
+    self.readyToDischarge = Energy()
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.requiredPower)
+    if self.requiredPower.satisfiedBy(power):
+      self.readyToDischarge = self.outputPower
+    else:
+      self.readyToDischarge = Energy()
+      if power.nonempty():
+        print("power " + str(power) + " not enough to power " + str(self))
+
+  def tryGetPower(self, requested, outputName):
+    amount = requested.chooseFrom(self.readyToDischarge)
+    self.readyToDischarge = self.readyToDischarge.minus(amount)
+    return amount
+
+  def clone(self):
+    return Converter(self.properties)
+
+  def summarize(self):
+    return "Converter " + str(self.requiredPower) + "->" + str(self.outputPower)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("converts " + str(self.requiredPower) + " to " + str(self.outputPower) + " every turn")
+    return messages

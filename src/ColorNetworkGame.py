@@ -16,7 +16,8 @@ class DefaultItemDataFactory(ItemDataFactory):
 
   def loadDefaults(self):
     self.contents = []
-    y = SingleColorBuilder("Y")
+    y = SingleColorBuilder("Y") # yellow energy: electricity
+    b = SingleColorBuilder("B") # black energy: coal
     # self.add(type(properties), popularity, complexity=1, cost)
     self.add(Laser({"requiredPower": y.d(1), "damage": 1, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 33, 1, 44)
     self.add(Battery({"maxCharge": y.d(100), "dischargeRate": 3}), 31, 1, 44)
@@ -32,6 +33,9 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(Battery({"maxCharge": y.d(10), "dischargeRate": 4}), 15, 2, 7)
     self.add(Battery({"maxCharge": y.d(20), "dischargeRate": 2}), 20, 2, 11)
     self.add(Battery({"maxCharge": y.d(100), "dischargeRate": 1}), 15, 2, 7)
+    self.add(Battery({"maxCharge": b.d(1), "dischargeRate": 1}), 20, 2, 10)
+    self.add(Battery({"maxCharge": b.d(5), "dischargeRate": 1}), 20, 2, 20)
+    self.add(Converter({"requiredPower": b.d(1), "outputPower":y.d(5)}), 20, 2, 10)
     self.add(Wall({"hitPoints": 8}), 38, 1, 35)
     self.add(Adder({"addition": 0.1, "maxInput": 10}), 7, 2, 7)
     self.add(Adder({"addition": 0.2, "maxInput": 10}), 7, 2, 7)
@@ -45,7 +49,9 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(If({"threshold": 0.5}), 7, 2, 7)
     self.add(If({"threshold": 0.7}), 7, 2, 7)
     self.add(Capacitor({"maxEnergy": y.d(10), "signalOutputFraction": 0.1}), 21, 2, 11)
+    self.add(Capacitor({"maxEnergy": y.d(100), "signalOutputFraction": 0.1}), 21, 2, 22)
     # self.add(type(properties), popularity, complexity=3, cost)
+    self.add(Converter({"requiredPower": b.d(1), "outputPower":y.d(10)}), 20, 3, 20)
     self.add(Shield({"defenseFraction": 1.0, "radius": 0, "requiredPower": y.d(6), "maxSignalPower": y.d(1), "maxPossibleDistance": 1}), 15, 3, 15)
     self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": y.d(4), "maxSignalPower": y.d(10), "maxPossibleDistance": 100}), 15, 3, 15)
     self.add(PowerUsageSensor({"radius": 1, "requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 7, 3, 7)

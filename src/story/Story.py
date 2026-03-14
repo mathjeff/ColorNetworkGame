@@ -218,12 +218,12 @@ class FinalsStoryNode(SimpleStoryNode):
     input("")
 
 class ShopStoryNode(SimpleStoryNode):
-  def __init__(self, player, complexity, itemDataFactory):
+  def __init__(self, player, complexity, offeringFactory):
     super().__init__()
     self.player = player
-    self.contents = self.chooseContents(complexity, itemDataFactory)
+    self.contents = self.chooseContents(complexity, offeringFactory)
     self.purchasedItems = []
-    self.itemDataFactory = itemDataFactory
+    self.offeringFactory = offeringFactory
 
   def getTotalCost(self):
     total = 0
@@ -231,16 +231,16 @@ class ShopStoryNode(SimpleStoryNode):
       total += content.cost
     return total
 
-  def chooseContents(self, complexity, itemDataFactory):
+  def chooseContents(self, complexity, offeringFactory):
     # find a bunch of candidates
     simpleItems = []
     complexItems = []
-    for itemData in itemDataFactory.getAll():
-      if itemData.complexity <= complexity:
-        simpleItems.append(itemData)
+    for offering in offeringFactory.getAll():
+      if offering.complexity <= complexity:
+        simpleItems.append(offering)
       else:
-        if itemData.complexity <= complexity + 1:
-          complexItems.append(itemData)
+        if offering.complexity <= complexity + 1:
+          complexItems.append(offering)
     results = []
     targetNumItems = 10
     if targetNumItems >= len(simpleItems):
@@ -253,9 +253,9 @@ class ShopStoryNode(SimpleStoryNode):
       results += self.chooseDistinctRandomWeightedItems(simpleItems, targetNumItems)
     # randomize the costs somewhat, and round them
     for i in range(len(results)):
-      itemData = results[i].clone()
-      itemData.cost = self.round(itemData.cost * random.uniform(2.0/3.0, 4.0/3.0))
-      results[i] = itemData
+      offering = results[i].clone()
+      offering.cost = self.round(offering.cost * random.uniform(2.0/3.0, 4.0/3.0))
+      results[i] = offering
     # sort items by description
     return self.sortItemsByDescription(results)
 
@@ -288,19 +288,19 @@ class ShopStoryNode(SimpleStoryNode):
         return choice
     raise Exception("random number " + str(number) + " > cumulative " + str(cumulative))
 
-  def sortItemsByDescription(self, itemDataList):
-    descriptions = [self.describe(itemData) for itemData in itemDataList]
-    itemDataByDescription = {}
-    for itemData in itemDataList:
-      description = self.describe(itemData)
-      itemDataHere = itemDataByDescription.get(description)
-      if itemDataHere is None:
-        itemDataHere = []
-        itemDataByDescription[description] = itemDataHere
-      itemDataHere.append(itemData)
+  def sortItemsByDescription(self, offerings):
+    descriptions = [self.describe(offering) for offering in offerings]
+    offeringsByDescription = {}
+    for offering in offerings:
+      description = self.describe(offering)
+      offeringsHere = offeringsByDescription.get(description)
+      if offeringsHere is None:
+        offeringsHere = []
+        offeringsByDescription[description] = offeringsHere
+      offeringsHere.append(offering)
     results = []
-    for description in sorted(itemDataByDescription.keys()):
-      results = results + itemDataByDescription[description]
+    for description in sorted(offeringsByDescription.keys()):
+      results = results + offeringsByDescription[description]
     return results
 
   # rounds to the first two decimal places
@@ -324,8 +324,9 @@ class ShopStoryNode(SimpleStoryNode):
     # for medium values we can simply round the number
     return round(value)
 
-  def describe(self, itemData):
-    return itemData.item.summarize() + ": cost = " + str(itemData.cost)
+  def describe(self, offering):
+    components = [item.summarize() for item in offering.items]
+    return ", ".join(components) + ": cost = " + str(offering.cost)
 
   def process(self):
     while True:
@@ -342,47 +343,40 @@ class ShopStoryNode(SimpleStoryNode):
         print("Bye!")
         return # done
       if choice == 1:
-        self.explainItem()
+        self.explainItems()
         continue
       itemIndex = choice - 2
       cost = self.contents[itemIndex].cost
       if cost > self.player.money:
         print("Not enough money: " + str(self.player.money) + " < " + str(cost))
         continue
-      itemData = self.contents[itemIndex]
-      item = itemData.item.clone()
-      print("Enjoy your " + item.summarize() + "!")
-      self.player.addItem(item)
-      self.purchasedItems.append(itemData)
+      offering = self.contents[itemIndex]
+      # give all items to the player
+      for item in offering.items:
+        item = item.clone()
+        print("Enjoy your " + item.summarize() + "!")
+        self.player.addItem(item)
+      # record what was purchased
+      self.purchasedItems.append(offering)
       self.player.money -= cost
       del self.contents[itemIndex]
 
-  def explainItem(self):
-    print("What is what?")
-    menu = Menu()
-    menu.addChoice("Explain all of them!", -1)
-    for i in range(len(self.contents)):
-      item = self.contents[i].item
-      menu.addChoice(item.summarize(), i)
-    choice = menu.chooseValue()
-    if choice < 0:
-      for content in self.contents:
-        print(content.item.formatHelp())
+  def explainItems(self):
+    for offering in self.contents:
+      for item in offering.items:
+        print(item.formatHelp())
         print("")
-    else:
-      item = self.contents[choice].item
-      print(item.formatHelp())
 
   def updateRunLog(self, nodeName, runLog):
     entry = RunLogShopEntry(nodeName, self.purchasedItems, self.contents)
     runLog.addEntry(entry)
 
-  def serializeItemData(self, itemData):
-    return [self.itemDataFactory.itemDataToDict(d) for d in itemData]
+  def serializeOffering(self, offerings):
+    return [self.offeringFactory.offeringToDict(o) for o in offerings]
 
 class TestingStoryNode(CompetitionStoryNode):
-  def __init__(self, player, itemDataFactory):
-    super().__init__(-1, player, makeOpponent(3, itemDataFactory), 0, None)
+  def __init__(self, player, offeringFactory):
+    super().__init__(-1, player, makeOpponent(3, offeringFactory), 0, None)
     self.nextNode = None
 
   def onResult(self, successful):
@@ -518,13 +512,13 @@ class CustomizationStoryNode(SimpleStoryNode):
       input("(press Enter)")
 
 class MarketStoryNode(MenuStoryNode):
-  def __init__(self, nodeName, player, complexity, itemDataFactory, runLog):
+  def __init__(self, nodeName, player, complexity, offeringFactory, runLog):
     super().__init__("Welcome to the market")
     self.nodeName = nodeName
     self.runLog = runLog
-    self.shop = ShopStoryNode(player, complexity, itemDataFactory)
+    self.shop = ShopStoryNode(player, complexity, offeringFactory)
     self.shop.setNext(self)
-    tester = TestingStoryNode(player, itemDataFactory)
+    tester = TestingStoryNode(player, offeringFactory)
     tester.setNext(self)
     customizer = CustomizationStoryNode(player)
     customizer.setNext(self)
@@ -585,11 +579,11 @@ class StoryNodeRunner(object):
 
 # creates a StoryNode network
 class StoryGenerator(object):
-  def __init__(self, player, competitionBuilder, itemDataFactory, runLog):
+  def __init__(self, player, competitionBuilder, offeringFactory, runLog):
     self.player = player
     self.targetLength = competitionBuilder.getMaxLength()
     self.competitionBuilder = competitionBuilder
-    self.itemDataFactory = itemDataFactory
+    self.offeringFactory = offeringFactory
     self.runLog = runLog
 
   def create(self):
@@ -624,7 +618,7 @@ class StoryGenerator(object):
       # in most cases, send the player to a competition
       rewardMoney = 10
       estimatedPlayerMoney += rewardMoney
-      competition = self.competitionBuilder.buildCompetition(player, index, self.itemDataFactory, rewardMoney, self.runLog)
+      competition = self.competitionBuilder.buildCompetition(player, index, self.offeringFactory, rewardMoney, self.runLog)
       currentNode.setNext(competition)
       currentNode = competition
 
@@ -637,7 +631,7 @@ class StoryGenerator(object):
     maxComplexity = 4
     nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
     nodeName = str(index)
-    return MarketStoryNode(nodeName, self.player, nodeComplexity, self.itemDataFactory, self.runLog)
+    return MarketStoryNode(nodeName, self.player, nodeComplexity, self.offeringFactory, self.runLog)
 
 # builds competitions and keeps track of difficulty
 class CompetitionBuilder(object):
@@ -648,9 +642,9 @@ class CompetitionBuilder(object):
       self.setupDefaults()
       self.save(filepath)
 
-  def buildCompetition(self, player, roomIndex, itemDataFactory, rewardMoney, runLog):
+  def buildCompetition(self, player, roomIndex, offeringFactory, rewardMoney, runLog):
     difficulty = self.getDifficulty(roomIndex)
-    opponent = makeOpponent(difficulty, itemDataFactory)
+    opponent = makeOpponent(difficulty, offeringFactory)
     competition = CompetitionStoryNode(roomIndex, player, opponent, rewardMoney, runLog)
     return competition
 
@@ -770,7 +764,7 @@ class GamePlayer(object):
   def getHitpoints(self):
     return self.hitpoints
 
-def makeOpponent(difficulty, itemDataFactory):
+def makeOpponent(difficulty, offeringFactory):
   player = GamePlayer("Opponent")
   network = player.network
   batteries = []
@@ -778,17 +772,17 @@ def makeOpponent(difficulty, itemDataFactory):
   for i in range(int(difficulty)):
     choice = random.randint(0, 2)
     if choice == 0:
-      battery = itemDataFactory.cloneItemNamed("Battery")
+      battery = offeringFactory.cloneItemNamed("Battery")
       network.addItem(battery)
       batteries.append(battery)
       continue
     if choice == 1:
-      laser = itemDataFactory.cloneItemNamed("Laser")
+      laser = offeringFactory.cloneItemNamed("Laser")
       network.addItem(laser)
       lasers.append(laser)
       continue
     if choice == 2:
-      network.addItem(itemDataFactory.cloneItemNamed("Wall"))
+      network.addItem(offeringFactory.cloneItemNamed("Wall"))
       continue
   if len(batteries) > 0:
     for laser in lasers:

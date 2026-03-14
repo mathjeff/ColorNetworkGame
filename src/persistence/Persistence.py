@@ -2,40 +2,44 @@
 
 import json, os, random, shutil, textwrap
 
-# information about an item
-class ItemData(object):
-  def __init__(self, item, name, popularity, complexity, cost):
-    self.item = item.clone()
+# a set of items that can be bought together
+class Offering(object):
+  def __init__(self, items, name, popularity, complexity, cost):
+    self.items = [item.clone() for item in items]
     self.name = name
     self.popularity = popularity
     self.complexity = complexity
     self.cost = cost
 
   def clone(self):
-    return ItemData(self.item, self.name, self.popularity, self.complexity, self.cost)
+    return Offering(self.items, self.name, self.popularity, self.complexity, self.cost)
 
-# a collection of ItemData
-class ItemDataFactory(object):
+# a collection of Offering
+class OfferingFactory(object):
   def __init__(self):
     self.contents = []
     self.contentsByName = {}
-    self.contentsByType = {}
+    self.itemsByType = {}
 
   def add(self, item, popularity, complexity, baseCost):
-    name = type(item).__name__
-    self.addItemData(ItemData(item, name, popularity, complexity, baseCost))
+    self.addBundle([item], popularity, complexity, baseCost)
 
-  def addItemData(self, itemData):
-    name = itemData.name
+  def addBundle(self, items, popularity, complexity, baseCost):
+    baseName = type(items[0]).__name__
+    self.addOffering(Offering(items, baseName, popularity, complexity, baseCost))
+
+  def addOffering(self, offering):
+    name = offering.name
     if name in self.contentsByName:
       index = 2
       while (name + str(index)) in self.contentsByName:
         index += 1
       name = name + str(index)
-    itemData.name = name
-    self.contents.append(itemData)
-    self.contentsByName[itemData.name] = itemData
-    self.contentsByType[type(itemData.item).__name__] = itemData
+    offering.name = name
+    self.contents.append(offering)
+    self.contentsByName[offering.name] = offering
+    for item in offering.items:
+      self.itemsByType[type(item).__name__] = item
 
   def hasTemplateNamed(self, name):
     return name in self.contentsByName
@@ -47,13 +51,17 @@ class ItemDataFactory(object):
     return result
 
   def cloneItemNamed(self, name):
-    return self.getTemplateNamed(name).item.clone()
+    template = self.getTemplateNamed(name)
+    items = template.items
+    if len(items) != 1:
+      raise Exception("Offer '" + name + "' has " + str(len(items)) + ", expected 1")
+    return items[0].clone()
 
   def cloneItemWithType(self, itemType):
-    result = self.contentsByType.get(itemType)
+    result = self.itemsByType.get(itemType)
     if result is None:
-      raise Exception("'" + str(itemType) + "' not found in " + str(list(self.contentsByType.keys())))
-    return result.item.clone()
+      raise Exception("'" + str(itemType) + "' not found in " + str(list(self.itemsByType.keys())))
+    return result.clone()
 
   def getAll(self):
     return self.contents
@@ -61,54 +69,63 @@ class ItemDataFactory(object):
   def cloneAndMutateRandomItem(self):
     index = random.randint(0, len(self.contents) - 1)
     mutated = self.mutateRandomly(self.contents[index], 0.1)
-    self.addItemData(mutated)
+    self.addOffering(mutated)
 
-  def mutateRandomly(self, itemData, maxFractionChange):
-    result = itemData.clone()
-    oldProperties = itemData.item.properties
-    newProperties = {}
-    for key in oldProperties.keys():
-      value = oldProperties.get(key)
-      fractionChange = random.uniform(-maxFractionChange, maxFractionChange)
-      newProperties[key] = value * (1 + fractionChange)
-    result.item.setProperties(newProperties)
+  def mutateRandomly(self, offering, maxFractionChange):
+    result = offering.clone()
+    for item in result.items:
+      oldProperties = item.properties
+      newProperties = {}
+      for key in oldProperties.keys():
+        value = oldProperties.get(key)
+        fractionChange = random.uniform(-maxFractionChange, maxFractionChange)
+        newProperties[key] = value * (1 + fractionChange)
+      item.setProperties(newProperties)
     return result
 
-  def parseItemDataList(self, jsonObjects):
+  def parseOfferings(self, jsonObjects):
     result = []
     for o in jsonObjects:
-      result.append(self.parseItemData(o))
+      result.append(self.parseOffering(o))
     return result
 
-  def parseItemData(self, jsonObject):
+  def parseOffering(self, jsonObject):
     name = jsonObject["name"]
-    itemType = jsonObject["type"]
-    item = self.cloneItemWithType(itemType)
-    item.setProperties(jsonObject["properties"])
     popularity = jsonObject["popularity"]
     complexity = jsonObject["complexity"]
     cost = jsonObject["cost"]
-    itemData = ItemData(item, name, popularity, complexity, cost)
-    return itemData
+    items = []
+    for subObject in jsonObject["items"]:
+      itemType = subObject["type"]
+      item = self.cloneItemWithType(itemType)
+      item.setProperties(subObject["properties"])
+      items.append(item)
+    offering = Offering(items, name, popularity, complexity, cost)
+    return offering
 
-  def itemDataListToDict(self, itemDataList):
+  def offeringsToDict(self, offeringList):
     result = []
-    for itemData in itemDataList:
-      result.append(self.itemDataToDict(itemData))
+    for offering in offeringList:
+      result.append(self.offeringToDict(offering))
     return result
 
-  def itemDataToDict(self, itemData):
+  def offeringToDict(self, offering):
     result = {}
-    result["type"] = type(itemData.item).__name__
-    result["name"] = itemData.name
-    result["popularity"] = itemData.popularity
-    result["complexity"] = itemData.complexity
-    result["cost"] = itemData.cost
-    result["properties"] = itemData.item.properties
+    result["name"] = offering.name
+    result["popularity"] = offering.popularity
+    result["complexity"] = offering.complexity
+    result["cost"] = offering.cost
+    items = []
+    for item in offering.items:
+      subObject = {}
+      subObject["properties"] = item.properties
+      subObject["type"] = type(item).__name__
+      items.append(subObject)
+    result["items"] = items
     return result
 
-# a collection of ItemData saved to a file
-class FileItemDataFactory(ItemDataFactory):
+# a collection of Offering saved to a file
+class FileOfferingFactory(OfferingFactory):
   def __init__(self, defaultFactory, filepath):
     super().__init__()
     self.defaultFactory = defaultFactory
@@ -119,9 +136,9 @@ class FileItemDataFactory(ItemDataFactory):
 
   def loadFile(self):
     json = self.readFile()
-    items = self.defaultFactory.parseItemDataList(json)
+    items = self.defaultFactory.parseOfferings(json)
     for item in items:
-      self.addItemData(item)
+      self.addOffering(item)
 
   def readFile(self):
     with open(self.filepath) as f:
@@ -145,15 +162,15 @@ class FileItemDataFactory(ItemDataFactory):
   def serialize(self):
     components = []
     for component in self.getAll():
-      components.append(self.itemDataToDict(component))
+      components.append(self.offeringToDict(component))
     return json.dumps(components, indent = 2)
 
   # add the default items to this factory, without overwriting existing items
   def loadDefaults(self):
-    for itemData in self.defaultFactory.getAll():
-      name = itemData.name
+    for offering in self.defaultFactory.getAll():
+      name = offering.name
       if not self.hasTemplateNamed(name):
-        self.addItemData(itemData)
+        self.addOffering(offering)
 
 # information stored in the RunLog
 class RunLogEntry(object):
@@ -191,11 +208,11 @@ class RunLogConclusionEntry(RunLogEntry):
 
 # saves information about the player's current run
 class RunLog(object):
-  def __init__(self, filepath, itemDataFactory): # needs an item factory to validate and parse the log
+  def __init__(self, filepath, offeringFactory): # needs an item factory to validate and parse the log
     self.filepath = filepath
     self.entries = {}
     os.makedirs(self.filepath, exist_ok = True)
-    self.itemDataFactory = itemDataFactory
+    self.offeringFactory = offeringFactory
     self.load()
 
   def nonEmpty(self):
@@ -233,8 +250,8 @@ class RunLog(object):
     contents["type"] = entryType
     contents["name"] = entry.name
     if entryType == "market":
-      contents["purchased"] = self.itemDataFactory.itemDataListToDict(entry.purchased)
-      contents["remaining"] = self.itemDataFactory.itemDataListToDict(entry.remaining)
+      contents["purchased"] = self.offeringFactory.offeringsToDict(entry.purchased)
+      contents["remaining"] = self.offeringFactory.offeringsToDict(entry.remaining)
       return contents
     if entryType == "competition":
       contents["successful"] = entry.successful
@@ -248,8 +265,8 @@ class RunLog(object):
     entryType = contents["type"]
     name = contents["name"]
     if entryType == "market":
-      purchased = self.itemDataFactory.parseItemDataList(contents["purchased"])
-      remaining = self.itemDataFactory.parseItemDataList(contents["remaining"])
+      purchased = self.offeringFactory.parseOfferings(contents["purchased"])
+      remaining = self.offeringFactory.parseOfferings(contents["remaining"])
       return RunLogShopEntry(name, purchased, remaining)
     if entryType == "competition":
       return RunLogCompetitionEntry(name, contents["successful"])

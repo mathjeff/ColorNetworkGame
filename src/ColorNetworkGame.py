@@ -8,8 +8,8 @@ from story.Story import *
 
 import json, os, random, shutil, textwrap
 
-# a collection of predefined ItemData
-class DefaultItemDataFactory(ItemDataFactory):
+# a collection of predefined Offering
+class DefaultOfferingFactory(OfferingFactory):
   def __init__(self):
     super().__init__()
     self.loadDefaults()
@@ -57,31 +57,31 @@ class DefaultItemDataFactory(ItemDataFactory):
     self.add(PowerUsageSensor({"radius": 1, "requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 7, 3, 7)
 
 profile = Profile("data/profile/")
-itemDataFactory = FileItemDataFactory(DefaultItemDataFactory(), profile.getLatestPath("items"))
-itemDataFactory.ensureSaved()
+offeringFactory = FileOfferingFactory(DefaultOfferingFactory(), profile.getLatestPath("items"))
+offeringFactory.ensureSaved()
 competitionBuilder = CompetitionBuilder(profile.getLatestPath("rooms"))
-runLog = RunLog(profile.getLatestPath("runlog"), itemDataFactory)
+runLog = RunLog(profile.getLatestPath("runlog"), offeringFactory)
 
-def getItemPurchaseCounts(runLog, itemDataFactory):
+def getItemPurchaseCounts(runLog, offeringFactory):
   counts = {}
-  for itemData in itemDataFactory.getAll():
-    counts[itemData.name] = 0
+  for offering in offeringFactory.getAll():
+    counts[offering.name] = 0
   shopEntries = runLog.getShopEntries()
   for entry in shopEntries:
-    for itemData in entry.purchased:
-      name = itemData.name
+    for offering in entry.purchased:
+      name = offering.name
       count = counts.get(name, 0)
       counts[name] = count + 1
   return counts
 
-def getItemSkipCounts(runLog, itemDataFactory):
+def getItemSkipCounts(runLog, offeringFactory):
   counts = {}
-  for itemData in itemDataFactory.getAll():
-    counts[itemData.name] = 0
+  for offering in offeringFactory.getAll():
+    counts[offering.name] = 0
   shopEntries = runLog.getShopEntries()
   for entry in shopEntries:
-    for itemData in entry.remaining:
-      name = itemData.name
+    for offering in entry.remaining:
+      name = offering.name
       count = counts.get(name, 0)
       counts[name] = count + 1
   return counts
@@ -90,7 +90,7 @@ print("Welcome to ColorNetwork!")
 
 def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
   # if an item was more likely to be purchased when it was offered, then raise its price
-  global itemDataFactory
+  global offeringFactory
   # compute how likely an item was to be purchased if it was offered
   purchaseFractions = {}
   for itemName, numPurchases in purchaseCounts.items():
@@ -100,31 +100,31 @@ def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
       purchaseFraction = numPurchases / numOffers
       purchaseFractions[itemName] = purchaseFraction
   sumPurchaseFractions = sum(purchaseFractions.values())
-  numPossibleItems = len(itemDataFactory.getAll())
+  numPossibleItems = len(offeringFactory.getAll())
   increasePerPurchaseFraction = (averageCostMultiplier - 1) * numPossibleItems / sumPurchaseFractions
 
   for itemName, purchaseFraction in purchaseFractions.items():
-    itemData = itemDataFactory.getTemplateNamed(itemName)
-    oldCost = itemData.cost
+    offering = offeringFactory.getTemplateNamed(itemName)
+    oldCost = offering.cost
     newCost = oldCost * (1 + purchaseFraction * increasePerPurchaseFraction)
     print("increasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being bought " + str(purchaseCounts[itemName]) + " times and skipped " + str(skipCounts[itemName]) + " times")
-    itemData.cost = newCost
+    offering.cost = newCost
 
 def lowerCosts(multiplier):
-  global itemDataFactory
+  global offeringFactory
   # lower all prices equally
-  for itemData in itemDataFactory.getAll():
-    itemData.cost /= multiplier
+  for offering in offeringFactory.getAll():
+    offering.cost /= multiplier
 
 def adjustShopFrequencies(multiplier, purchaseCounts):
   # raise the popularity of items that were purchased more
   oldWeight = 1 / multiplier
   newWeight = 1 - oldWeight
   totalNumPurchases = sum(purchaseCounts.values())
-  totalPopularity = sum([itemData.popularity for itemData in itemDataFactory.getAll()])
+  totalPopularity = sum([offering.popularity for offering in offeringFactory.getAll()])
   popularityPerPurchase = totalPopularity / totalNumPurchases
   for itemName in purchaseCounts:
-    itemTemplate = itemDataFactory.getTemplateNamed(itemName)
+    itemTemplate = offeringFactory.getTemplateNamed(itemName)
     oldPopularity = itemTemplate.popularity
     newPopularity = oldPopularity * oldWeight + purchaseCounts[itemName] * popularityPerPurchase * newWeight
     print("changing popularity of " + itemName + " from " + str(oldPopularity) + " to " + str(newPopularity))
@@ -156,12 +156,12 @@ def lowerRoomDifficulties(difficultyMultiplier, competitionResults):
       print("Rescaled difficulty at " + str(index) + " from " + str(difficulty) + " to " + str(newDifficulty))
 
 def offerChangeSettings():
-  global itemDataFactory
-  purchaseCounts = getItemPurchaseCounts(runLog, itemDataFactory)
+  global offeringFactory
+  purchaseCounts = getItemPurchaseCounts(runLog, offeringFactory)
   numPurchases = sum(purchaseCounts.values())
   if numPurchases < 1:
     return # didn't buy anything
-  skipCounts = getItemSkipCounts(runLog, itemDataFactory)
+  skipCounts = getItemSkipCounts(runLog, offeringFactory)
   competitionResults = runLog.getCompetitionEntries()
   conclusionEntry = runLog.getConclusionEntry()
   if conclusionEntry is not None and conclusionEntry.successful:
@@ -204,7 +204,7 @@ def offerChangeSettings():
     # make a new item factory based on the previous one
     profile.incrementVersion("items")
     profile.incrementVersion("rooms")
-    itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+    offeringFactory = FileOfferingFactory(offeringFactory, profile.getLatestPath("items"))
     if choice == "Harder":
       raiseCosts(costIncrease * costShift, purchaseCounts, skipCounts)
       lowerCosts(costShift)
@@ -219,7 +219,7 @@ def offerChangeSettings():
   if choice == "Different":
     profile.incrementVersion("items")
     profile.incrementVersion("rooms")
-    itemDataFactory = FileItemDataFactory(itemDataFactory, profile.getLatestPath("items"))
+    offeringFactory = FileOfferingFactory(offeringFactory, profile.getLatestPath("items"))
     # adjust costs
     raiseCosts(costShift, purchaseCounts, skipCounts)
     lowerCosts(costShift)
@@ -228,7 +228,7 @@ def offerChangeSettings():
     # adjust room difficulties
     rescaleRoomDifficulties(roomDifficultyIncrease, competitionResults)
     lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)
-  itemDataFactory.ensureSaved()
+  offeringFactory.ensureSaved()
   competitionBuilder.ensureSaved(profile.getLatestPath("rooms"))
 
   print("Ok!")
@@ -237,7 +237,7 @@ if runLog.nonEmpty():
   offerChangeSettings()
   profile.incrementVersion("runlog")
 
-runLog = RunLog(profile.getLatestPath("runlog"), itemDataFactory)
+runLog = RunLog(profile.getLatestPath("runlog"), offeringFactory)
 profile.save()
 
 def makePlayer():
@@ -246,7 +246,7 @@ def makePlayer():
 
 def makeStory():
   gamePlayer = makePlayer()
-  welcome = StoryGenerator(gamePlayer, competitionBuilder, itemDataFactory, runLog).create()
+  welcome = StoryGenerator(gamePlayer, competitionBuilder, offeringFactory, runLog).create()
 
   return StoryNodeRunner(welcome)
 

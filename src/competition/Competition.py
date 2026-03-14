@@ -167,7 +167,7 @@ class Competitor(object):
 
     for i in range(network.size()):
       destNode = network.nodes[i] # TODO: make this more efficient
-      for linkType, link in sourceNode.inputsByName.items():
+      for linkType, link in destNode.inputsByName.items():
         if link is not None and link.item == sourceNode:
           print("Disconnecting input " + linkType + " for " + destNode.summarize())
           destNode.inputsByName[linkType] = None

@@ -228,7 +228,8 @@ class ShopStoryNode(SimpleStoryNode):
   def getTotalCost(self):
     total = 0
     for content in self.contents:
-      total += content.cost
+      if content is not None:
+        total += content.cost
     return total
 
   def chooseContents(self, complexity, offeringFactory):
@@ -325,8 +326,16 @@ class ShopStoryNode(SimpleStoryNode):
     return round(value)
 
   def describe(self, offering):
+    if offering is None:
+      return "Nothing"
     components = [item.summarize() for item in offering.items]
     return ", ".join(components) + ": cost = " + str(offering.cost)
+
+  def hasOffering(self):
+    for offering in self.contents:
+      if offering is not None:
+        return True
+    return False
 
   def process(self):
     while True:
@@ -334,7 +343,7 @@ class ShopStoryNode(SimpleStoryNode):
       print("Welcome to the shop! You have " + str(self.player.money) + " money")
       menu = Menu()
       menu.addChoice("Done (buying items)", 0, 0)
-      if len(self.contents) > 0:
+      if self.hasOffering():
         menu.addChoice("What are these things?", 1)
       for i in range(len(self.contents)):
         menu.addChoice(self.describe(self.contents[i]), i + 2)
@@ -346,29 +355,34 @@ class ShopStoryNode(SimpleStoryNode):
         self.explainItems()
         continue
       itemIndex = choice - 2
-      cost = self.contents[itemIndex].cost
-      if cost > self.player.money:
-        print("Not enough money: " + str(self.player.money) + " < " + str(cost))
-        continue
       offering = self.contents[itemIndex]
-      # give all items to the player
-      for item in offering.items:
-        item = item.clone()
-        print("Enjoy your " + item.summarize() + "!")
-        self.player.addItem(item)
-      # record what was purchased
-      self.purchasedItems.append(offering)
-      self.player.money -= cost
-      del self.contents[itemIndex]
+      if offering is None:
+        print("Nothing is there!")
+      else:
+        cost = offering.cost
+        if cost > self.player.money:
+          print("Not enough money: " + str(self.player.money) + " < " + str(cost))
+          continue
+        # give all items to the player
+        for item in offering.items:
+          item = item.clone()
+          print("Enjoy your " + item.summarize() + "!")
+          self.player.addItem(item)
+        # record what was purchased
+        self.purchasedItems.append(offering)
+        self.player.money -= cost
+        self.contents[itemIndex] = None
 
   def explainItems(self):
     for offering in self.contents:
-      for item in offering.items:
-        print(item.formatHelp())
-        print("")
+      if offering is not None:
+        for item in offering.items:
+          print(item.formatHelp())
+          print("")
 
   def updateRunLog(self, nodeName, runLog):
-    entry = RunLogShopEntry(nodeName, self.purchasedItems, self.contents)
+    unpurchased = [offering for offering in self.contents if offering is not None]
+    entry = RunLogShopEntry(nodeName, self.purchasedItems, unpurchased)
     runLog.addEntry(entry)
 
   def serializeOffering(self, offerings):

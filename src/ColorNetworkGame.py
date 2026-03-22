@@ -16,8 +16,11 @@ class DefaultOfferingFactory(OfferingFactory):
 
   def loadDefaults(self):
     self.contents = []
-    y = SingleColorBuilder("Y") # yellow energy: electricity
-    b = SingleColorBuilder("B") # black energy: coal
+    yellow = "Y" # yellow energy: electricity
+    black = "B" # black energy: coal
+    y = SingleColorBuilder(yellow)
+    b = SingleColorBuilder(black)
+    m = MultiColorBuilder([yellow, black])
     # self.add(type(properties), popularity, complexity=1, cost)
     self.add(Laser({"requiredPower": y.d(1), "damage": 1, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 28, 1, 49)
     self.add(Battery({"maxCharge": y.d(100), "dischargeRate": 3}), 20, 1, 29)
@@ -34,6 +37,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Battery({"maxCharge": y.d(10), "dischargeRate": 4}), 18, 2, 10)
     self.add(Battery({"maxCharge": y.d(20), "dischargeRate": 2}), 27, 2, 21)
     self.add(Battery({"maxCharge": y.d(100), "dischargeRate": 1}), 14, 2, 5)
+    self.add(Battery({"maxCharge": m.d({yellow:100, black:100}), "dischargeRate": 1}), 14, 2, 5)
     self.addBundle([Battery({"maxCharge": b.d(1), "dischargeRate": 1}), Converter({"requiredPower": b.d(1), "outputPower": y.d(10)})], 6, 2, 6)
     self.addBundle([Battery({"maxCharge": b.d(5), "dischargeRate": 5}), Converter({"requiredPower": b.d(1), "outputPower": y.d(5)})], 21, 2, 14)
     self.add(Wall({"hitPoints": 8}), 33, 2, 36)

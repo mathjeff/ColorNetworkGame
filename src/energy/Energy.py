@@ -194,3 +194,16 @@ class SingleColorBuilder(object):
     values = {}
     values[self.color] = amount
     return values
+
+# build a structure representing an energy with a list of colors
+class MultiColorBuilder(object):
+  def __init__(self, colors):
+    self.colors = set(colors)
+
+  # returns a data structure representing energy with the preconfigured colors and the given values
+  def d(self, amounts):
+    for key in amounts.keys():
+      if key not in self.colors:
+        raise Exception("Invalid color '" + str(key) + "' not in " + str(self.colors))
+    values = dict(amounts)
+    return values

@@ -22,8 +22,8 @@ class ItemProperties(object):
 class Item(object):
   def __init__(self, properties):
     self.hitPoints = 1
-    self.inputsByName = {}
-    self.outputNames = []
+    self.inputsByName = {} # Map<String, ItemOutput>
+    self.outputsByName = {} # Map<String, List<ItemInput>>
     self.powerAcquiredLastTurn = 0
     self.powerAcquiredThisTurn = 0
     self.acquiringPower = False
@@ -38,29 +38,70 @@ class Item(object):
   def loadProperties(self, properties):
     raise Exception("loadProperties not implemented in " + str(self))
 
-  def addInput(self, linkType, otherItem, outputName = None):
-    if outputName not in otherItem.outputNames:
-      raise Exception("output '" + outputName + "' not declared in " + str(otherItem))
-    self.inputsByName[linkType] = Output(otherItem, outputName)
+  # connects self.inputs[inputName] to otherItem.outputs[outputName]
+  def setInput(self, inputName, otherItem, outputName = "None"):
+    if inputName not in self.inputsByName.keys():
+      raise Exception("input '" + inputName + "' not declared in " + str(self))
+    oldInput = self.inputsByName[inputName]
+    if oldInput is not None:
+      oldInput.item.removeOutput(oldInput.inputName, self, outputName)
+    self.inputsByName[inputName] = ItemOutput(otherItem, outputName)
+    if otherItem is not None:
+      otherItem.addOutput(inputName, self, outputName)
+
+  # adds (otherItem, inputName) to self.outputs[outputName]
+  def addOutput(self, inputName, otherItem, outputName):
+    if outputName not in self.outputsByName:
+      raise Exception("output '" + outputName + "' not declared in " + str(self))
+    self.outputsByName[outputName].append(ItemInput(inputName, otherItem))
+
+  # removes (otherItem, inputName) from self.outputs[outputName]
+  def removeOutput(self, inputName, otherItem, outputName):
+    candidates = self.outputsByName[outputName]
+    matchingIndices = [i for i in range(len(candidates)) if candidates[i].item == otherItem and candidates[i].inputName == inputName]
+    if len(matchingIndices) != 1:
+      raise Exception("Expected 1 output in " + str(self) + " connected to item " + str(otherItem) + " input " + str(inputName) + ", found " + str(len(matchingIndices)))
+    candidates.pop(matchingIndices[0])
 
   def receiveDamage(self, amount):
     self.hitPoints -= amount
 
   def declareInputs(self, linkTypes):
     for linkType in linkTypes:
-      self.inputsByName[linkType] = None
+      if linkType not in self.inputsByName:
+        self.inputsByName[linkType] = None
 
   def declaresInputs(self):
     return len(self.inputsByName) > 0
 
   def declareOutputs(self, linkTypes):
-    self.outputNames = linkTypes
+    for name in linkTypes:
+      if name not in self.outputsByName:
+        self.outputsByName[name] = []
 
   def declareOutput(self):
-    self.declareOutputs([None])
+    self.declareOutputs(["None"])
 
   def declaresOutputs(self):
-    return len(self.outputNames) > 0
+    return len(self.outputsByName) > 0
+
+  def getInputNames(self):
+    return self.inputsByName.keys()
+
+  def getOutputNames(self):
+    return self.outputsByName.keys()
+
+  def hasConnectedInput(self):
+    for itemInput in self.inputsByName.values():
+      if itemInput is not None:
+        return True
+    return False
+
+  def hasConnectedOutput(self):
+    for itemOutputs in self.outputsByName.values():
+      if len(itemOutputs) > 0:
+        return True
+    return False
 
   def drainInputPower(self, amount):
     self.inputPowerDrain += amount
@@ -122,10 +163,10 @@ class Item(object):
       messages.append("has " + str(len(self.inputsByName)) + " ports for receiving power:")
       for key, value in self.inputsByName.items():
         messages.append("  " + str(key) + " (connected to " + str(value) + ")")
-    if len(self.outputNames) > 0:
-      outputMessage = "has " + str(len(self.outputNames)) + " outputs"
-      if len(self.outputNames) > 1:
-        outputMessage += ": " + str(self.outputNames)
+    if len(self.outputsByName) > 0:
+      outputMessage = "has " + str(len(self.outputsByName)) + " outputs"
+      if len(self.outputsByName) > 1:
+        outputMessage += ": " + str(self.outputsByName.keys())
       messages.append(outputMessage)
     return messages
 
@@ -145,16 +186,39 @@ class Item(object):
         messages.append(name + ": None")
     return "#" + str(index + 1) + " " + ", ".join(messages)
 
+  # whether we should hint to the user that this item isn't configured properly
+  def hintMisconfigured(self):
+    if self.declaresInputs() and not self.hasConnectedInput():
+      return True
+    if self.declaresOutputs() and not self.hasConnectedOutput():
+      return True
+    return False
+
 # represents an output of an item
-class Output(object):
+class ItemOutput(object):
   def __init__(self, item, outputName):
     self.item = item
     self.outputName = outputName
 
   def summarize(self):
     result = self.item.summarize()
-    if self.outputName is not None:
+    if self.outputName != "None":
       result = result + " " + self.outputName
+    return result
+
+  def __str__(self):
+    return self.summarize()
+
+# represents an input of an item
+class ItemInput(object):
+  def __init__(self, item, inputName):
+    self.item = item
+    self.inputName = inputName
+
+  def summarize(self):
+    result = self.item.summarize()
+    if self.inputName != "None":
+      result = result + " " + self.inputName
     return result
 
   def __str__(self):

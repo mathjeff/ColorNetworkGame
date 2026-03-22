@@ -189,7 +189,7 @@ class Competitor(object):
       print("No node at position " + str(nodeIndex))
       return # miss
     sourceNode = network.nodes[nodeIndex]
-    if len(sourceNode.outputNames) < 1:
+    if not sourceNode.declaresOutputs():
       print("Node at position " + str(nodeIndex) + " is " + sourceNode.summarize() + " which has no outputs")
       return
     print("Disconnecting outputs at position " + str(nodeIndex) + ": node " + sourceNode.summarize())

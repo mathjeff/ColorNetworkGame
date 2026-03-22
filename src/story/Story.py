@@ -408,7 +408,7 @@ class CustomizationStoryNode(SimpleStoryNode):
     network = self.player.network
     print(str(network.size()) + " items in network:")
     for item in network.nodes:
-      print("  " + item.describeLinks(network))
+      print("  " + self.describeItem(item))
     print("")
 
   def process(self):
@@ -469,7 +469,7 @@ class CustomizationStoryNode(SimpleStoryNode):
       item = nodes[destIndex]
       inputName = self.chooseNetworkItemInput(item)
       source = self.chooseNetworkItemOutput("Select source")
-      item.inputsByName[inputName] = source
+      item.setInput(inputName, source.item, source.outputName)
 
   def chooseNetworkPosition(self, prompt, cancelText, choicePrefix, validChoices):
     print(prompt)
@@ -481,14 +481,14 @@ class CustomizationStoryNode(SimpleStoryNode):
       item = network.nodes[i]
       if item in choiceSet:
         displayIndex = i + 1
-        menu.addChoice(choicePrefix + " " + item.describeLinks(network), i, displayIndex)
+        menu.addChoice(choicePrefix + " " + self.describeItem(item), i, displayIndex)
     return menu.chooseValue()
 
   def chooseNetworkItemInput(self, item):
     menu = Menu()
-    for linkName in item.inputsByName.keys():
+    for linkName in item.getInputNames():
       menu.addChoice("Set input " + linkName, linkName)
-      if len(item.inputsByName) == 1:
+      if len(item.getInputNames()) == 1:
         return linkName
     print("Select input in " + item.describeLinks(self.player.network) + ":")
     return menu.chooseValue()
@@ -500,12 +500,18 @@ class CustomizationStoryNode(SimpleStoryNode):
     for item in self.player.network.nodes:
       index = self.player.network.getPosition(item)
       outputIndex = 0
-      for outputName in item.outputNames:
+      for outputName in item.getOutputNames():
         outputIndex += 1
         displayIndex = index + 1
-        output = Output(item, outputName)
+        output = ItemOutput(item, outputName)
         menu.addChoice("#" + str(displayIndex) + " " + output.summarize(), output, displayIndex)
     return menu.chooseValue()
+
+  def describeItem(self, item):
+    itemText = item.describeLinks(self.player.network)
+    if item.hintMisconfigured():
+      itemText = "! " + itemText
+    return itemText
 
   def removeItems(self):
     while True:
@@ -743,7 +749,7 @@ class Network(object):
           linkItem = linkInput.item
           otherIndex = nodeIndices[linkItem]
           otherItem = builtNodes[otherIndex]
-          item.addInput(linkType, otherItem, linkInput.outputName)
+          item.setInput(linkType, otherItem, linkInput.outputName)
     result = Network()
     result.setItems(builtNodes)
     return result
@@ -800,5 +806,5 @@ def makeOpponent(difficulty, offeringFactory):
       continue
   if len(batteries) > 0:
     for laser in lasers:
-      laser.addInput("power", random.choice(batteries))
+      laser.setInput("power", random.choice(batteries))
   return player

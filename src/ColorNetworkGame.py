@@ -47,6 +47,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Capacitor({"maxEnergy": y.d(10), "signalOutputFraction": 0.1}), 18, 2, 19)
     self.add(Capacitor({"maxEnergy": y.d(100), "signalOutputFraction": 0.1}), 17, 2, 23)
     # self.add(type(properties), popularity, complexity=3, cost)
+    self.add(HealthSensor({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 10, 4, 10)
     self.add(InputCutter({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 18, 3, 11)
     self.add(OutputCutter({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 19, 3, 11)
     self.add(If({"threshold": 0.3}), 6, 3, 5)

@@ -676,6 +676,52 @@ class PowerUsageSensor(Item):
     messages.append("The output will be set to " + str(self.outputRatio) + " times the total power read from the opponent")
     return messages
 
+# senses the number of hitpoints in an item
+class HealthSensor(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.reading = 0
+    self.declareInputs(["power", "positionSignal"])
+    self.declareOutput()
+
+  def loadProperties(self, properties):
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
+    self.outputRatio = properties.get("outputRatio")
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.requiredPower)
+    positionSignal = self.tryAcquirePower("positionSignal", self.requiredPower)
+    if self.requiredPower.satisfiedBy(power):
+      index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
+      hitpoints = competitor.getEnemyHitpoints(index)
+      self.reading = min(hitpoints * self.outputRatio, power)
+      print(self.summarize() + " reading opponent hitpoints at " + str(index) + " of " + str(hitpoints) + ", outputting " + str(self.reading))
+    else:
+      if power.nonempty():
+        print("power " + str(power) + " not enough to power " + self.summarize())
+      self.reading = Energy()
+
+  def tryGetPower(self, requested, outputName):
+    result = requested.limitToConstant(self.reading)
+    self.reading = self.reading.minus(result)
+    return amount
+
+  def clone(self):
+    return HealthSensor(self.properties)
+
+  def summarize(self):
+    return super().summarize()
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("Measures hitpoints of an item at the target position in the opposing robot")
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    messages.append("The output will be set to " + str(self.outputRatio) + " times the total hitpoints read from the opponent")
+    return messages
+
 # drains power
 class PowerInputDrainer(Item):
   def __init__(self, properties):

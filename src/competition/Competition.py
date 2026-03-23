@@ -212,6 +212,14 @@ class Competitor(object):
       return 0
     return network.nodes[nodeIndex].getPowerAcquiredLastTurn()
 
+  def getEnemyHitpoints(self, nodeIndex):
+    if nodeIndex < 0:
+      return 0
+    network = self.enemy.network
+    if nodeIndex >= network.size():
+      return 0
+    return network.nodes[nodeIndex].hitPoints
+
   def drainEnemyPower(self, nodeIndex, inputAmount, outputAmount):
     if nodeIndex < 0:
       return

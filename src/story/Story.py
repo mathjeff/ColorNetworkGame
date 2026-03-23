@@ -648,7 +648,7 @@ class StoryGenerator(object):
 
   def makeMarket(self, index):
     fractionComplete = index / self.targetLength
-    maxComplexity = 4
+    maxComplexity = 5
     nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
     nodeName = str(index)
     return MarketStoryNode(nodeName, self.player, nodeComplexity, self.offeringFactory, self.runLog)

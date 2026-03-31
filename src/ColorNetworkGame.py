@@ -170,7 +170,7 @@ def offerChangeSettings():
   competitionResults = runLog.getCompetitionEntries()
   conclusionEntry = runLog.getConclusionEntry()
   if conclusionEntry is not None and conclusionEntry.successful:
-    print("Your previous game was a victory!")
+    print("Your previous game was a victory at round " + conclusionEntry.name + "!")
   else:
     lastEntry = runLog.getLastEntry()
     when = ""

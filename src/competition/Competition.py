@@ -118,7 +118,12 @@ class Competitor(object):
     self.removeBrokenNodes()
 
   def removeBrokenNodes(self):
-    remainingNodeList = [node for node in self.network.nodes if node.hitPoints > 0]
+    remainingNodeList = []
+    for node in self.network.nodes:
+      if node.hitPoints > 0:
+        remainingNodeList.append(node)
+      else:
+        print(str(self) + "'s " + node.describeLinks(self.network) + " is destroyed")
     remainingNodeSet = set(remainingNodeList)
     for node in remainingNodeList:
       for linkType, link in node.inputsByName.copy().items():
@@ -263,6 +268,9 @@ class Competitor(object):
 
   def drainOutputPower(self, nodeIndex, amount):
     self.network.nodes[nodeIndex].drainOutputPower(amount)
+
+  def __str__(self):
+    return self.name
 
 class Competition(object):
   def __init__(self, gamePlayers):

@@ -509,8 +509,8 @@ class Joiner(Item):
     messages.append("takes power from up to three inputs and provides it as output")
     return messages
 
-# an If allows power through if the signal is above a threshold
-class If(Item):
+# an IfMore allows power through if the signal is above a threshold
+class IfMore(Item):
   def __init__(self, properties):
     super().__init__(properties)
     self.declareOutput()
@@ -531,14 +531,46 @@ class If(Item):
     return Energy({})
 
   def clone(self):
-    return If(self.properties)
+    return IfMore(self.properties)
 
   def summarize(self):
-    return super().summarize() + ">" + str(self.threshold)
+    return super().summarize() + ">=" + str(self.threshold)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("allows power through if the signal is above " + str(self.threshold))
+    messages.append("allows power through if the signal is at least " + str(self.threshold))
+    return messages
+
+# an IfLess allows power through if the signal is above a threshold
+class IfLess(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareOutput()
+    self.on = False
+    self.declareInputs(["power", "signal"])
+
+  def loadProperties(self, properties):
+    threshold = properties.get("threshold")
+    self.threshold = EnergyRequest(Energy(), threshold)
+
+  def act(self, competitor):
+    super().act(competitor)
+    self.on = not self.threshold.satisfiedBy(self.tryAcquirePower("signal", self.threshold))
+
+  def tryGetPower(self, requested, outputName):
+    if self.on:
+      return self.tryAcquirePower("power", requested)
+    return Energy({})
+
+  def clone(self):
+    return IfLess(self.properties)
+
+  def summarize(self):
+    return super().summarize() + "<" + str(self.threshold)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("allows power through if the signal is below " + str(self.threshold))
     return messages
 
 # a Capacitor stores energy

@@ -468,7 +468,10 @@ class CustomizationStoryNode(SimpleStoryNode):
       item = nodes[destIndex]
       inputName = self.chooseNetworkItemInput(item)
       source = self.chooseNetworkItemOutput("Select source for " + item.summarize())
-      item.setInput(inputName, source.item, source.outputName)
+      if source is not None:
+        item.setInput(inputName, source.item, source.outputName)
+      else:
+        item.setInput(inputName, None)
 
   def chooseNetworkPosition(self, prompt, cancelText, choicePrefix, validChoices):
     print(prompt)

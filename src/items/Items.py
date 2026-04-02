@@ -44,8 +44,11 @@ class Item(object):
       raise Exception("input '" + inputName + "' not declared in " + str(self))
     oldInput = self.inputsByName[inputName]
     if oldInput is not None:
-      oldInput.item.removeOutput(oldInput.inputName, self, outputName)
-    self.inputsByName[inputName] = ItemOutput(otherItem, outputName)
+      oldInput.item.removeOutput(inputName, self, oldInput.outputName)
+    if otherItem is not None:
+      self.inputsByName[inputName] = ItemOutput(otherItem, outputName)
+    else:
+      self.inputsByName[inputName] = None
     if otherItem is not None:
       otherItem.addOutput(inputName, self, outputName)
 
@@ -53,10 +56,12 @@ class Item(object):
   def addOutput(self, inputName, otherItem, outputName):
     if outputName not in self.outputsByName:
       raise Exception("output '" + outputName + "' not declared in " + str(self))
-    self.outputsByName[outputName].append(ItemInput(inputName, otherItem))
+    self.outputsByName[outputName].append(ItemInput(otherItem, inputName))
 
   # removes (otherItem, inputName) from self.outputs[outputName]
   def removeOutput(self, inputName, otherItem, outputName):
+    if outputName not in self.outputsByName:
+      raise Exception("output '" + outputName + "' not declared in " + str(self))
     candidates = self.outputsByName[outputName]
     matchingIndices = [i for i in range(len(candidates)) if candidates[i].item == otherItem and candidates[i].inputName == inputName]
     if len(matchingIndices) != 1:

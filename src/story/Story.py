@@ -532,7 +532,7 @@ class CustomizationStoryNode(SimpleStoryNode):
 
 class MarketStoryNode(MenuStoryNode):
   def __init__(self, nodeName, player, complexity, numOfferings, offeringFactory, runLog):
-    super().__init__("Welcome to the market")
+    super().__init__("Welcome to market " + str(nodeName))
     self.nodeName = nodeName
     self.runLog = runLog
     self.shop = ShopStoryNode(player, complexity, numOfferings, offeringFactory)

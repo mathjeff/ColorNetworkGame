@@ -218,10 +218,10 @@ class FinalsStoryNode(SimpleStoryNode):
     input("")
 
 class ShopStoryNode(SimpleStoryNode):
-  def __init__(self, player, complexity, offeringFactory):
+  def __init__(self, player, complexity, numOfferings, offeringFactory):
     super().__init__()
     self.player = player
-    self.contents = self.chooseContents(complexity, offeringFactory)
+    self.contents = self.chooseContents(complexity, numOfferings, offeringFactory)
     self.purchasedItems = []
     self.offeringFactory = offeringFactory
 
@@ -232,7 +232,7 @@ class ShopStoryNode(SimpleStoryNode):
         total += content.cost
     return total
 
-  def chooseContents(self, complexity, offeringFactory):
+  def chooseContents(self, complexity, targetNumItems, offeringFactory):
     # find a bunch of candidates
     simpleItems = []
     complexItems = []
@@ -243,7 +243,6 @@ class ShopStoryNode(SimpleStoryNode):
         if offering.complexity <= complexity + 1:
           complexItems.append(offering)
     results = []
-    targetNumItems = 10
     if targetNumItems >= len(simpleItems):
       # we can add all simple items, so do that first
       results += simpleItems
@@ -532,11 +531,11 @@ class CustomizationStoryNode(SimpleStoryNode):
       input("(press Enter)")
 
 class MarketStoryNode(MenuStoryNode):
-  def __init__(self, nodeName, player, complexity, offeringFactory, runLog):
+  def __init__(self, nodeName, player, complexity, numOfferings, offeringFactory, runLog):
     super().__init__("Welcome to the market")
     self.nodeName = nodeName
     self.runLog = runLog
-    self.shop = ShopStoryNode(player, complexity, offeringFactory)
+    self.shop = ShopStoryNode(player, complexity, numOfferings, offeringFactory)
     self.shop.setNext(self)
     tester = TestingStoryNode(player, offeringFactory)
     tester.setNext(self)
@@ -608,13 +607,12 @@ class StoryGenerator(object):
 
   def create(self):
     player = self.player
-    estimatedPlayerMoney = player.money
     firstNode = MessageStoryNode("Let's begin")
     currentNode = firstNode
     index = -1
-    previousMarketCost = 0
-    previousNodeIsMarket = False
+    numConsecutiveMarkets = -1
     finalsLength = player.hitpoints
+    nextShopNumItems = 12
     while True:
       index += 1
       if index >= self.targetLength:
@@ -626,18 +624,16 @@ class StoryGenerator(object):
         previousNodeIsMarket = False
         continue
       # if we think the player will have a lot of money, offer a shop
-      if (not previousNodeIsMarket) and (index != self.targetLength - 1) and random.randint(0, estimatedPlayerMoney) >= previousMarketCost / 5:
-        market = self.makeMarket(index)
-        previousMarketCost = market.getTotalCost()
+      if random.randint(0, 2) > numConsecutiveMarkets and (index != self.targetLength - 1):
+        market = self.makeMarket(index, nextShopNumItems)
+        nextShopNumItems = 1
         currentNode.setNext(market)
         currentNode = market
-        estimatedPlayerMoney = int(max(estimatedPlayerMoney - previousMarketCost, estimatedPlayerMoney / 4))
-        previousNodeIsMarket = True
+        numConsecutiveMarkets += 1
         continue
-      previousNodeIsMarket = False
+      numConsecutiveMarkets = 0
       # in most cases, send the player to a competition
       rewardMoney = 10
-      estimatedPlayerMoney += rewardMoney
       competition = self.competitionBuilder.buildCompetition(player, index, self.offeringFactory, rewardMoney, self.runLog)
       currentNode.setNext(competition)
       currentNode = competition
@@ -646,12 +642,12 @@ class StoryGenerator(object):
     currentNode.setNext(success)
     return firstNode
 
-  def makeMarket(self, index):
+  def makeMarket(self, index, numItems):
     fractionComplete = index / self.targetLength
     maxComplexity = 5
     nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
     nodeName = str(index)
-    return MarketStoryNode(nodeName, self.player, nodeComplexity, self.offeringFactory, self.runLog)
+    return MarketStoryNode(nodeName, self.player, nodeComplexity, numItems, self.offeringFactory, self.runLog)
 
 # builds competitions and keeps track of difficulty
 class CompetitionBuilder(object):
@@ -710,7 +706,7 @@ class CompetitionBuilder(object):
     return str(self.difficulties)
 
   def setupDefaults(self):
-    self.difficulties = [int((i + 4) * 3 / 4) for i in range(20)]
+    self.difficulties = [int((i + 4) / 2) for i in range(30)]
 
 # represents a network of items
 class Network(object):

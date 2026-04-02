@@ -467,7 +467,7 @@ class CustomizationStoryNode(SimpleStoryNode):
         return
       item = nodes[destIndex]
       inputName = self.chooseNetworkItemInput(item)
-      source = self.chooseNetworkItemOutput("Select source")
+      source = self.chooseNetworkItemOutput("Select source for " + item.summarize())
       item.setInput(inputName, source.item, source.outputName)
 
   def chooseNetworkPosition(self, prompt, cancelText, choicePrefix, validChoices):

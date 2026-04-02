@@ -66,6 +66,9 @@ class Item(object):
   def receiveDamage(self, amount):
     self.hitPoints -= amount
 
+  def setHitpoints(self, amount):
+    self.hitPoints = amount
+
   def declareInputs(self, linkTypes):
     for linkType in linkTypes:
       if linkType not in self.inputsByName:
@@ -874,3 +877,42 @@ class Ram(Item):
     messages.append("Uses up to " + str(self.maxPower) + " energy to deal " + str(self.damagePerPower) + " damage per power to each competitor each turn")
     messages.append("If this damage destroys an item, it will continue on to subsequent items")
     return messages
+
+# wins if the opponent has few enough hitpoints
+class Flipper(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["power"])
+
+  def loadProperties(self, properties):
+    self.maxPower = EnergyRequest(Energy(properties.get("maxPower")))
+    self.strengthPerPower = properties.get("strengthPerPower")
+    self.setHitpoints(float(properties.get("hitpoints")))
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.maxPower)
+    strength = power.getTotal() * self.strengthPerPower
+    if strength >= 1:
+      position = competitor.network.getPosition(self)
+      if position != 0:
+        print("Cannot run " + self.summarize() + " because of being in position " + str(position) + " rather than 0")
+      else:
+        competitor.launchFlipAttack(strength)
+    else:
+      if power.nonempty():
+        print("power " + str(power) + " not enough for " + str(self) + " to function")
+
+  def clone(self):
+    return Flipper(self.properties)
+
+  def summarize(self):
+    return "Flipper (" + str(self.hitPoints) + ") <=" + str(self.maxPower) + "->" + str(self.strengthPerPower) + "x"
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("Uses up to " + str(self.maxPower) + " energy to attempt to flip the opponent. Flip strength equals " + str(self.strengthPerPower) + " times power used")
+    messages.append("If this strength is more than the opponent's hitpoints, the opponent is flipped and cannot attack anymore")
+    messages.append("If not in position 0 in the network, has no effect")
+    return messages
+

@@ -54,6 +54,14 @@ class RamAttack(Attack):
   def process(self, target):
     target.receiveRamAttack(self.damage)
 
+class FlipAttack(Attack):
+  def __init__(self, strength):
+    super().__init__()
+    self.strength = strength
+
+  def process(self, target):
+    target.receiveFlipAttack(self.strength)
+
 # represents an entity that competes with other entities
 class Competitor(object):
   def __init__(self, name, network):
@@ -62,6 +70,7 @@ class Competitor(object):
     self.enemy = None
     self.incomingAttacks = []
     self.clearShields()
+    self.active = True
 
   def resetForNewTurn(self):
     self.clearShields()
@@ -96,6 +105,12 @@ class Competitor(object):
   def addIncomingAttack(self, attack):
     self.incomingAttacks.append(attack)
 
+  def addOutgoingAttack(self, attack):
+    if self.active:
+      self.enemy.addIncomingAttack(attack)
+    else:
+      print(str(self) + " unable to attack")
+
   def processIncomingAttacks(self):
     for attack in self.incomingAttacks:
       attack.process(self)
@@ -113,11 +128,12 @@ class Competitor(object):
     self.network.nodes = remainingNodeList
 
   def applyEnemyDamage(self, nodeIndex, amount):
-    self.enemy.addIncomingAttack(DamageAttack(nodeIndex, amount))
+    self.addOutgoingAttack(DamageAttack(nodeIndex, amount))
 
   def addRamAttack(self, amount):
-    self.addIncomingAttack(RamAttack(amount))
-    self.enemy.addIncomingAttack(RamAttack(amount))
+    self.addOutgoingAttack(RamAttack(amount))
+    if self.active:
+      self.addIncomingAttack(RamAttack(amount))
 
   def receiveDamage(self, nodeIndex, amount):
     if nodeIndex < 0:
@@ -146,6 +162,20 @@ class Competitor(object):
       else:
         index += 1
 
+  def launchFlipAttack(self, strength):
+    self.addOutgoingAttack(FlipAttack(strength))
+
+  def receiveFlipAttack(self, strength):
+    totalHitpoints = 0
+    for node in self.network.nodes:
+      if node.hitPoints > 0:
+        totalHitpoints += node.hitPoints
+    if totalHitpoints <= strength:
+      print(str(self) + " flipped: total hitpoints " + str(totalHitpoints) + " <= strength " + str(strength))
+      self.active = False
+    else:
+      print(str(self) + " not flipped: total hitpoints " + str(totalHitpoints) + " > strength " + str(strength))
+
   def createShield(self, position, radius, defenseFraction):
     damageMultiplier = 1 - defenseFraction
     startIndex = max(0, position - radius)
@@ -154,7 +184,7 @@ class Competitor(object):
       self.incomingDamageMultipliers[i] *= damageMultiplier
 
   def disconnectEnemyInputs(self, nodeIndex):
-    self.enemy.addIncomingAttack(CutAttack(nodeIndex, True, False))
+    self.addOutgoingAttack(CutAttack(nodeIndex, True, False))
 
   def disconnectInputs(self, nodeIndex):
     if nodeIndex < 0:
@@ -178,7 +208,7 @@ class Competitor(object):
         print("Input " + linkType + " for " + node.summarize() + " is already disconnected")
 
   def disconnectEnemyOutputs(self, nodeIndex):
-    self.enemy.addIncomingAttack(CutAttack(nodeIndex, False, True))
+    self.addOutgoingAttack(CutAttack(nodeIndex, False, True))
 
   def disconnectOutputs(self, nodeIndex):
     if nodeIndex < 0:
@@ -226,7 +256,7 @@ class Competitor(object):
     network = self.enemy.network
     if nodeIndex >= network.size():
       return 0
-    self.enemy.addIncomingAttack(PowerDrainAttack(nodeIndex, inputAmount, outputAmount))
+    self.addOutgoingAttack(PowerDrainAttack(nodeIndex, inputAmount, outputAmount))
 
   def drainInputPower(self, nodeIndex, amount):
     self.network.nodes[nodeIndex].drainInputPower(amount)

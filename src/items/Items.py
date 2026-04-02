@@ -882,7 +882,6 @@ class Ram(Item):
   def __init__(self, properties):
     super().__init__(properties)
     self.declareInputs(["power"])
-    self.declareOutput()
 
   def loadProperties(self, properties):
     self.maxPower = EnergyRequest(Energy(properties.get("maxPower")))

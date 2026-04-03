@@ -737,7 +737,7 @@ class HealthSensor(Item):
     if self.requiredPower.satisfiedBy(power):
       index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
       hitpoints = competitor.getEnemyHitpoints(index)
-      self.reading = min(hitpoints * self.outputRatio, power)
+      self.reading = min(hitpoints * self.outputRatio, power.getTotal())
       print(self.summarize() + " reading opponent hitpoints at " + str(index) + " of " + str(hitpoints) + ", outputting " + str(self.reading))
     else:
       if power.nonempty():

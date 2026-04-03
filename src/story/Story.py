@@ -636,7 +636,7 @@ class StoryGenerator(object):
         continue
       numConsecutiveMarkets = 0
       # in most cases, send the player to a competition
-      rewardMoney = 10
+      rewardMoney = 5
       competition = self.competitionBuilder.buildCompetition(player, index, self.offeringFactory, rewardMoney, self.runLog)
       currentNode.setNext(competition)
       currentNode = competition
@@ -709,7 +709,7 @@ class CompetitionBuilder(object):
     return str(self.difficulties)
 
   def setupDefaults(self):
-    self.difficulties = [int((i + 4) / 2) for i in range(30)]
+    self.difficulties = [int((i + 4) / 4) for i in range(30)]
 
 # represents a network of items
 class Network(object):

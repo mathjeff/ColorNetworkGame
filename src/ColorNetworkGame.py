@@ -94,6 +94,15 @@ def getItemSkipCounts(runLog, offeringFactory):
       counts[name] = count + 1
   return counts
 
+# adds two Map<Object, Integer>
+def addCounts(a, b):
+  result = {}
+  for key in a:
+    result[key] = a.get(key, 0) + b.get(key, 0)
+  for key in b:
+    result[key] = a.get(key, 0) + b.get(key, 0)
+  return result
+
 print("Welcome to ColorNetwork!")
 
 def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
@@ -118,11 +127,21 @@ def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
     print("increasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being bought " + str(purchaseCounts[itemName]) + " times and skipped " + str(skipCounts[itemName]) + " times")
     offering.cost = newCost
 
-def lowerCosts(multiplier):
+def lowerCosts(multiplier, offerCounts):
   global offeringFactory
-  # lower all prices equally
-  for offering in offeringFactory.getAll():
-    offering.cost /= multiplier
+  numOffers = 0
+  for itemName, offerCount in offerCounts.items():
+    numOffers += offerCount
+  numTemplates = len(offeringFactory.getAll())
+  decreasePerOfferFraction = (multiplier - 1) * numTemplates
+  # if an item was offered more often, then lower its price more
+  for itemName, offerCount in offerCounts.items():
+    offering = offeringFactory.getTemplateNamed(itemName)
+    if offerCount > 0:
+      offerFraction = offerCount / numOffers
+      oldCost = offering.cost
+      newCost = oldCost / (1 + offerFraction * decreasePerOfferFraction)
+      print("decreasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being offered " + str(offerCount) + " times")
 
 def adjustShopFrequencies(multiplier, purchaseCounts):
   # raise the popularity of items that were purchased more
@@ -170,6 +189,7 @@ def offerChangeSettings():
   if numPurchases < 1:
     return # didn't buy anything
   skipCounts = getItemSkipCounts(runLog, offeringFactory)
+  offerCounts = addCounts(purchaseCounts, skipCounts)
   competitionResults = runLog.getCompetitionEntries()
   conclusionEntry = runLog.getConclusionEntry()
   if conclusionEntry is not None and conclusionEntry.successful:
@@ -219,13 +239,13 @@ def offerChangeSettings():
     offeringFactory = FileOfferingFactory(offeringFactory, profile.getLatestPath("items"))
     if choice == "Harder":
       raiseCosts(costIncrease * costShift, purchaseCounts, skipCounts)
-      lowerCosts(costShift)
+      lowerCosts(costShift, offerCounts)
       rescaleRoomDifficulties(roomDifficultyIncrease, competitionResults)
       profile.incrementVersion("rooms")
       competitionBuilder.incrementLength()
     if choice == "Easier":
       raiseCosts(costIncrease, purchaseCounts, skipCounts)
-      lowerCosts(costIncrease * costShift)
+      lowerCosts(costIncrease * costShift, offerCounts)
       lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)
     adjustShopFrequencies(popularityShift, purchaseCounts)
   if choice == "Different":
@@ -234,7 +254,7 @@ def offerChangeSettings():
     offeringFactory = FileOfferingFactory(offeringFactory, profile.getLatestPath("items"))
     # adjust costs
     raiseCosts(costShift, purchaseCounts, skipCounts)
-    lowerCosts(costShift)
+    lowerCosts(costShift, offerCounts)
     # adjust item frequencies
     adjustShopFrequencies(popularityShift, purchaseCounts)
     # adjust room difficulties

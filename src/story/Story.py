@@ -613,7 +613,7 @@ class StoryGenerator(object):
     firstNode = MessageStoryNode("Let's begin")
     currentNode = firstNode
     index = -1
-    numConsecutiveMarkets = -1
+    previousNodeIsMarket = False
     finalsLength = player.hitpoints
     nextShopNumItems = 12
     while True:
@@ -626,15 +626,20 @@ class StoryGenerator(object):
         currentNode = finalsNode
         previousNodeIsMarket = False
         continue
-      # if we think the player will have a lot of money, offer a shop
-      if random.randint(0, 2) > numConsecutiveMarkets and (index != self.targetLength - 1):
+      # decide whether to make a market
+      makeMarket = not previousNodeIsMarket
+      if index == 1 and random.randint(0, 1) == 1:
+        makeMarket = True
+      if index == self.targetLength - 1:
+        makeMarket = False
+      if makeMarket:
         market = self.makeMarket(index, nextShopNumItems)
         nextShopNumItems = 1
         currentNode.setNext(market)
         currentNode = market
-        numConsecutiveMarkets += 1
+        previousNodeIsMarket = True
         continue
-      numConsecutiveMarkets = 0
+      previousNodeIsMarket = False
       # in most cases, send the player to a competition
       rewardMoney = 5
       competition = self.competitionBuilder.buildCompetition(player, index, self.offeringFactory, rewardMoney, self.runLog)

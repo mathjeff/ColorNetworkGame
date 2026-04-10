@@ -528,7 +528,7 @@ class If(Item):
   def tryGetPower(self, requested, outputName):
     if self.on:
       return self.tryAcquirePower("power", requested)
-    return 0
+    return Energy({})
 
   def clone(self):
     return If(self.properties)

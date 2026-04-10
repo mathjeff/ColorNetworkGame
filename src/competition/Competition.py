@@ -131,7 +131,7 @@ class Competitor(object):
         if link is not None:
           if link.item not in remainingNodeSet:
             node.inputsByName[linkType] = None
-    self.network.nodes = remainingNodeList
+    self.network.setItems(remainingNodeList)
 
   def applyEnemyDamage(self, nodeIndex, amount):
     self.addOutgoingAttack(DamageAttack(nodeIndex, amount))

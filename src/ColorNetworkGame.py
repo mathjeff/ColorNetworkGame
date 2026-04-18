@@ -105,6 +105,11 @@ def addCounts(a, b):
 
 print("Welcome to ColorNetwork!")
 
+def getAverageItemCost():
+  items = offeringFactory.getAll()
+  total = sum([item.cost for item in items])
+  return total / len(items)
+
 def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
   # if an item was more likely to be purchased when it was offered, then raise its price
   global offeringFactory
@@ -267,8 +272,10 @@ def offerChangeSettings():
     profile.incrementVersion("rooms")
     offeringFactory = FileOfferingFactory(offeringFactory, profile.getLatestPath("items"))
     # adjust costs
+    print("average item cost = " + str(getAverageItemCost()))
     raiseCosts(costShift, purchaseCounts, skipCounts)
     lowerCosts(costShift, offerCounts)
+    print("average item cost = " + str(getAverageItemCost()))
     # adjust item frequencies
     adjustShopFrequencies(popularityShift, purchaseCounts, skipCounts)
     # adjust room difficulties

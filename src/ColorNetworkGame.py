@@ -6,7 +6,7 @@ from items.Items import *
 from persistence.Persistence import *
 from story.Story import *
 
-import json, os, random, shutil, textwrap
+import json, math, os, random, shutil, textwrap
 
 # a collection of predefined Offering
 class DefaultOfferingFactory(OfferingFactory):
@@ -143,19 +143,33 @@ def lowerCosts(multiplier, offerCounts):
       newCost = oldCost / (1 + offerFraction * decreasePerOfferFraction)
       print("decreasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being offered " + str(offerCount) + " times")
 
-def adjustShopFrequencies(multiplier, purchaseCounts):
+def adjustShopFrequencies(multiplier, purchaseCounts, skipCounts):
   # raise the popularity of items that were purchased more
-  oldWeight = 1 / multiplier
-  newWeight = 1 - oldWeight
   totalNumPurchases = sum(purchaseCounts.values())
-  totalPopularity = sum([offering.popularity for offering in offeringFactory.getAll()])
-  popularityPerPurchase = totalPopularity / totalNumPurchases
+  totalNumSkips = sum(skipCounts.values())
+  # compute the average purchase rate among purchased item types
+  purchaseRates = {}
   for itemName in purchaseCounts:
-    itemTemplate = offeringFactory.getTemplateNamed(itemName)
-    oldPopularity = itemTemplate.popularity
-    newPopularity = oldPopularity * oldWeight + purchaseCounts[itemName] * popularityPerPurchase * newWeight
-    print("changing popularity of " + itemName + " from " + str(oldPopularity) + " to " + str(newPopularity))
-    itemTemplate.popularity = newPopularity
+    itemPurchaseCount = purchaseCounts[itemName]
+    itemSkipCount = skipCounts[itemName]
+    itemOfferCount = itemPurchaseCount + itemSkipCount
+    if itemOfferCount > 0:
+      purchaseRates[itemName] = itemPurchaseCount / itemOfferCount
+
+  # compute total popularity
+  totalPopularity = sum([offeringFactory.getTemplateNamed(name).popularity for name in purchaseRates])
+  # increase popularity of items that were bought more often than normal
+  newPopularities = {}
+  for itemName in purchaseRates:
+    item = offeringFactory.getTemplateNamed(itemName)
+    newPopularities[itemName] = item.popularity * math.pow(multiplier, purchaseRates[itemName])
+  # renormalize
+  newTotalPopularity = sum([newPopularities[offering] for offering in newPopularities])
+  for itemName in purchaseRates:
+    newPopularity = newPopularities[itemName] * totalPopularity / newTotalPopularity
+    item = offeringFactory.getTemplateNamed(itemName)
+    print("changing popularity of " + itemName + " from " + str(item.popularity) + " to " + str(newPopularity) + " due to being bought " + str(purchaseCounts[itemName]) + " times and skipped " + str(skipCounts[itemName]) + " times")
+    item.popularity = newPopularity
 
 def rescaleRoomDifficulties(difficultyMultiplier, competitionResults):
   for i in range(competitionBuilder.getMaxLength()):
@@ -247,7 +261,7 @@ def offerChangeSettings():
       raiseCosts(costIncrease, purchaseCounts, skipCounts)
       lowerCosts(costIncrease * costShift, offerCounts)
       lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)
-    adjustShopFrequencies(popularityShift, purchaseCounts)
+    adjustShopFrequencies(popularityShift, purchaseCounts, skipCounts)
   if choice == "Different":
     profile.incrementVersion("items")
     profile.incrementVersion("rooms")
@@ -256,7 +270,7 @@ def offerChangeSettings():
     raiseCosts(costShift, purchaseCounts, skipCounts)
     lowerCosts(costShift, offerCounts)
     # adjust item frequencies
-    adjustShopFrequencies(popularityShift, purchaseCounts)
+    adjustShopFrequencies(popularityShift, purchaseCounts, skipCounts)
     # adjust room difficulties
     rescaleRoomDifficulties(roomDifficultyIncrease, competitionResults)
     lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)

@@ -138,7 +138,7 @@ class Item(object):
       if self.inputPowerDrain > 0:
         drainRequest = EnergyRequest(Energy(), self.inputPowerDrain)
         drained = link.item.tryGetPower(drainRequest, link.outputName)
-        if drained > 0:
+        if drained.getTotal() > 0:
           print(self.summarize() + " input was drained of " + str(drained) + " power")
         self.inputPowerDrain -= drained.getTotal()
       result = link.item.tryGetPower(amount, link.outputName)

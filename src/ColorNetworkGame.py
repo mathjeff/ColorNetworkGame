@@ -112,7 +112,8 @@ def getAverageItemCost():
 
 def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
   # if an item was more likely to be purchased when it was offered, then raise its price
-  global offeringFactory
+  totalCost = sum([item.cost for item in offeringFactory.getAll()])
+  totalIncrease = totalCost * (averageCostMultiplier - 1)
   # compute how likely an item was to be purchased if it was offered
   purchaseFractions = {}
   for itemName, numPurchases in purchaseCounts.items():
@@ -123,30 +124,31 @@ def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
       purchaseFractions[itemName] = purchaseFraction
   sumPurchaseFractions = sum(purchaseFractions.values())
   numPossibleItems = len(offeringFactory.getAll())
-  increasePerPurchaseFraction = (averageCostMultiplier - 1) * numPossibleItems / sumPurchaseFractions
+  increasePerPurchaseFraction = totalIncrease / sumPurchaseFractions
 
   for itemName, purchaseFraction in purchaseFractions.items():
     offering = offeringFactory.getTemplateNamed(itemName)
     oldCost = offering.cost
-    newCost = oldCost * (1 + purchaseFraction * increasePerPurchaseFraction)
+    newCost = oldCost + (purchaseFraction * increasePerPurchaseFraction)
     print("increasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being bought " + str(purchaseCounts[itemName]) + " times and skipped " + str(skipCounts[itemName]) + " times")
     offering.cost = newCost
 
 def lowerCosts(multiplier, offerCounts):
-  global offeringFactory
-  numOffers = 0
+  totalNumOffers = 0
   for itemName, offerCount in offerCounts.items():
-    numOffers += offerCount
-  numTemplates = len(offeringFactory.getAll())
-  decreasePerOfferFraction = (multiplier - 1) * numTemplates
+    totalNumOffers += offerCount
+  totalCost = sum([item.cost for item in offeringFactory.getAll()])
+  totalDecrease = totalCost - totalCost / multiplier
+  decreasePerOfferFraction = totalDecrease
   # if an item was offered more often, then lower its price more
   for itemName, offerCount in offerCounts.items():
     offering = offeringFactory.getTemplateNamed(itemName)
     if offerCount > 0:
-      offerFraction = offerCount / numOffers
+      offerFraction = offerCount / totalNumOffers
       oldCost = offering.cost
-      newCost = oldCost / (1 + offerFraction * decreasePerOfferFraction)
+      newCost = max(1, oldCost - offerFraction * decreasePerOfferFraction)
       print("decreasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being offered " + str(offerCount) + " times")
+      offering.cost = newCost
 
 def adjustShopFrequencies(multiplier, purchaseCounts, skipCounts):
   # raise the popularity of items that were purchased more

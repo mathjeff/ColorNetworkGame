@@ -116,37 +116,44 @@ def raiseCosts(averageCostMultiplier, purchaseCounts, skipCounts):
   totalIncrease = totalCost * (averageCostMultiplier - 1)
   # compute how likely an item was to be purchased if it was offered
   purchaseFractions = {}
+  totalWeight = 0
   for itemName, numPurchases in purchaseCounts.items():
     numSkips = skipCounts[itemName]
     numOffers = numPurchases + numSkips
     if numPurchases > 0:
       purchaseFraction = numPurchases / numOffers
       purchaseFractions[itemName] = purchaseFraction
-  sumPurchaseFractions = sum(purchaseFractions.values())
+      item = offeringFactory.getTemplateNamed(itemName)
+      weight = purchaseFraction * item.cost
+      totalWeight += weight
   numPossibleItems = len(offeringFactory.getAll())
-  increasePerPurchaseFraction = totalIncrease / sumPurchaseFractions
+  increasePerFractionWeight = totalIncrease
 
   for itemName, purchaseFraction in purchaseFractions.items():
     offering = offeringFactory.getTemplateNamed(itemName)
     oldCost = offering.cost
-    newCost = oldCost + (purchaseFraction * increasePerPurchaseFraction)
+    weight = oldCost * purchaseFraction
+    newCost = oldCost + (increasePerFractionWeight * weight / totalWeight)
     print("increasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being bought " + str(purchaseCounts[itemName]) + " times and skipped " + str(skipCounts[itemName]) + " times")
     offering.cost = newCost
 
 def lowerCosts(multiplier, offerCounts):
-  totalNumOffers = 0
+  totalWeight = 0
   for itemName, offerCount in offerCounts.items():
-    totalNumOffers += offerCount
+    item = offeringFactory.getTemplateNamed(itemName)
+    weight = offerCount * item.cost
+    totalWeight += weight
   totalCost = sum([item.cost for item in offeringFactory.getAll()])
   totalDecrease = totalCost - totalCost / multiplier
-  decreasePerOfferFraction = totalDecrease
+  decreasePerWeightFraction = totalDecrease
   # if an item was offered more often, then lower its price more
   for itemName, offerCount in offerCounts.items():
     offering = offeringFactory.getTemplateNamed(itemName)
     if offerCount > 0:
-      offerFraction = offerCount / totalNumOffers
+      weight = offerCount * offering.cost
+      weightFraction = weight / totalWeight
       oldCost = offering.cost
-      newCost = max(1, oldCost - offerFraction * decreasePerOfferFraction)
+      newCost = max(1, oldCost - weightFraction * decreasePerWeightFraction)
       print("decreasing cost of " + itemName + " from " + str(oldCost) + " to " + str(newCost) + " due to being offered " + str(offerCount) + " times")
       offering.cost = newCost
 

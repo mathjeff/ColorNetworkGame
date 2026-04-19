@@ -300,6 +300,9 @@ class Competition(object):
         competitor.processIncomingAttacks()
       for j in range(2):
         if self.competitors[j].getNumActiveNodes() < 1:
+          if self.competitors[1 - j].getNumActiveNodes() < 1:
+            print("tie!")
+            return None
           print(self.competitors[1 - j].name + " wins because " + self.competitors[j].name + "'s network is empty")
           return (j > 0)
     for j in range(2):

@@ -637,8 +637,6 @@ class StoryGenerator(object):
         continue
       # decide whether to make a market
       makeMarket = not previousNodeIsMarket
-      if index == 1 and random.randint(0, 1) == 1:
-        makeMarket = True
       if index == self.targetLength - 1:
         makeMarket = False
       if makeMarket:

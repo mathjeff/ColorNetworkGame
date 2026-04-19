@@ -31,7 +31,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Laser({"requiredPower": y.d(1), "damage": 1, "maxSignalPower": y.d(3), "maxPossibleTarget": 3}), 24, 2, 17)
     self.add(Laser({"requiredPower": y.d(1), "damage": 0.5, "maxSignalPower": y.d(10), "maxPossibleTarget": 3}), 15, 2, 15)
     self.add(Laser({"requiredPower": b.d(1), "damage": 8, "maxSignalPower": y.d(1), "maxPossibleTarget": 0}), 23, 2, 65)
-    self.add(Flipper({"maxPower": y.d(10), "strengthPerPower":2, "hitpoints":4}), 3, 2, 14)
+    self.add(Flipper({"maxPower": y.d(15), "strengthPerPower":3, "hitpoints":4}), 3, 2, 14)
     self.addBundle([Battery({"maxCharge": b.d(3), "dischargeRate": 3}), Ram({"maxPower": b.d(10), "damagePerPower":4})], 23, 2, 29)
     self.add(Battery({"maxCharge": y.d(10), "dischargeRate": 4}), 22, 2, 10)
     self.add(Battery({"maxCharge": y.d(20), "dischargeRate": 2}), 17, 2, 13)

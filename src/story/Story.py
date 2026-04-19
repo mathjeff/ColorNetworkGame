@@ -498,7 +498,7 @@ class CustomizationStoryNode(SimpleStoryNode):
   def chooseNetworkItemOutput(self, description):
     print(description)
     menu = Menu()
-    menu.addChoice("None", None)
+    menu.addChoice("None", None, index=0)
     for item in self.player.network.nodes:
       index = self.player.network.getPosition(item)
       outputIndex = 0

@@ -723,7 +723,7 @@ class CompetitionBuilder(object):
     return str(self.difficulties)
 
   def setupDefaults(self):
-    self.difficulties = [int((i + 4) / 4) for i in range(50)]
+    self.difficulties = [int((i + 6) / 4) for i in range(50)]
 
 # represents a network of items
 class Network(object):

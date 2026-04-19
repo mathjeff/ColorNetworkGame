@@ -218,10 +218,10 @@ class FinalsStoryNode(SimpleStoryNode):
     input("")
 
 class ShopStoryNode(SimpleStoryNode):
-  def __init__(self, player, complexity, numOfferings, offeringFactory):
+  def __init__(self, player, offerings, offeringFactory):
     super().__init__()
     self.player = player
-    self.contents = self.chooseContents(complexity, numOfferings, offeringFactory)
+    self.contents = self.chooseContents(offerings)
     self.purchasedItems = []
     self.offeringFactory = offeringFactory
 
@@ -232,61 +232,8 @@ class ShopStoryNode(SimpleStoryNode):
         total += content.cost
     return total
 
-  def chooseContents(self, complexity, targetNumItems, offeringFactory):
-    # find a bunch of candidates
-    simpleItems = []
-    complexItems = []
-    for offering in offeringFactory.getAll():
-      if offering.complexity <= complexity:
-        simpleItems.append(offering)
-      else:
-        if offering.complexity <= complexity + 1:
-          complexItems.append(offering)
-    results = []
-    if targetNumItems >= len(simpleItems):
-      # we can add all simple items, so do that first
-      results += simpleItems
-      # next, add some of the remaining complicated items
-      results += self.chooseDistinctRandomWeightedItems(complexItems, targetNumItems - len(results))
-    else:
-      # we can't add all of the simple items, so just add the simple items
-      results += self.chooseDistinctRandomWeightedItems(simpleItems, targetNumItems)
-    # randomize the costs somewhat, and round them
-    for i in range(len(results)):
-      offering = results[i].clone()
-      offering.cost = self.round(offering.cost * random.uniform(2.0/3.0, 4.0/3.0))
-      results[i] = offering
-    # sort items by description
-    return self.sortItemsByDescription(results)
-
-  # choose distinct random items, weighted by popularity
-  def chooseDistinctRandomWeightedItems(self, choices, count):
-    if len(choices) < 1:
-      raise Exception("no choices!")
-    results = []
-    currentChoices = []
-    while len(results) < count:
-      if len(currentChoices) < 1:
-        currentChoices = choices[:]
-      choice = self.chooseRandomWeightedItem(currentChoices)
-      results.append(choice)
-      currentChoices.remove(choice)
-    return results
-
-  # chooses a random item, weighted by popularity
-  def chooseRandomWeightedItem(self, choices):
-    if len(choices) < 1:
-      raise Exception("no choices!")
-    totalPopularity = 0
-    for choice in choices:
-      totalPopularity += choice.popularity
-    number = random.uniform(0, totalPopularity)
-    cumulative = 0
-    for choice in choices:
-      cumulative += choice.popularity
-      if number <= cumulative:
-        return choice
-    raise Exception("random number " + str(number) + " > cumulative " + str(cumulative))
+  def chooseContents(self, offerings):
+    return self.sortItemsByDescription(offerings)
 
   def sortItemsByDescription(self, offerings):
     descriptions = [self.describe(offering) for offering in offerings]
@@ -302,27 +249,6 @@ class ShopStoryNode(SimpleStoryNode):
     for description in sorted(offeringsByDescription.keys()):
       results = results + offeringsByDescription[description]
     return results
-
-  # rounds to the first two decimal places
-  def round(self, value):
-    radix = 10
-    if value > 100:
-      # for large values we have to shrink the number before rounding helps
-      multiplier = 1
-      while value > 100:
-        value /= radix
-        multiplier *= radix
-      return round(value) * multiplier
-    if value < 10:
-      # for small values we have to round the number directly, otherwise we might still get rounding error
-      multiplied = value
-      numShifts = 0
-      while multiplied < 10:
-        multiplied *= 10
-        numShifts += 1
-      return round(value, numShifts)
-    # for medium values we can simply round the number
-    return round(value)
 
   def describe(self, offering):
     if offering is None:
@@ -543,11 +469,11 @@ class CustomizationStoryNode(SimpleStoryNode):
       input("(press Enter)")
 
 class MarketStoryNode(MenuStoryNode):
-  def __init__(self, nodeName, player, complexity, numOfferings, offeringFactory, runLog):
+  def __init__(self, nodeName, player, offerings, offeringFactory, runLog):
     super().__init__("Welcome to market " + str(nodeName))
     self.nodeName = nodeName
     self.runLog = runLog
-    self.shop = ShopStoryNode(player, complexity, numOfferings, offeringFactory)
+    self.shop = ShopStoryNode(player, offerings, offeringFactory)
     self.shop.setNext(self)
     tester = TestingStoryNode(player, offeringFactory)
     tester.setNext(self)
@@ -666,7 +592,85 @@ class StoryGenerator(object):
     maxComplexity = 10
     nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
     nodeName = str(index)
-    return MarketStoryNode(nodeName, self.player, nodeComplexity, numItems, self.offeringFactory, self.runLog)
+    offerings = self.chooseMarketContents(nodeComplexity, index, numItems)
+    return MarketStoryNode(nodeName, self.player, offerings, self.offeringFactory, self.runLog)
+
+  def chooseMarketContents(self, complexity, index, targetNumItems):
+    offeringFactory = self.offeringFactory
+    # find a bunch of candidates
+    simpleItems = []
+    complexItems = []
+    for offering in offeringFactory.getAll():
+      if offering.complexity <= complexity:
+        simpleItems.append(offering)
+      else:
+        if offering.complexity <= complexity + 1:
+          complexItems.append(offering)
+    results = []
+    if targetNumItems >= len(simpleItems):
+      # we can add all simple items, so do that first
+      results += simpleItems
+      # next, add some of the remaining complicated items
+      results += self.chooseDistinctRandomWeightedItems(complexItems, targetNumItems - len(results))
+    else:
+      # we can't add all of the simple items, so just add the simple items
+      results += self.chooseDistinctRandomWeightedItems(simpleItems, targetNumItems)
+    # randomize the costs somewhat, and round them
+    for i in range(len(results)):
+      offering = results[i].clone()
+      offering.cost = self.round(offering.cost * random.uniform(2.0/3.0, 4.0/3.0))
+      results[i] = offering
+    return results
+
+  # choose distinct random items, weighted by popularity
+  def chooseDistinctRandomWeightedItems(self, choices, count):
+    if len(choices) < 1:
+      raise Exception("no choices!")
+    results = []
+    currentChoices = []
+    while len(results) < count:
+      if len(currentChoices) < 1:
+        currentChoices = choices[:]
+      choice = self.chooseRandomWeightedItem(currentChoices)
+      results.append(choice)
+      currentChoices.remove(choice)
+    return results
+
+  # chooses a random item, weighted by popularity
+  def chooseRandomWeightedItem(self, choices):
+    if len(choices) < 1:
+      raise Exception("no choices!")
+    totalPopularity = 0
+    for choice in choices:
+      totalPopularity += choice.popularity
+    number = random.uniform(0, totalPopularity)
+    cumulative = 0
+    for choice in choices:
+      cumulative += choice.popularity
+      if number <= cumulative:
+        return choice
+    raise Exception("random number " + str(number) + " > cumulative " + str(cumulative))
+
+  # rounds to the first two decimal places
+  def round(self, value):
+    radix = 10
+    if value > 100:
+      # for large values we have to shrink the number before rounding helps
+      multiplier = 1
+      while value > 100:
+        value /= radix
+        multiplier *= radix
+      return round(value) * multiplier
+    if value < 10:
+      # for small values we have to round the number directly, otherwise we might still get rounding error
+      multiplied = value
+      numShifts = 0
+      while multiplied < 10:
+        multiplied *= 10
+        numShifts += 1
+      return round(value, numShifts)
+    # for medium values we can simply round the number
+    return round(value)
 
   def getRoomAfter(self, index):
     room = self.makeRoom(index + 1)

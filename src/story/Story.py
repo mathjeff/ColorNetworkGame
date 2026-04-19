@@ -32,7 +32,7 @@ class Menu(object):
   def chooseIndex(self):
     for index in sorted(self.choicesByIndex.keys()):
       optionText = self.choicesByIndex[index][0]
-      print(str(index) + ": " + optionText)
+      print(str(index) + ": " + str(optionText))
     choiceText = ""
     while True:
       choiceText = input("")
@@ -387,6 +387,15 @@ class ShopStoryNode(SimpleStoryNode):
   def serializeOffering(self, offerings):
     return [self.offeringFactory.offeringToDict(o) for o in offerings]
 
+  def summarize(self):
+    nonemptyOfferings = [offering for offering in self.contents if offering is not None]
+    if len(nonemptyOfferings) == 1:
+      return "shop (" + self.describe(nonemptyOfferings[0]) + ")"
+    return "shop (" + str(len(nonemptyOfferings)) + " items)"
+
+  def __str__(self):
+    return self.summarize()
+
 class TestingStoryNode(CompetitionStoryNode):
   def __init__(self, player, offeringFactory):
     super().__init__(-1, player, makeOpponent(3, offeringFactory), 0, None)
@@ -563,7 +572,7 @@ class MarketStoryNode(MenuStoryNode):
      Really? What else do you know?:Are you familiar with https://github.com/mathjeff/JeffsKnowledgeGraph ?
     """)
     sage.setNext(self)
-    self.addChoice("shop", self.shop)
+    self.addChoice(self.shop, self.shop)
     self.addChoice("customize", customizer)
     self.addChoice("test", tester)
     self.addChoice("talk to the sage", sage)

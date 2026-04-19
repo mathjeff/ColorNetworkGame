@@ -608,6 +608,15 @@ class StoryNodeRunner(object):
     while self.currentMenu is not None:
       self.currentMenu = self.currentMenu.getNext()
 
+# a LazyStoryNode asks a StoryGenerator to generate the next node when needed
+class LazyStoryNode(StoryNode):
+  def __init__(self, index, generator):
+    self.index = index
+    self.generator = generator
+
+  def getNext(self):
+    return self.generator.getRoomAfter(self.index)
+
 # creates a StoryNode network
 class StoryGenerator(object):
   def __init__(self, player, competitionBuilder, offeringFactory, runLog):
@@ -623,12 +632,8 @@ class StoryGenerator(object):
   def create(self):
     player = self.player
     firstNode = MessageStoryNode("Starting!")
-    currentNode = firstNode
-    for i in range(self.targetLength):
-      newNode = self.makeRoom(i)
-      currentNode.setNext(newNode)
-      currentNode = newNode
-
+    door = LazyStoryNode(-1, self)
+    firstNode.setNext(door)
     return firstNode
 
   def makeRoom(self, index):
@@ -656,7 +661,6 @@ class StoryGenerator(object):
     competition = self.competitionBuilder.buildCompetition(self.player, index, self.offeringFactory, rewardMoney, self.runLog)
     return competition
 
-
   def makeMarket(self, index, numItems):
     fractionComplete = index / self.targetLength
     maxComplexity = 10
@@ -664,6 +668,12 @@ class StoryGenerator(object):
     nodeName = str(index)
     return MarketStoryNode(nodeName, self.player, nodeComplexity, numItems, self.offeringFactory, self.runLog)
 
+  def getRoomAfter(self, index):
+    room = self.makeRoom(index + 1)
+    if room is not None:
+      door = LazyStoryNode(index + 1, self)
+      room.setNext(door)
+    return room
 
 # builds competitions and keeps track of difficulty
 class CompetitionBuilder(object):

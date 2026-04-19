@@ -616,46 +616,46 @@ class StoryGenerator(object):
     self.competitionBuilder = competitionBuilder
     self.offeringFactory = offeringFactory
     self.runLog = runLog
+    self.previousNodeIsMarket = False
+    self.finalsLength = player.hitpoints
+    self.nextShopNumItems = 12
 
   def create(self):
     player = self.player
-    firstNode = MessageStoryNode("Let's begin")
+    firstNode = MessageStoryNode("Starting!")
     currentNode = firstNode
-    index = -1
-    previousNodeIsMarket = False
-    finalsLength = player.hitpoints
-    nextShopNumItems = 12
-    while True:
-      index += 1
-      if index >= self.targetLength:
-        break
-      if index == self.targetLength - finalsLength - 1:
-        finalsNode = FinalsStoryNode(player, finalsLength)
-        currentNode.setNext(finalsNode)
-        currentNode = finalsNode
-        previousNodeIsMarket = False
-        continue
-      # decide whether to make a market
-      makeMarket = not previousNodeIsMarket
-      if index == self.targetLength - 1:
-        makeMarket = False
-      if makeMarket:
-        market = self.makeMarket(index, nextShopNumItems)
-        nextShopNumItems = 1
-        currentNode.setNext(market)
-        currentNode = market
-        previousNodeIsMarket = True
-        continue
-      previousNodeIsMarket = False
-      # in most cases, send the player to a competition
-      rewardMoney = 5
-      competition = self.competitionBuilder.buildCompetition(player, index, self.offeringFactory, rewardMoney, self.runLog)
-      currentNode.setNext(competition)
-      currentNode = competition
+    for i in range(self.targetLength):
+      newNode = self.makeRoom(i)
+      currentNode.setNext(newNode)
+      currentNode = newNode
 
-    success = SuccessStoryNode(str(index), self.runLog)
-    currentNode.setNext(success)
     return firstNode
+
+  def makeRoom(self, index):
+    # some special cases near the end of the game
+    if index > self.targetLength:
+      return None
+    if index == self.targetLength:
+      return SuccessStoryNode(str(index), self.runLog)
+    if index == self.targetLength - self.finalsLength - 1:
+      finalsNode = FinalsStoryNode(self.player, self.finalsLength)
+      self.previousNodeIsMarket = False
+      return finalsNode
+    # decide whether to make a market
+    makeMarket = not self.previousNodeIsMarket
+    if index == self.targetLength - 1:
+      makeMarket = False
+    if makeMarket:
+      market = self.makeMarket(index, self.nextShopNumItems)
+      self.nextShopNumItems = 1
+      self.previousNodeIsMarket = True
+      return market
+    self.previousNodeIsMarket = False
+    # in most cases, send the player to a competition
+    rewardMoney = 5
+    competition = self.competitionBuilder.buildCompetition(self.player, index, self.offeringFactory, rewardMoney, self.runLog)
+    return competition
+
 
   def makeMarket(self, index, numItems):
     fractionComplete = index / self.targetLength
@@ -663,6 +663,7 @@ class StoryGenerator(object):
     nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
     nodeName = str(index)
     return MarketStoryNode(nodeName, self.player, nodeComplexity, numItems, self.offeringFactory, self.runLog)
+
 
 # builds competitions and keeps track of difficulty
 class CompetitionBuilder(object):

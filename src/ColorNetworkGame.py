@@ -16,8 +16,8 @@ class DefaultOfferingFactory(OfferingFactory):
 
   def loadDefaults(self):
     self.contents = []
-    yellow = "Y" # yellow energy: electricity
-    black = "B" # black energy: coal
+    yellow = Energies.register(EnergyColor("Y", "yellow", "\033[1;33;40m", "yellow energy represents electricity"))
+    black = Energies.register(EnergyColor("B", "black", "\033[1;30;40m", "black energy represents coal"))
     y = SingleColorBuilder(yellow)
     b = SingleColorBuilder(black)
     m = MultiColorBuilder([yellow, black])

@@ -88,14 +88,18 @@ class Energy(object):
   def __str__(self):
     if len(self.amounts) < 1:
       return "0"
-    components = [str(value) + key for key, value in self.amounts.items()]
+    components = []
+    for name, amount in self.amounts.items():
+      color = Energies.getByShortName(name)
+      components.append(color.formatAmount(amount))
     return "".join(components)
 
 # represents a type of energy
 class EnergyColor(object):
-  def __init__(self, shortName, longName, description):
+  def __init__(self, shortName, longName, displayPrefix, description):
     self.shortName = shortName
     self.longName = longName
+    self.displayPrefix = displayPrefix
     self.description = description
 
   def matchesName(self, name):
@@ -110,6 +114,23 @@ class EnergyColor(object):
 
   def __eq__(self, other):
     return self.longName == other.longName
+
+  def formatAmount(self, amount):
+    clear = "\033[0m"
+    return self.displayPrefix + str(amount) + self.shortName + clear
+
+class EnergyRegistry(object):
+  def __init__(self):
+    self.contentsByShortName = {}
+
+  def register(self, energy):
+    self.contentsByShortName[energy.shortName] = energy
+    return energy
+
+  def getByShortName(self, name):
+    return self.contentsByShortName[name]
+
+Energies = EnergyRegistry()
 
 # represents a request for energy
 class EnergyRequest(object):
@@ -187,7 +208,7 @@ class EnergyRequest(object):
 # builds an Energy (or a structure representing an energy) with a single color
 class SingleColorBuilder(object):
   def __init__(self, color):
-    self.color = color
+    self.color = color.shortName
 
   # returns a data structure representing energy with the preconfigured color and the given value
   def d(self, amount):
@@ -202,8 +223,9 @@ class MultiColorBuilder(object):
 
   # returns a data structure representing energy with the preconfigured colors and the given values
   def d(self, amounts):
+    values = dict()
     for key in amounts.keys():
       if key not in self.colors:
         raise Exception("Invalid color '" + str(key) + "' not in " + str(self.colors))
-    values = dict(amounts)
+      values[key.shortName] = amounts[key]
     return values

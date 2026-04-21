@@ -116,8 +116,14 @@ class EnergyColor(object):
     return self.longName == other.longName
 
   def formatAmount(self, amount):
+    return self.formatText(str(amount) + self.shortName)
+
+  def formatLongName(self):
+    return self.formatText(self.longName)
+
+  def formatText(self, text):
     clear = "\033[0m"
-    return self.displayPrefix + str(amount) + self.shortName + clear
+    return self.displayPrefix + str(text) + clear
 
 class EnergyRegistry(object):
   def __init__(self):

@@ -469,9 +469,10 @@ class CustomizationStoryNode(SimpleStoryNode):
       input("(press Enter)")
 
 class MarketStoryNode(MenuStoryNode):
-  def __init__(self, nodeName, player, offerings, offeringFactory, runLog):
+  def __init__(self, nodeName, description, player, offerings, offeringFactory, runLog):
     super().__init__("Welcome to market " + str(nodeName))
     self.nodeName = nodeName
+    self.description = description
     self.runLog = runLog
     self.shop = ShopStoryNode(player, offerings, offeringFactory)
     self.shop.setNext(self)
@@ -543,6 +544,108 @@ class LazyStoryNode(StoryNode):
   def getNext(self):
     return self.generator.getRoomAfter(self.index)
 
+class OfferingFilter(object):
+  def __init__(self):
+    return
+
+  def acceptsOffering(self, offering):
+    raise Exception("acceptsOffering not implemented in " + str(self))
+
+  def summarize(self):
+    return type(self).__name__
+
+class AllOfferingsFilter(OfferingFilter):
+  def __init__(self):
+    return
+
+  def acceptsOffering(self, offering):
+    return True
+
+  def summarize(self):
+    return "all types of items"
+
+class PowerSource_OfferingFilter(OfferingFilter):
+  def __init__(self):
+    super().__init__()
+
+  def acceptsOffering(self, offering):
+    # if any item in the offering is a power sink, then the offering isn't a power source
+    for item in offering.items:
+      if item.declaresInputs() and not item.declaresOutputs():
+        return False
+    # if at least one item is a power source, the offering is a power source
+    for item in offering.items:
+      if item.declaresOutputs() and not item.declaresInputs():
+        return True
+    return False
+
+  def summarize(self):
+    return "energy sources"
+
+class PowerSink_OfferingFilter(OfferingFilter):
+  def __init__(self):
+    super().__init__()
+
+  def acceptsOffering(self, offering):
+    # if any item in the offering is a power source, then the offering isn't a power sink
+    for item in offering.items:
+      if item.declaresOutputs() and not item.declaresInputs():
+        return False
+    # if at least one item is a power sink, the offering is a power sink
+    for item in offering.items:
+      if item.declaresInputs() and not item.declaresOutputs():
+        return True
+    return False
+
+  def summarize(self):
+    return "energy sinks"
+
+class PowerTransformer_OfferingFilter(OfferingFilter):
+  def __init__(self):
+    super().__init__()
+
+  def acceptsOffering(self, offering):
+    for item in offering.items:
+      if item.declaresInputs() and item.declaresOutputs():
+        return True
+    return False
+
+  def summarize(self):
+    return "energy transformers"
+
+class Color_OfferingFilter(OfferingFilter):
+  def __init__(self, color):
+    super().__init__()
+    self.color = color
+
+  def acceptsOffering(self, offering):
+    for item in offering.items:
+      if self.acceptsItem(item):
+        return True
+    return False
+
+  def acceptsItem(self, item):
+    properties = item.properties
+    for propertyName in properties.keys():
+      propertyValue = properties.get(propertyName)
+      if isinstance(propertyValue, dict):
+        if self.color.shortName in propertyValue.keys():
+          return True
+    return False
+
+  def summarize(self):
+    return "items involving " + self.color.formatLongName() + " energy"
+
+class Bundle_OfferingFilter(OfferingFilter):
+  def __init__(self):
+    super().__init__()
+
+  def acceptsOffering(self, offering):
+    return len(offering.items) > 1
+
+  def summarize(self):
+    return "bundles"
+
 # creates a StoryNode network
 class StoryGenerator(object):
   def __init__(self, player, competitionBuilder, offeringFactory, runLog):
@@ -592,15 +695,21 @@ class StoryGenerator(object):
     maxComplexity = 10
     nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
     nodeName = str(index)
-    offerings = self.chooseMarketContents(nodeComplexity, index, numItems)
-    return MarketStoryNode(nodeName, self.player, offerings, self.offeringFactory, self.runLog)
+    offeringFilter = AllOfferingsFilter()
+    candidates = self.filterOfferings(self.offeringFactory.getAll(), offeringFilter)
+    offerings = self.chooseMarketContents(nodeComplexity, index, numItems, candidates)
+    description = "a market with " + offeringFilter.summarize()
+    return MarketStoryNode(nodeName, description, self.player, offerings, self.offeringFactory, self.runLog)
 
-  def chooseMarketContents(self, complexity, index, targetNumItems):
-    offeringFactory = self.offeringFactory
+  def filterOfferings(self, offerings, offeringsFilter):
+    result = [offering for offering in offerings if offeringsFilter.acceptsOffering(offering)]
+    return result
+
+  def chooseMarketContents(self, complexity, index, targetNumItems, candidateOfferings,):
     # find a bunch of candidates
     simpleItems = []
     complexItems = []
-    for offering in offeringFactory.getAll():
+    for offering in candidateOfferings:
       if offering.complexity <= complexity:
         simpleItems.append(offering)
       else:

@@ -136,6 +136,9 @@ class EnergyRegistry(object):
   def getByShortName(self, name):
     return self.contentsByShortName[name]
 
+  def getAll(self):
+    return self.contentsByShortName.values()
+
 Energies = EnergyRegistry()
 
 # represents a request for energy

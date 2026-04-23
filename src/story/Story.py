@@ -12,6 +12,9 @@ class StoryNode(object):
   def getNext(self):
     return None
 
+  def summarize(self):
+    return type(self).__name__
+
 class Menu(object):
   def __init__(self):
     self.choicesByIndex = {}
@@ -51,23 +54,38 @@ class Menu(object):
         continue
       return number
 
+  def choices(self):
+    result = set()
+    for entry in self.choicesByIndex.values():
+      result.add(entry[1])
+    return result
+
 class MenuStoryNode(StoryNode):
   def __init__(self, text):
     super().__init__()
     self.text = text
     self.menu = Menu()
+    self.nextNode = None
 
+  # gets the next node to go to after this one (which is node that the user chooses)
   def getNext(self):
     print(self.text)
     result = self.menu.chooseValue()
     self.onGoTo(result)
     return result
 
+  # sets the next node to go to after this node and its selected choice are completed
+  def setNext(self, nextNode):
+    for child in self.menu.choices():
+      child.setNext(nextNode)
+
   def onGoTo(self, choice):
     return
 
   def addChoice(self, text, result):
     self.menu.addChoice(text, result)
+    if self.nextNode is not None:
+      result.setNext(self.nextNode)
 
 # a SimpleStoryNode just is an abstract class that just goes to the next node
 class SimpleStoryNode(StoryNode):
@@ -517,6 +535,9 @@ class MarketStoryNode(MenuStoryNode):
     if nextNode == self.exitNode:
       self.shop.updateRunLog(self.nodeName, self.runLog)
 
+  def summarize(self):
+    return self.description
+
 class SuccessStoryNode(SimpleStoryNode):
   def __init__(self, name, runLog):
     super().__init__()
@@ -658,6 +679,7 @@ class StoryGenerator(object):
     self.previousMarketIndex = -100
     self.finalsLength = player.hitpoints
     self.nextShopNumItems = 12
+    self.makeMultipleMarkets = False
 
   def create(self):
     player = self.player
@@ -681,9 +703,12 @@ class StoryGenerator(object):
       makeMarket = False
     if makeMarket:
       self.previousMarketIndex = index
-      market = self.makeMarket(index, self.nextShopNumItems)
+      if self.makeMultipleMarkets:
+        market = self.makeMarkets(index, 2, self.nextShopNumItems)
+      else:
+        market = self.makeMarket(index, AllOfferingsFilter(), self.nextShopNumItems)
+      self.makeMultipleMarkets = True
       self.nextShopNumItems = 2
-      self.previousNodeIsMarket = True
       return market
     self.previousNodeIsMarket = False
     # in most cases, send the player to a competition
@@ -691,12 +716,30 @@ class StoryGenerator(object):
     competition = self.competitionBuilder.buildCompetition(self.player, index, self.offeringFactory, rewardMoney, self.runLog)
     return competition
 
-  def makeMarket(self, index, numItems):
+  def makeMarkets(self, index, numMarkets, numItems):
+    # candidate offering filters
+    candidateFilters = [AllOfferingsFilter(), PowerSource_OfferingFilter(), PowerSink_OfferingFilter(), PowerTransformer_OfferingFilter(), Bundle_OfferingFilter()]
+    for color in Energies.getAll():
+      candidateFilters.append(Color_OfferingFilter(color))
+    # choose two at random
+    index1 = random.randint(0, len(candidateFilters) - 1)
+    index2 = random.randint(1, len(candidateFilters) - 1)
+    if index2 == index1:
+      index2 = 0
+    filter1 = candidateFilters[index1]
+    filter2 = candidateFilters[index2]
+    market1 = self.makeMarket(index, filter1, numItems)
+    market2 = self.makeMarket(index, filter2, numItems)
+    chooser = MenuStoryNode("Choose a market to visit!")
+    chooser.addChoice(market1.description, market1)
+    chooser.addChoice(market2.description, market2)
+    return chooser
+
+  def makeMarket(self, index, offeringFilter, numItems):
     fractionComplete = index / self.targetLength
     maxComplexity = 10
     nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
     nodeName = str(index)
-    offeringFilter = AllOfferingsFilter()
     candidates = self.filterOfferings(self.offeringFactory.getAll(), offeringFilter)
     offerings = self.chooseMarketContents(nodeComplexity, index, numItems, candidates)
     description = "a market with " + offeringFilter.summarize()
@@ -706,7 +749,7 @@ class StoryGenerator(object):
     result = [offering for offering in offerings if offeringsFilter.acceptsOffering(offering)]
     return result
 
-  def chooseMarketContents(self, complexity, index, targetNumItems, candidateOfferings,):
+  def chooseMarketContents(self, complexity, index, targetNumItems, candidateOfferings):
     # find a bunch of candidates
     simpleItems = []
     complexItems = []

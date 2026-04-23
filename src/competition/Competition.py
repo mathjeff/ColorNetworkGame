@@ -112,7 +112,7 @@ class Competitor(object):
       print(str(self) + " unable to attack")
 
   def processIncomingAttacks(self):
-    print(str(len(self.incomingAttacks)) + " attacks incoming to " + str(self) + ":")
+    print("Processing " + str(len(self.incomingAttacks)) + " attacks incoming to " + str(self))
     for attack in self.incomingAttacks:
       attack.process(self)
     self.incomingAttacks = []

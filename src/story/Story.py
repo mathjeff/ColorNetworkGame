@@ -483,9 +483,10 @@ class MarketStoryNode(MenuStoryNode):
     sage = SageStoryNode("Greetings", """
     What is this place?:This is a robot competition
      Can I get a robot?:You can buy robot parts in a shop and assemble them yourself
-      How do I assemble a robot?:Put the pieces in some order and then connect the ones that need power to the ones that provide power
-     How do robot competitions work?:Two robots attack each other until one has no pieces left or time runs out. Then the robot with the most pieces remaining wins
-      How do robots attack?:Some items will attack a piece of the other robot if you give them power
+      How do I assemble a robot?:Put the items in some order and then connect the ones that need power to the ones that provide power
+     How do robot competitions work?:Two robots attack each other until one has no items left or time runs out. Then the robot with the most items remaining wins
+      How do robots attack?:Some items will attack an item in the other robot if you give them power
+       How can I give power to an item?:Some items produce charge during their turn, which can be given to other items if you connect them. Pay attention to the order of your items. During your turn, items in a robot activate from left to right.
     Will I be happy here?:It depends. This place is still a work in progress, but what are you looking for?
      I'd love to participate in a robot competition:Excellent! I expect you will like it.
      I like hard math problems:This place has been designed for you, actually.

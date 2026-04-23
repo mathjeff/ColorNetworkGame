@@ -368,7 +368,13 @@ class Battery(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append(" holds " + str(self.charge) + " charge and can give " + str(self.dischargeRate) + " per turn to other items")
+    prefix = " holds " + str(self.charge) + " charge and can give "
+    if self.charge.getNumTypes() > 1:
+      amountText = str(self.dischargeRate) + " of each color per turn"
+    else:
+      amountText = str(self.dischargeRate) + " per turn"
+    suffix = " to other items"
+    messages.append(prefix + amountText + suffix)
     return messages
 
 # just has lots of hitpoints

@@ -103,7 +103,7 @@ def addCounts(a, b):
     result[key] = a.get(key, 0) + b.get(key, 0)
   return result
 
-print("Welcome to ColorNetwork!")
+print("Welcome to ColorNetwork! To quit, press <Ctrl-C>")
 
 def getAverageItemCost():
   items = offeringFactory.getAll()

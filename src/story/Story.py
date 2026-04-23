@@ -655,7 +655,7 @@ class StoryGenerator(object):
     self.competitionBuilder = competitionBuilder
     self.offeringFactory = offeringFactory
     self.runLog = runLog
-    self.previousNodeIsMarket = False
+    self.previousMarketIndex = -100
     self.finalsLength = player.hitpoints
     self.nextShopNumItems = 12
 
@@ -674,20 +674,20 @@ class StoryGenerator(object):
       return SuccessStoryNode(str(index), self.runLog)
     if index == self.targetLength - self.finalsLength - 1:
       finalsNode = FinalsStoryNode(self.player, self.finalsLength)
-      self.previousNodeIsMarket = False
       return finalsNode
     # decide whether to make a market
-    makeMarket = not self.previousNodeIsMarket
+    makeMarket = (index >= self.previousMarketIndex + 4)
     if index == self.targetLength - 1:
       makeMarket = False
     if makeMarket:
+      self.previousMarketIndex = index
       market = self.makeMarket(index, self.nextShopNumItems)
-      self.nextShopNumItems = 1
+      self.nextShopNumItems = 2
       self.previousNodeIsMarket = True
       return market
     self.previousNodeIsMarket = False
     # in most cases, send the player to a competition
-    rewardMoney = 5
+    rewardMoney = 3
     competition = self.competitionBuilder.buildCompetition(self.player, index, self.offeringFactory, rewardMoney, self.runLog)
     return competition
 

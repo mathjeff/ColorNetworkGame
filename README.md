@@ -1,4 +1,4 @@
-# ColorNetwork
+# ColorNetwork: an autobalancing robot builder!
 
 ColorNetwork is a game where you buy robot parts, assemble a robot, and enter your robot into a competition.
 

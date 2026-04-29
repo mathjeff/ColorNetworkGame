@@ -937,9 +937,15 @@ class Network(object):
     return len(self.nodes)
 
   def getPosition(self, node):
+    result = self.tryGetPosition(node)
+    if result is None:
+      raise Exception("Node " + str(node) + " not in network")
+    return result
+
+  def tryGetPosition(self, node):
     if self.nodePositions is None:
       self.nodePositions = {self.nodes[i] : i for i in range(len(self.nodes))}
-    return self.nodePositions[node]
+    return self.nodePositions.get(node)
 
   def removeAt(self, index):
     self.nodePositions = None

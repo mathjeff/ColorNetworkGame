@@ -15,6 +15,9 @@ class ItemProperties(object):
   def keys(self):
     return self.properties.keys()
 
+  def containsKey(self, key):
+    return key in self.properties
+
   def __str__(self):
     return str(self.properties)
 
@@ -391,6 +394,35 @@ class Wall(Item):
   def clone(self):
     return Wall(self.properties)
 
+# grows while it has energy
+class CellWall(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["power"])
+
+  def loadProperties(self, properties):
+    self.hitPoints = properties.get("hitPoints")
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.hitpointGainPerTurn = properties.get("hitpointGainPerTurn")
+
+  def act(self, competitor):
+    super().act(competitor)
+    if self.requiredPower.satisfiedBy(self.tryAcquirePower("power", self.requiredPower)):
+      newHitpoints = self.hitPoints + self.hitpointGainPerTurn
+      print(self.summarize() + " hitpoints increasing by " + str(self.hitpointGainPerTurn) + " to " + str(newHitpoints))
+      self.hitPoints = newHitpoints
+
+  def summarize(self):
+    return "CellWall " + str(self.hitPoints) + " " + str(self.requiredPower) + "->+" + str(self.hitpointGainPerTurn)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("each turn if powered with " + str(self.requiredPower) + ", increases hitpoints by " + str(self.hitpointGainPerTurn)) 
+    return messages
+
+  def clone(self):
+    return CellWall(self.properties)
+
 # adds a constant to each color of power
 class Adder(Item):
   def __init__(self, properties):
@@ -594,6 +626,8 @@ class Capacitor(Item):
 
   def loadProperties(self, properties):
     self.maxEnergy = Energy(properties.get("maxEnergy"))
+    if properties.containsKey("startingEnergy"):
+      self.energy = Energy(properties.get("startingEnergy"))
     self.signalOutputFraction = properties.get("signalOutputFraction")
 
   def act(self, competitor):
@@ -611,7 +645,9 @@ class Capacitor(Item):
     return amount
 
   def clone(self):
-    return Capacitor(self.properties)
+    copy = Capacitor(self.properties)
+    copy.energy = self.energy
+    return copy
 
   def summarize(self):
     return super().summarize() + " " + str(self.energy) + "/" + str(self.maxEnergy)
@@ -958,3 +994,40 @@ class Flipper(Item):
     messages.append("If not in position 0 in the network, has no effect")
     return messages
 
+# launches attacks that repeatedly destroy weak items
+class Infector(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["power", "control"])
+
+  def loadProperties(self, properties):
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.damage = properties.get("damage")
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.requiredPower)
+    if self.requiredPower.satisfiedBy(power):
+      damage = self.damage
+    else:
+      damage = 0
+    signal = self.tryAcquirePower("control", self.maxSignalPower)
+    targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
+    print("infector launching attack of strength " + str(damage) + " at position " + str(targetIndex))
+    competitor.launchInfectAttack(targetIndex, damage)
+
+  def clone(self):
+    return Infector(self.properties)
+
+  def summarize(self):
+    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.damage) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("launches one pathogen per turn at the opposing robot")
+    messages.append("each pathogen will do " + str(self.damage) + " damage. If that damage destroys the target item, the pathogen will proceed to the next item in the next turn")
+    messages.append("requires at least " + str(self.requiredPower) + " energy in one turn and then deals " + str(self.damage) + " damage")
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    return messages

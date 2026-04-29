@@ -10,8 +10,14 @@ class Attack(object):
   def __init__(self):
     return
 
-def act(self, target):
+  def act(self, target):
     return
+
+  def afterAttacks(self, target):
+    return
+
+  def __str__(self):
+    return type(self).__name__
 
 class DamageAttack(Attack):
   def __init__(self, index, amount):
@@ -61,6 +67,48 @@ class FlipAttack(Attack):
 
   def process(self, target):
     target.receiveFlipAttack(self.strength)
+
+class InfectAttack(Attack):
+  def __init__(self, index, amount):
+    super().__init__()
+    self.index = index
+    self.amount = amount
+    self.spreadToNode = None
+
+  def process(self, target):
+    itemIndex = self.index
+    if itemIndex < 0:
+      return # miss
+    network = target.network
+    if itemIndex >= network.size():
+      return # miss
+    targetItem = network.nodes[itemIndex]
+    hadHitpoints = targetItem.hitPoints > 0
+    target.receiveDamage(itemIndex, self.amount)
+    stillHasHitpoints = targetItem.hitPoints > 0
+    self.spreadToNode = None
+    if hadHitpoints:
+      if stillHasHitpoints:
+        print(str(self) + " not spreading because the target is still alive")
+      else:
+        print(str(self) + " destroyed its target")
+        spreadToIndex = itemIndex + 1
+        if spreadToIndex >= len(network.nodes):
+          print(str(self) + " not spreading because of reaching the end of the network")
+        else:
+          self.spreadToNode = network.nodes[spreadToIndex]
+    else:
+      print(str(self) + " not spreading because target was already destroyed")
+
+  def afterAttacks(self, target):
+    if self.spreadToNode is None:
+      return # previously computed unable to spread
+    index = target.network.tryGetPosition(self.spreadToNode)
+    if index is None:
+      print(str(self) + " not spreading because " + self.spreadToNode.summarize() + " no longer in network")
+      return
+    print(str(self) + " spreading to " + self.spreadToNode.summarize())
+    target.addIncomingAttack(InfectAttack(index, self.amount))
 
 # represents an entity that competes with other entities
 class Competitor(object):
@@ -113,10 +161,13 @@ class Competitor(object):
 
   def processIncomingAttacks(self):
     print("Processing " + str(len(self.incomingAttacks)) + " attacks incoming to " + str(self))
-    for attack in self.incomingAttacks:
+    incomingAttacks = self.incomingAttacks
+    for attack in incomingAttacks:
       attack.process(self)
     self.incomingAttacks = []
     self.removeBrokenNodes()
+    for attack in incomingAttacks:
+      attack.afterAttacks(self)
 
   def removeBrokenNodes(self):
     remainingNodeList = []
@@ -181,6 +232,9 @@ class Competitor(object):
       self.active = False
     else:
       print(str(self) + " not flipped: total hitpoints " + str(totalHitpoints) + " > strength " + str(strength))
+
+  def launchInfectAttack(self, nodeIndex, amount):
+    self.addOutgoingAttack(InfectAttack(nodeIndex, amount))
 
   def createShield(self, position, radius, defenseFraction):
     damageMultiplier = 1 - defenseFraction

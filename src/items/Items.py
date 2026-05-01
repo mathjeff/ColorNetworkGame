@@ -25,8 +25,8 @@ class ItemProperties(object):
 class Item(object):
   def __init__(self, properties):
     self.hitPoints = 1
-    self.inputsByName = {} # Map<String, ItemOutput>
-    self.outputsByName = {} # Map<String, List<ItemInput>>
+    self.undeclareInputs() # Map<String, ItemOutput>
+    self.undeclareOutputs() # Map<String, List<ItemInput>>
     self.powerAcquiredLastTurn = 0
     self.powerAcquiredThisTurn = 0
     self.acquiringPower = False
@@ -85,13 +85,19 @@ class Item(object):
   def declaresInputs(self):
     return len(self.inputsByName) > 0
 
+  def undeclareInputs(self):
+    self.inputsByName = {}
+
   def declareOutputs(self, linkTypes):
     for name in linkTypes:
       if name not in self.outputsByName:
         self.outputsByName[name] = []
 
-  def declareOutput(self):
-    self.declareOutputs(["None"])
+  def declareOutput(self, name = "None"):
+    self.declareOutputs([name])
+
+  def undeclareOutputs(self):
+    self.outputsByName = {}
 
   def declaresOutputs(self):
     return len(self.outputsByName) > 0
@@ -762,34 +768,56 @@ class PowerUsageSensor(Item):
 class HealthSensor(Item):
   def __init__(self, properties):
     super().__init__(properties)
-    self.reading = 0
+    self.readings = []
     self.declareInputs(["power", "positionSignal"])
-    self.declareOutput()
 
   def loadProperties(self, properties):
     self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
     self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
     self.outputRatio = properties.get("outputRatio")
+    self.radius = int(properties.get("radius"))
+    self.undeclareOutputs()
+    for i in range(self.getNumOutputs()):
+      self.declareOutput(self.getOutputName(i))
+
+  def getNumOutputs(self):
+    return self.radius * 2 + 1
+
+  def getOutputName(self, index):
+    return "output" + str(index)
 
   def act(self, competitor):
     super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
     positionSignal = self.tryAcquirePower("positionSignal", self.requiredPower)
+    self.readings = []
     if self.requiredPower.satisfiedBy(power):
-      index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
-      hitpoints = competitor.getEnemyHitpoints(index)
-      self.reading = min(hitpoints * self.outputRatio, power.getTotal())
-      print(self.summarize() + " reading opponent hitpoints at " + str(index) + " of " + str(hitpoints) + ", outputting " + str(self.reading))
+      baseIndex = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
+      for index in range(baseIndex - self.radius, baseIndex + self.radius + 1):
+        hitpoints = competitor.getEnemyHitpoints(index)
+        reading = min(hitpoints * self.outputRatio, power.getTotal())
+        self.readings.append(reading)
+        print(self.summarize() + " reading opponent hitpoints at " + str(index) + " of " + str(hitpoints) + ", outputting " + str(self.reading))
     else:
       if power.nonempty():
         print("power " + str(power) + " not enough to power " + self.summarize())
-      self.reading = Energy()
+      self.reading = []
+
+  def getOutputIndex(self, outputName):
+    for i in range(self.getNumOutputs()):
+      if self.getOutputName(i) == outputName:
+        return i
+    raise Exception("Output " + outputName + " not found in " + str(self))
 
   def tryGetPower(self, requested, outputName):
-    result = requested.limitToConstant(self.reading)
-    self.reading = self.reading.minus(result)
-    return amount
+    outputIndex = self.getOutputIndex(outputName)
+    if outputIndex >= len(self.readings):
+      print("Reading " + str(outputIndex) + " not available")
+      return Energy()
+    reading = self.readings[outputIndex]
+    result = requested.limitToConstant(reading)
+    return result
 
   def clone(self):
     return HealthSensor(self.properties)
@@ -799,9 +827,9 @@ class HealthSensor(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("Measures hitpoints of an item at the target position in the opposing robot")
+    messages.append("Measures hitpoints of items within radius " + str(self.radius) + " of the target position in the opposing robot")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
-    messages.append("The output will be set to " + str(self.outputRatio) + " times the total hitpoints read from the opponent")
+    messages.append("Provides " + str(self.getNumOutputs()) + " output signals. Each one is set to the hitpoints of the corresponding item in the opponent's robot times " + str(self.outputRatio))
     return messages
 
 # drains power

@@ -558,13 +558,14 @@ class Joiner(Item):
     messages.append("takes power from up to three inputs and provides it as output")
     return messages
 
-# an IfMore allows power through if the signal is above a threshold
-class IfMore(Item):
+# a comparer compares a signal to a constant, and then lets power one port based on the result
+class Comparer(Item):
   def __init__(self, properties):
     super().__init__(properties)
-    self.declareOutput()
-    self.on = False
+    self.declareOutputs(["low", "high"])
+    self.reading = 0
     self.declareInputs(["power", "signal"])
+    self.high = False
 
   def loadProperties(self, properties):
     threshold = properties.get("threshold")
@@ -572,54 +573,22 @@ class IfMore(Item):
 
   def act(self, competitor):
     super().act(competitor)
-    self.on = self.threshold.satisfiedBy(self.tryAcquirePower("signal", self.threshold))
+    self.high = self.threshold.satisfiedBy(self.tryAcquirePower("signal", self.threshold))
 
   def tryGetPower(self, requested, outputName):
-    if self.on:
+    if (outputName == "high") == (self.high):
       return self.tryAcquirePower("power", requested)
     return Energy({})
 
   def clone(self):
-    return IfMore(self.properties)
+    return Comparer(self.properties)
 
   def summarize(self):
     return super().summarize() + ">=" + str(self.threshold)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("allows power through if the signal is at least " + str(self.threshold))
-    return messages
-
-# an IfLess allows power through if the signal is above a threshold
-class IfLess(Item):
-  def __init__(self, properties):
-    super().__init__(properties)
-    self.declareOutput()
-    self.on = False
-    self.declareInputs(["power", "signal"])
-
-  def loadProperties(self, properties):
-    threshold = properties.get("threshold")
-    self.threshold = EnergyRequest(Energy(), threshold)
-
-  def act(self, competitor):
-    super().act(competitor)
-    self.on = not self.threshold.satisfiedBy(self.tryAcquirePower("signal", self.threshold))
-
-  def tryGetPower(self, requested, outputName):
-    if self.on:
-      return self.tryAcquirePower("power", requested)
-    return Energy({})
-
-  def clone(self):
-    return IfLess(self.properties)
-
-  def summarize(self):
-    return super().summarize() + "<" + str(self.threshold)
-
-  def getHelpMessages(self):
-    messages = super().getHelpMessages()
-    messages.append("allows power through if the signal is below " + str(self.threshold))
+    messages.append("checks whether the signal is at least " + str(self.threshold) + ". If it is, then power is allowed through the output named 'high'. Otherwise power is allowed through the output named 'low'")
     return messages
 
 # a Capacitor stores energy

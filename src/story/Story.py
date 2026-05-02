@@ -633,7 +633,7 @@ class PowerTransformer_OfferingFilter(OfferingFilter):
     return False
 
   def summarize(self):
-    return "energy transformers"
+    return "power connectors/transformers"
 
 class Color_OfferingFilter(OfferingFilter):
   def __init__(self, color):

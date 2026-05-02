@@ -830,82 +830,94 @@ class HealthSensor(Item):
 class PowerInputDrainer(Item):
   def __init__(self, properties):
     super().__init__(properties)
-    self.declareInputs(["power", "positionSignal"])
+    self.declareInputs(["power", "positionSignal", "radiusSignal"])
 
   def loadProperties(self, properties):
-    self.radius = properties.get("radius")
-    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
-    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
+    self.powerPerDrain = EnergyRequest(Energy(properties.get("powerPerDrain")))
+    self.maxPower = EnergyRequest(Energy(properties.get("maxPower")))
+    self.maxPositionPower = EnergyRequest(Energy(properties.get("maxPositionPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
-    self.drainPerItem = properties.get("drainPerItem")
+    self.maxRadiusPower = EnergyRequest(Energy(properties.get("maxRadiusPower")))
+    self.maxRadius = properties.get("maxRadius")
 
   def act(self, competitor):
     super().act(competitor)
-    power = self.tryAcquirePower("power", self.requiredPower)
-    positionSignal = self.tryAcquirePower("positionSignal", self.maxSignalPower)
-    if self.requiredPower.satisfiedBy(power):
-      index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
-      lowIndex = index - self.radius
-      highIndex = index + self.radius
-      for i in range(lowIndex, highIndex + 1):
-        competitor.drainEnemyPower(i, self.drainPerItem, 0)
-      print(self.summarize() + " draining opponent input power of " + str(self.drainPerItem) + " from each opponent item from " + str(lowIndex + 1) + " to " + str(highIndex + 1))
-    else:
-      if power.nonempty():
-        print("power " + str(power) + " not enough to power " + self.summarize())
+    power = self.tryAcquirePower("power", self.maxPower)
+    positionSignal = self.tryAcquirePower("positionSignal", self.maxPositionPower)
+    radiusSignal = self.tryAcquirePower("radiusSignal", self.maxRadiusPower)
+    index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxPositionPower.getTotal())
+    radius = int(self.maxRadius * radiusSignal.getTotal() / self.maxRadiusPower.getTotal())
+    lowIndex = index - radius
+    highIndex = index + radius + 1
+    numTargetPositions = highIndex - lowIndex
+    drainPerPosition = int(power.getTotal() / numTargetPositions / self.powerPerDrain.getTotal())
+    if drainPerPosition < 1:
+      print("Power " + str(power) + " to " + self.summarize() + " not enough to apply a drain to " + str(numTargetPositions) + " positions")
+    
+    for i in range(lowIndex, highIndex):
+      competitor.drainEnemyPower(i, drainPerPosition, 0)
+    print(self.summarize() + " draining opponent input power of " + str(drainPerPosition) + " from each opponent item from " + str(lowIndex + 1) + " to " + str(highIndex))
 
   def clone(self):
     return PowerInputDrainer(self.properties)
 
   def summarize(self):
-    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.drainPerItem) + "+/-" + str(self.radius) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"
+    return super().summarize() + " " + str(self.powerPerDrain) + "/" + str(self.maxPower) + "->1" + "+/-(" + str(self.maxRadiusPower) + ":" + str(self.maxRadius) + ") (" + str(self.maxPositionPower) + ":" + str(self.maxPossibleTarget) + ")"
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("Uses " + str(self.requiredPower) + " power to drain up to " + str(self.drainPerItem) + " input power from items within radius " + str(self.radius) + " from the target position in the opposing robot")
-    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
-    messages.append("Will drain up to " + str(self.drainPerItem) + " energy from each affected item")
+    messages.append("Drains input power from items in the opposing robot")
+    messages.append("You can supply power to the radius port to change how many items this targets. A radius power level of 0 will produce a radius of 0. A radius power level of " + str(self.maxRadiusPower) + " will produce a radius of " + str(self.maxRadius))
+    messages.append("Max power usage is " + str(self.maxPower))
+    messages.append("For every " + str(self.powerPerDrain) + " input power, drains 1 input power from target items in the opposing robot (divided evenly, rounded down)")
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxPositionPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
 
 # drains power
 class PowerOutputDrainer(Item):
   def __init__(self, properties):
     super().__init__(properties)
-    self.declareInputs(["power", "positionSignal"])
+    self.declareInputs(["power", "positionSignal", "radiusSignal"])
 
   def loadProperties(self, properties):
-    self.radius = properties.get("radius")
-    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
-    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
+    self.powerPerDrain = EnergyRequest(Energy(properties.get("powerPerDrain")))
+    self.maxPower = EnergyRequest(Energy(properties.get("maxPower")))
+    self.maxPositionPower = EnergyRequest(Energy(properties.get("maxPositionPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
-    self.drainPerItem = properties.get("drainPerItem")
+    self.maxRadiusPower = EnergyRequest(Energy(properties.get("maxRadiusPower")))
+    self.maxRadius = properties.get("maxRadius")
 
   def act(self, competitor):
     super().act(competitor)
-    power = self.tryAcquirePower("power", self.requiredPower)
-    positionSignal = self.tryAcquirePower("positionSignal", self.maxSignalPower)
-    if self.requiredPower.satisfiedBy(power):
-      index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
-      lowIndex = index - self.radius
-      highIndex = index + self.radius
-      for i in range(lowIndex, highIndex + 1):
-        competitor.drainEnemyPower(i, 0, self.drainPerItem)
-      print(self.summarize() + " draining opponent output power of " + str(self.drainPerItem) + " from each opponent item from " + str(lowIndex + 1) + " to " + str(highIndex + 1))
-    else:
-      if power.nonempty():
-        print("power " + str(power) + " not enough to power " + self.summarize())
+    power = self.tryAcquirePower("power", self.maxPower)
+    positionSignal = self.tryAcquirePower("positionSignal", self.maxPositionPower)
+    radiusSignal = self.tryAcquirePower("radiusSignal", self.maxRadiusPower)
+    index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxPositionPower.getTotal())
+    radius = int(self.maxRadius * radiusSignal.getTotal() / self.maxRadiusPower.getTotal())
+    lowIndex = index - radius
+    highIndex = index + radius + 1
+    numTargetPositions = highIndex - lowIndex
+    drainPerPosition = int(power.getTotal() / numTargetPositions / self.powerPerDrain.getTotal())
+    if drainPerPosition < 1:
+      print("Power " + str(power) + " to " + self.summarize() + " not enough to apply a drain to " + str(numTargetPositions) + " positions")
+    
+    for i in range(lowIndex, highIndex):
+      competitor.drainEnemyPower(i, 0, drainPerPosition)
+    print(self.summarize() + " draining opponent output power of " + str(drainPerPosition) + " from each opponent item from " + str(lowIndex + 1) + " to " + str(highIndex))
 
   def clone(self):
     return PowerOutputDrainer(self.properties)
 
   def summarize(self):
-    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.drainPerItem) + "+/-" + str(self.radius) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"
+    return super().summarize() + " " + str(self.powerPerDrain) + "/" + str(self.maxPower) + "->1" + "+/-(" + str(self.maxRadiusPower) + ":" + str(self.maxRadius) + ") (" + str(self.maxPositionPower) + ":" + str(self.maxPossibleTarget) + ")"
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("Uses " + str(self.requiredPower) + " power to drain up to " + str(self.drainPerItem) + " output power from items within radius " + str(self.radius) + " from the target position in the opposing robot")
-    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
-    messages.append("Will drain up to " + str(self.drainPerItem) + " energy from each affected item")
+    messages.append("Drains output power from items in the opposing robot")
+    messages.append("You can supply power to the radius port to change how many items this targets. A radius power level of 0 will produce a radius of 0. A radius power level of " + str(self.maxRadiusPower) + " will produce a radius of " + str(self.maxRadius))
+    messages.append("Max power usage is " + str(self.maxPower))
+    messages.append("For every " + str(self.powerPerDrain) + " input power, drains 1 output power from target items in the opposing robot (divided evenly, rounded down)")
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxPositionPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
 
 # converts power from one type to another type

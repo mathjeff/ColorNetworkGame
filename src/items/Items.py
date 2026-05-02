@@ -27,8 +27,8 @@ class Item(object):
     self.hitPoints = 1
     self.undeclareInputs() # Map<String, ItemOutput>
     self.undeclareOutputs() # Map<String, List<ItemInput>>
-    self.powerAcquiredLastTurn = 0
-    self.powerAcquiredThisTurn = 0
+    self.powerConsumedLastTurn = 0
+    self.powerConsumedThisTurn = 0
     self.acquiringPower = False
     self.inputPowerDrain = 0
     self.outputPowerDrain = 0
@@ -136,6 +136,7 @@ class Item(object):
       raise Exception("link type " + str(linkType) + " not declared in " + str(self) + ". All declared links: " + str(self.inputsByName))
     link = self.inputsByName.get(linkType)
     result = Energy()
+    powerConsumed = 0
     self.acquiringPower = True
     if link is not None:
       if link.item.outputPowerDrain > 0:
@@ -143,26 +144,30 @@ class Item(object):
         drained = link.item.tryGetPower(drainRequest, link.outputName)
         if drained.getTotal() > 0:
           link.item.outputPowerDrain -= drained.getTotal()
+          powerConsumed += drained.getTotal()
           print(link.item.summarize() + " output was drained of " + str(drained) + " power")
       if self.inputPowerDrain > 0:
         drainRequest = EnergyRequest(Energy(), self.inputPowerDrain)
         drained = link.item.tryGetPower(drainRequest, link.outputName)
         if drained.getTotal() > 0:
+          powerConsumed += drained.getTotal()
           print(self.summarize() + " input was drained of " + str(drained) + " power")
         self.inputPowerDrain -= drained.getTotal()
       result = link.item.tryGetPower(amount, link.outputName)
+      powerConsumed += result.getTotal()
     if result.nonempty():
       print(str(self.summarize()) + " got " + str(result) + " power from " + link.item.summarize())
     self.acquiringPower = False
-    self.powerAcquiredThisTurn += result.getTotal()
+    self.powerConsumedThisTurn += powerConsumed
     return result
 
   # tries to get power from the current node
   def tryGetPower(self, amount, outputName):
     return Energy() # empty
 
-  def getPowerAcquiredLastTurn(self):
-    return self.powerAcquiredLastTurn
+  # how much power was received last turn (plus any power drains applied to inputs or outputs)
+  def getPowerConsumedLastTurn(self):
+    return self.powerConsumedLastTurn
 
   def act(self, player):
     return
@@ -707,9 +712,9 @@ class PowerUsageSensor(Item):
       lowIndex = index - self.radius
       highIndex = index + self.radius
       for i in range(lowIndex, highIndex + 1):
-        reading += competitor.getEnemyPowerAcquired(i)
+        reading += competitor.getEnemyPowerConsumed(i)
       self.reading = min(reading * self.outputRatio, power)
-      print(self.summarize() + " reading opponent total power acquired from " + str(lowIndex) + " to " + str(highIndex) + ", outputting " + str(self.reading))
+      print(self.summarize() + " reading opponent total power consumed from " + str(lowIndex) + " to " + str(highIndex) + ", outputting " + str(self.reading))
     else:
       if power.nonempty():
         print("power " + str(power) + " not enough to power " + self.summarize())

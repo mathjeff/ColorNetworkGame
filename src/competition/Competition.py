@@ -147,8 +147,8 @@ class Competitor(object):
 
   def resetPowerMeters(self):
     for item in self.network.nodes:
-      item.powerAcquiredLastTurn = item.powerAcquiredThisTurn
-      item.powerAcquiredThisTurn = 0
+      item.powerConsumedLastTurn = item.powerConsumedThisTurn
+      item.powerConsumedThisTurn = 0
 
   def addIncomingAttack(self, attack):
     self.incomingAttacks.append(attack)
@@ -294,13 +294,13 @@ class Competitor(object):
     if numDisconnected < 1:
       print("No outputs disconnected for " + sourceNode.summarize())
 
-  def getEnemyPowerAcquired(self, nodeIndex):
+  def getEnemyPowerConsumed(self, nodeIndex):
     if nodeIndex < 0:
       return 0
     network = self.enemy.network
     if nodeIndex >= network.size():
       return 0
-    return network.nodes[nodeIndex].getPowerAcquiredLastTurn()
+    return network.nodes[nodeIndex].getPowerConsumedLastTurn()
 
   def getEnemyHitpoints(self, nodeIndex):
     if nodeIndex < 0:

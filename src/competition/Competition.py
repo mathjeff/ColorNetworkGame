@@ -149,6 +149,8 @@ class Competitor(object):
     for item in self.network.nodes:
       item.powerConsumedLastTurn = item.powerConsumedThisTurn
       item.powerConsumedThisTurn = 0
+      item.powerGivenLastTurn = item.powerGivenThisTurn
+      item.powerGivenThisTurn = 0
 
   def addIncomingAttack(self, attack):
     self.incomingAttacks.append(attack)
@@ -301,6 +303,14 @@ class Competitor(object):
     if nodeIndex >= network.size():
       return 0
     return network.nodes[nodeIndex].getPowerConsumedLastTurn()
+
+  def getEnemyPowerGiven(self, nodeIndex):
+    if nodeIndex < 0:
+      return 0
+    network = self.enemy.network
+    if nodeIndex >= network.size():
+      return 0
+    return network.nodes[nodeIndex].getPowerGivenLastTurn()
 
   def getEnemyHitpoints(self, nodeIndex):
     if nodeIndex < 0:

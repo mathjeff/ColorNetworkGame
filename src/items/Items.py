@@ -29,6 +29,8 @@ class Item(object):
     self.undeclareOutputs() # Map<String, List<ItemInput>>
     self.powerConsumedLastTurn = 0
     self.powerConsumedThisTurn = 0
+    self.powerGivenLastTurn = 0
+    self.powerGivenThisTurn = 0
     self.acquiringPower = False
     self.inputPowerDrain = 0
     self.outputPowerDrain = 0
@@ -155,6 +157,7 @@ class Item(object):
         self.inputPowerDrain -= drained.getTotal()
       result = link.item.tryGetPower(amount, link.outputName)
       powerConsumed += result.getTotal()
+      link.item.powerGivenThisTurn += powerConsumed
     if result.nonempty():
       print(str(self.summarize()) + " got " + str(result) + " power from " + link.item.summarize())
     self.acquiringPower = False
@@ -168,6 +171,10 @@ class Item(object):
   # how much power was received last turn (plus any power drains applied to inputs or outputs)
   def getPowerConsumedLastTurn(self):
     return self.powerConsumedLastTurn
+
+  # how much power was output last turn (including any power drains applied to inputs or outputs)
+  def getPowerGivenLastTurn(self):
+    return self.powerGivenLastTurn
 
   def act(self, player):
     return
@@ -691,9 +698,10 @@ class Shield(Item):
 class PowerUsageSensor(Item):
   def __init__(self, properties):
     super().__init__(properties)
-    self.reading = 0
+    self.givenReading = 0
+    self.consumedReading = 0
     self.declareInputs(["power", "positionSignal"])
-    self.declareOutput()
+    self.declareOutputs(["producedSignal", "consumedSignal", "totalSignal"])
 
   def loadProperties(self, properties):
     self.radius = properties.get("radius")
@@ -708,22 +716,32 @@ class PowerUsageSensor(Item):
     positionSignal = self.tryAcquirePower("positionSignal", self.requiredPower)
     if self.requiredPower.satisfiedBy(power):
       index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
-      reading = 0
+      givenReading = 0
+      consumedReading = 0
       lowIndex = index - self.radius
       highIndex = index + self.radius
       for i in range(lowIndex, highIndex + 1):
-        reading += competitor.getEnemyPowerConsumed(i)
-      self.reading = min(reading * self.outputRatio, power)
-      print(self.summarize() + " reading opponent total power consumed from " + str(lowIndex) + " to " + str(highIndex) + ", outputting " + str(self.reading))
+        consumedReading += competitor.getEnemyPowerConsumed(i)
+        givenReading += competitor.getEnemyPowerGiven(i)
+      print(self.summarize() + " reading opponent total power usage from " + str(lowIndex) + " to " + str(highIndex) + ", gave " + str(givenReading) + " consumed " + str(consumedReading))
+      self.givenReading = min(givenReading * self.outputRatio, power.getTotal())
+      self.consumedReading = min(consumedReading * self.outputRatio, power.getTotal())
     else:
       if power.nonempty():
         print("power " + str(power) + " not enough to power " + self.summarize())
-      self.reading = Energy()
+      self.givenReading = 0
+      self.consumedReading = 0
 
   def tryGetPower(self, requested, outputName):
-    result = requested.limitToConstant(self.reading)
-    self.reading = self.reading.minus(result)
-    return amount
+    if outputName == "givenSignal":
+      result = requested.limitToConstant(self.givenReading)
+      return result
+    if outputName == "consumedSignal":
+      result = requested.limitToConstant(self.consumedReading)
+      return result
+    if outputName == "totalSignal":
+      result = requested.limitToConstant(self.givenReading + self.consumedReading)
+    return Energy()
 
   def clone(self):
     return PowerUsageSensor(self.properties)
@@ -735,7 +753,9 @@ class PowerUsageSensor(Item):
     messages = super().getHelpMessages()
     messages.append("Measures power usage with radius " + str(self.radius) + " from the target position in the opposing robot")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
-    messages.append("The output will be set to " + str(self.outputRatio) + " times the total power read from the opponent")
+    messages.append("The producedSignal output will be set to " + str(self.outputRatio) + " times the total power output by the measured items")
+    messages.append("The consumedSignal output will be set to " + str(self.outputRatio) + " times the total power consumed by the measured items")
+    messages.append("The totalSignal output will be set to the producedSignal output plus the consumedSignal output")
     return messages
 
 # senses the number of hitpoints in an item

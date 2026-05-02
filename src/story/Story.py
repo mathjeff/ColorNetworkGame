@@ -658,16 +658,6 @@ class Color_OfferingFilter(OfferingFilter):
   def summarize(self):
     return "items involving " + self.color.formatLongName() + " energy"
 
-class Bundle_OfferingFilter(OfferingFilter):
-  def __init__(self):
-    super().__init__()
-
-  def acceptsOffering(self, offering):
-    return len(offering.items) > 1
-
-  def summarize(self):
-    return "bundles"
-
 # creates a StoryNode network
 class StoryGenerator(object):
   def __init__(self, player, competitionBuilder, offeringFactory, runLog):
@@ -718,7 +708,7 @@ class StoryGenerator(object):
 
   def makeMarkets(self, index, numMarkets, numItems):
     # candidate offering filters
-    candidateFilters = [AllOfferingsFilter(), PowerSource_OfferingFilter(), PowerSink_OfferingFilter(), PowerTransformer_OfferingFilter(), Bundle_OfferingFilter()]
+    candidateFilters = [AllOfferingsFilter(), PowerSource_OfferingFilter(), PowerSink_OfferingFilter(), PowerTransformer_OfferingFilter()]
     for color in Energies.getAll():
       candidateFilters.append(Color_OfferingFilter(color))
     # choose two at random

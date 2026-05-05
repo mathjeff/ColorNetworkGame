@@ -25,7 +25,7 @@ class OfferingFactory(object):
     self.addBundle([item], popularity, complexity, baseCost)
 
   def addBundle(self, items, popularity, complexity, baseCost):
-    baseName = type(items[0]).__name__
+    baseName = "-".join([type(item).__name__ for item in items])
     self.addOffering(Offering(items, baseName, popularity, complexity, baseCost))
 
   def addOffering(self, offering):

@@ -78,8 +78,33 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(PowerUsageSensor({"radius": 1, "requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 9, 4, 9)
 
 profile = Profile("data/profile/")
-offeringFactory = FileOfferingFactory(DefaultOfferingFactory(), profile.getLatestPath("items"))
-offeringFactory.ensureSaved()
+defaultOfferingFactory = DefaultOfferingFactory()
+offeringFactory = defaultOfferingFactory.withFileContents(profile.getLatestPath("items/current"))
+
+# checks for any changes to the default offerings and updates the current offerings accordingly
+def updateDefaultOfferings():
+  global offeringFactory
+  previousDefaultOfferingsPath = profile.getLatestPath("items/defaults")
+  if not os.path.isfile(previousDefaultOfferingsPath):
+    # save initial values
+    defaultOfferingFactory.ensureSaved(profile.getLatestPath("items/defaults"))
+    offeringFactory.ensureSaved(profile.getLatestPath("items/current"))
+    profile.save()
+  else:
+    # compare to previous defaults
+    previousDefaultOfferings = defaultOfferingFactory.withFileContents(previousDefaultOfferingsPath)
+    delta = OfferingsDelta(previousDefaultOfferings, defaultOfferingFactory)
+    if delta.nonempty():
+      # save new defaults
+      profile.incrementVersion("items/defaults")
+      defaultOfferingFactory.ensureSaved(profile.getLatestPath("items/defaults"))
+      # save new customized values too
+      offeringFactory = offeringFactory.withDelta(delta)
+      profile.incrementVersion("items/current")
+      offeringFactory.ensureSaved(profile.getLatestPath("items/current"))
+      profile.save()
+updateDefaultOfferings()
+
 competitionBuilder = CompetitionBuilder(profile.getLatestPath("rooms"))
 runLog = RunLog(profile.getLatestPath("runlog"), offeringFactory)
 
@@ -296,9 +321,9 @@ def offerChangeSettings():
   # adjust difficulty if requested
   if choice in ["Easier", "Harder"]:
     # make a new item factory based on the previous one
-    profile.incrementVersion("items")
+    profile.incrementVersion("items/current")
     profile.incrementVersion("rooms")
-    offeringFactory = FileOfferingFactory(offeringFactory, profile.getLatestPath("items"))
+    offeringFactory = offeringFactory.withFileContents(profile.getLatestPath("items/current"))
     if choice == "Harder":
       raiseCosts(costIncrease * costShift, purchaseCounts, skipCounts)
       lowerCosts(costShift, offerCounts)
@@ -311,9 +336,9 @@ def offerChangeSettings():
       lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)
     adjustShopFrequencies(popularityShift, purchaseCounts, skipCounts)
   if choice == "Different":
-    profile.incrementVersion("items")
+    profile.incrementVersion("items/current")
     profile.incrementVersion("rooms")
-    offeringFactory = FileOfferingFactory(offeringFactory, profile.getLatestPath("items"))
+    offeringFactory = offeringFactory.withFileContents(profile.getLatestPath("items/current"))
     # adjust costs
     print("average item cost = " + str(getAverageItemCost()))
     raiseCosts(costShift, purchaseCounts, skipCounts)
@@ -324,7 +349,7 @@ def offerChangeSettings():
     # adjust room difficulties
     rescaleRoomDifficulties(roomDifficultyIncrease, competitionResults)
     lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)
-  offeringFactory.ensureSaved()
+  offeringFactory.ensureSaved(profile.getLatestPath("items/current"))
   competitionBuilder.ensureSaved(profile.getLatestPath("rooms"))
 
   print("Ok!")

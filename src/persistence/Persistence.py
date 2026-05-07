@@ -14,6 +14,9 @@ class Offering(object):
   def clone(self):
     return Offering(self.items, self.name, self.popularity, self.complexity, self.cost)
 
+  def __repr__(self):
+    return "Offering name:" + str(self.name) + " cost:" + str(self.cost)
+
 # a collection of Offering
 class OfferingFactory(object):
   def __init__(self):
@@ -117,46 +120,42 @@ class OfferingFactory(object):
     result["cost"] = offering.cost
     items = []
     for item in offering.items:
-      subObject = {}
-      subObject["properties"] = item.properties
-      subObject["type"] = type(item).__name__
-      items.append(subObject)
+      items.append(self.itemToDict(item))
     result["items"] = items
     return result
 
-# a collection of Offering saved to a file
-class FileOfferingFactory(OfferingFactory):
-  def __init__(self, defaultFactory, filepath):
-    super().__init__()
-    self.defaultFactory = defaultFactory
-    self.filepath = filepath
-    if os.path.isfile(filepath):
-      self.loadFile()
-    self.loadDefaults()
+  def itemToDict(self, item):
+    result = {}
+    result["properties"] = item.properties
+    result["type"] = type(item).__name__
+    return result
 
-  def loadFile(self):
-    json = self.readFile()
-    items = self.defaultFactory.parseOfferings(json)
+  # makes a new factory based on the contents of the given path, or self if empty
+  def withFileContents(self, path):
+    if not os.path.exists(path):
+      return self
+    result = OfferingFactory()
+    json = self.readFile(path)
+    items = self.parseOfferings(json)
     for item in items:
-      self.addOffering(item)
+      result.addOffering(item)
+    return result
 
-  def readFile(self):
-    with open(self.filepath) as f:
+  def readFile(self, path):
+    with open(path) as f:
       return json.load(f)
 
-    return # not implemented yet
+  def ensureSaved(self, path):
+    if not os.path.exists(path):
+      self.saveToFile(path)
 
-  def ensureSaved(self):
-    if not os.path.exists(self.filepath):
-      self.saveFile()
-
-  def saveFile(self):
-    if os.path.exists(self.filepath):
-      raise Exception("File exists: " + str(self.filepath))
-    parentPath = os.path.dirname(self.filepath)
+  def saveToFile(self, path):
+    if os.path.exists(path):
+      raise Exception("File exists: " + str(path))
+    parentPath = os.path.dirname(path)
     os.makedirs(parentPath, exist_ok = True)
     text = self.serialize()
-    with open(self.filepath, 'w') as f:
+    with open(path, 'w') as f:
       f.write(text)
 
   def serialize(self):
@@ -165,12 +164,60 @@ class FileOfferingFactory(OfferingFactory):
       components.append(self.offeringToDict(component))
     return json.dumps(components, indent = 2)
 
-  # add the default items to this factory, without overwriting existing items
-  def loadDefaults(self):
-    for offering in self.defaultFactory.getAll():
-      name = offering.name
-      if not self.hasTemplateNamed(name):
-        self.addOffering(offering)
+  # apply an OfferingsDelta and return a new OfferingFactory
+  def withDelta(self, delta):
+    newOfferings = delta.applyTo(self.getAll())
+    newFactory = OfferingFactory()
+    for offering in newOfferings:
+      newFactory.addOffering(offering)
+    return newFactory
+
+# stores the difference between two OfferingFactory
+class OfferingsDelta(object):
+  def __init__(self, oldFactory, newFactory):
+    self.newFactory = newFactory
+    self.oldOfferings = oldFactory.getAll()
+    self.newOfferings = newFactory.getAll()
+    self.oldKeys = self.getKeys(self.oldOfferings)
+    self.newKeys = self.getKeys(self.newOfferings)
+    self.removedOfferings = [offering for offering in self.oldOfferings if self.getKey(offering) not in self.newKeys]
+    self.addedOfferings = [offering for offering in self.newOfferings if self.getKey(offering) not in self.oldKeys]
+    if self.nonempty():
+      print("OfferingsDelta removed " + str(self.removedOfferings) + " added " + str(self.addedOfferings))
+
+  def nonempty(self):
+    return len(self.removedOfferings) > 0 or len(self.addedOfferings) > 0
+
+  def getKey(self, offering):
+    contents = [self.newFactory.itemToDict(item) for item in offering.items]
+    return json.dumps(contents)
+
+  def getKeys(self, offerings):
+    result = set()
+    for offering in offerings:
+      result.add(self.getKey(offering))
+    return result
+
+  # apply this delta to a List<Offering> and return a new list
+  def applyTo(self, offerings):
+    results = []
+    pendingAdds = self.addedOfferings[:]
+    for i in range(len(offerings)):
+      offering = offerings[i]
+      key = self.getKey(offering)
+      if key in self.oldKeys and key not in self.newKeys:
+        # item was removed from the defaults
+        print("OfferingsDelta applyTo removing " + str(offering))
+        if len(pendingAdds) > 0:
+          print("OfferingsDelta applyTo adding " + str(pendingAdds[0]))
+          results.append(pendingAdds[0])
+          pendingAdds = pendingAdds[1:]
+      else:
+        results.append(offering)
+    if len(pendingAdds) > 0:
+      print("OfferingsDelta applyTo adding " + str(pendingAdds))
+    results += pendingAdds
+    return results
 
 # information stored in the RunLog
 class RunLogEntry(object):

@@ -420,7 +420,7 @@ class CustomizationStoryNode(SimpleStoryNode):
         return
       item = nodes[destIndex]
       inputName = self.chooseNetworkItemInput(item)
-      source = self.chooseNetworkItemOutput("Select source for " + item.summarize())
+      source = self.chooseNetworkItemOutput("Select " + str(inputName) + " for " + item.summarize())
       if source is not None:
         item.setInput(inputName, source.item, source.outputName)
       else:

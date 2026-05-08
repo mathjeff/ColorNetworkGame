@@ -86,10 +86,13 @@ class OfferingFactory(object):
       item.setProperties(newProperties)
     return result
 
-  def parseOfferings(self, jsonObjects):
+  def tryParseOfferings(self, jsonObjects):
     result = []
     for o in jsonObjects:
-      result.append(self.parseOffering(o))
+      try:
+        result.append(self.parseOffering(o))
+      except Exception as e:
+        print("Failed to parse "  + str(o) + ": " + str(e) + ", ignoring")
     return result
 
   def parseOffering(self, jsonObject):
@@ -136,7 +139,7 @@ class OfferingFactory(object):
       return self
     result = OfferingFactory()
     json = self.readFile(path)
-    items = self.parseOfferings(json)
+    items = self.tryParseOfferings(json)
     for item in items:
       result.addOffering(item)
     return result
@@ -319,8 +322,8 @@ class RunLog(object):
     entryType = contents["type"]
     name = contents["name"]
     if entryType == "market":
-      purchased = self.offeringFactory.parseOfferings(contents["purchased"])
-      remaining = self.offeringFactory.parseOfferings(contents["remaining"])
+      purchased = self.offeringFactory.tryParseOfferings(contents["purchased"])
+      remaining = self.offeringFactory.tryParseOfferings(contents["remaining"])
       return RunLogShopEntry(name, purchased, remaining)
     if entryType == "competition":
       return RunLogCompetitionEntry(name, contents["successful"])

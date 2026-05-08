@@ -480,29 +480,41 @@ class Divider(Item):
   def __init__(self, properties):
     super().__init__(properties)
     self.readyToDischarge = 0
-    self.declareOutput()
     self.declareInputs(["power"])
 
   def loadProperties(self, properties):
-    divisor = properties.get("divisor")
+    self.divisors = properties.get("divisors")
+    outputNames = [self.getOutputName(divisor) for divisor in self.divisors]
+    self.undeclareOutputs()
+    self.declareOutputs(outputNames)
+
+  def getOutputName(self, divisor):
     if divisor < 1:
       raise Exception("Divisor must be >= 1, not " + str(divisor))
-    self.divisor = divisor
+    return "output" + str(divisor)
+
+  def getDivisor(self, outputName):
+    prefix = "output"
+    if outputName.startswith(prefix):
+      divisorText = outputName[len(prefix):]
+      return int(divisorText)
+    return 1
 
   def tryGetPower(self, requested, outputName):
-    targetInput = requested.times(self.divisor)
+    divisor = self.getDivisor(outputName)
+    targetInput = requested.times(divisor)
     actualInput = self.tryAcquirePower("power", targetInput)
-    return actualInput.dividedBy(self.divisor)
+    return actualInput.dividedBy(divisor)
 
   def clone(self):
     return Divider(self.properties)
 
   def summarize(self):
-    return super().summarize() + "/" + str(self.divisor)
+    return super().summarize() + "/" + str(self.divisors)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("outputs the input power divided by " + str(self.divisor))
+    messages.append("outputs the input power divided by one of " + str(self.divisors))
     return messages
 
 # reads an input and gives up to that much power each time it is requested

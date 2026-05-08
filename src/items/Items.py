@@ -550,20 +550,26 @@ class Joiner(Item):
   def __init__(self, properties):
     super().__init__(properties)
     self.declareOutput()
-    self.declareInputs(["input1", "input2", "input3"])
+    self.numInputs = 0
 
   def loadProperties(self, properties):
-    return
+    self.undeclareInputs()
+    numInputs = int(properties.get("numInputs"))
+    inputNames = [self.getInputName(i) for i in range(numInputs)]
+    self.declareInputs(inputNames)
+
+  def getInputName(self, number):
+    return "input" + str(number)
 
   def tryGetPower(self, requested, outputName):
     power = Energy({})
-    power = power.plus(self.tryAcquirePower("input1", requested.minus(power)))
-    power = power.plus(self.tryAcquirePower("input2", requested.minus(power)))
-    power = power.plus(self.tryAcquirePower("input3", requested.minus(power)))
+    for i in range(len(self.numInputs)):
+      inputName = self.getInputName(i)
+      power = power.plus(self.tryAcquirePower(inputName, requested.minus(power)))
     return power
 
   def clone(self):
-    return Joiner({})
+    return Joiner(self.properties)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()

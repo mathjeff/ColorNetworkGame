@@ -948,17 +948,20 @@ class Converter(Item):
   def loadProperties(self, properties):
     self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
     self.outputPower = Energy(properties.get("outputPower"))
+    self.numUsesPerTurn = int(properties.get("numUsesPerTurn"))
     self.readyToDischarge = Energy()
 
   def act(self, competitor):
     super().act(competitor)
-    power = self.tryAcquirePower("power", self.requiredPower)
-    if self.requiredPower.satisfiedBy(power):
-      self.readyToDischarge = self.outputPower
-    else:
-      self.readyToDischarge = Energy()
-      if power.nonempty():
-        print("power " + str(power) + " not enough to power " + str(self))
+    self.readyToDischarge = Energy()
+    for i in range(self.numUsesPerTurn):
+      power = self.tryAcquirePower("power", self.requiredPower)
+      if self.requiredPower.satisfiedBy(power):
+        self.readyToDischarge = self.readyToDischarge.plus(self.outputPower)
+      else:
+        if power.nonempty():
+          print("power " + str(power) + " not enough to power " + str(self))
+        break
 
   def tryGetPower(self, requested, outputName):
     amount = requested.chooseFrom(self.readyToDischarge)
@@ -969,11 +972,11 @@ class Converter(Item):
     return Converter(self.properties)
 
   def summarize(self):
-    return "Converter " + str(self.requiredPower) + "->" + str(self.outputPower)
+    return "Converter " + str(self.requiredPower) + "->" + str(self.outputPower) + "(" + str(self.numUsesPerTurn) + "X)"
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("converts " + str(self.requiredPower) + " to " + str(self.outputPower) + " every turn")
+    messages.append("converts " + str(self.requiredPower) + " to " + str(self.outputPower) + " every turn, " + str(self.numUsesPerTurn) + " times per turn")
     return messages
 
 # does equal damage to both competitors

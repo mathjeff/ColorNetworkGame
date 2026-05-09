@@ -31,7 +31,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Laser({"requiredPower": y.d(4), "damage": 4, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 21, 2, 29)
     self.add(Laser({"requiredPower": y.d(2), "damage": 2, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 16, 2, 49)
     self.add(Laser({"requiredPower": y.d(1), "damage": 1, "maxSignalPower": y.d(3), "maxPossibleTarget": 3}), 26, 2, 38)
-    self.add(Laser({"requiredPower": y.d(1), "damage": 0.5, "maxSignalPower": y.d(10), "maxPossibleTarget": 3}), 13, 2, 9)
+    self.add(Laser({"requiredPower": y.d(1), "damage": 0.5, "maxSignalPower": y.d(6), "maxPossibleTarget": 3}), 13, 2, 9)
     self.add(Laser({"requiredPower": b.d(1), "damage": 8, "maxSignalPower": b.d(1), "maxPossibleTarget": 0}), 20, 2, 25)
     self.add(Flipper({"maxPower": y.d(15), "strengthPerPower":3, "hitpoints":4}), 4, 2, 17)
     self.add(Infector({"requiredPower": g.d(1), "damage": 1, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 30, 2, 16)

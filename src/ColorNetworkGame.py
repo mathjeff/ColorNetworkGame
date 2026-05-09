@@ -251,8 +251,8 @@ def lowerRoomDifficulties(difficultyMultiplier, competitionResults):
   makeEasiers = []
   countToMakeEasier = 0
   for i in range(competitionBuilder.getMaxLength()):
-    minNeighbor = max(0, i - 2)
-    maxNeighbor = min(competitionBuilder.getMaxLength(), i + 3)
+    minNeighbor = max(0, i - 4)
+    maxNeighbor = min(competitionBuilder.getMaxLength(), i + 5)
     nearbyFailure = False
     for neighbor in range(minNeighbor, maxNeighbor):
       if not statuses[neighbor]:

@@ -472,7 +472,8 @@ class Adder(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("consumes up to " + str(self.addition) + " input power plus up to " + str(self.maxInput) + " input signal and outputs the sum")
+    messages.append("at the start of its turn, reads input up to " + str(self.maxInput))
+    messages.append("whenever an item asks it for power, it attempts to consume an amount of input power equal to the last read signal plus " + str(self.addition) + ", and outputs the result")
     return messages
 
 # Divides power flow by a constant

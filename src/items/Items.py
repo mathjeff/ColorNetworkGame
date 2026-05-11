@@ -448,7 +448,7 @@ class Adder(Item):
     self.readyToDischarge = 0
     self.declareOutput()
     self.declareInputs(["power", "signal"])
-    self.signal = Energy()
+    self.signal = 0
 
   def loadProperties(self, properties):
     self.maxInput = EnergyRequest(Energy(), properties.get("maxInput"))

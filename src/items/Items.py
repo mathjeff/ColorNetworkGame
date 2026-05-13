@@ -576,7 +576,7 @@ class Joiner(Item):
 
   def tryGetPower(self, requested, outputName):
     power = Energy({})
-    for i in range(len(self.numInputs)):
+    for i in range(self.numInputs):
       inputName = self.getInputName(i)
       power = power.plus(self.tryAcquirePower(inputName, requested.minus(power)))
     return power

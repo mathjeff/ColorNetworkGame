@@ -286,9 +286,12 @@ class RunLog(object):
 
   def getLastEntry(self):
     lastEntry = None
+    lastNumber = 0
     for entry in self.entries.values():
-      if lastEntry is None or entry.name > lastEntry.name:
+      number = int(entry.name)
+      if lastEntry is None or number > lastNumber:
         lastEntry = entry
+        lastNumber = number
     return lastEntry
 
   def getEntriesWithType(self, entryType):

@@ -195,7 +195,7 @@ class Item(object):
     if len(self.outputsByName) > 0:
       outputMessage = "has " + str(len(self.outputsByName)) + " outputs"
       if len(self.outputsByName) > 1:
-        outputMessage += ": " + str(self.outputsByName.keys())
+        outputMessage += ": " + str(list(self.outputsByName.keys()))
       messages.append(outputMessage)
     return messages
 

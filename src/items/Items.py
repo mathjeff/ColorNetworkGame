@@ -589,6 +589,9 @@ class Joiner(Item):
     messages.append("takes power from up to three inputs and provides it as output")
     return messages
 
+  def summarize(self):
+    return super().summarize() + "(" + str(self.numInputs) + ")"
+
 # a comparer compares a signal to a constant, and then lets power one port based on the result
 class Comparer(Item):
   def __init__(self, properties):

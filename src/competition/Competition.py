@@ -2,6 +2,7 @@
 
 from items.Items import *
 from persistence.Persistence import *
+from interface.Interface import *
 
 import json, os, shutil, textwrap
 
@@ -354,7 +355,7 @@ class Competition(object):
       for competitor in self.competitors:
         print(competitor.getStatus())
         print("")
-      input("(Press Enter) --------------------")
+      inputUtils.pause("(Press Enter) --------------------")
       print("")
       for competitor in self.competitors:
         competitor.resetForNewTurn()

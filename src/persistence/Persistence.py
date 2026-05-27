@@ -1,5 +1,7 @@
 #!python
 
+from interface.Interface import *
+
 import json, os, shutil, textwrap
 
 # a set of items that can be bought together
@@ -251,9 +253,10 @@ class RunLog(object):
   def nonEmpty(self):
     return len(self.entries) > 0
 
-  def addEntry(self, entry):
-    self.putEntryInMemory(entry)
-    self.writeEntry(entry)
+  def newEntry(self, entry):
+    if not inputUtils.getWasLastDecisionReplayed():
+      self.putEntryInMemory(entry)
+      self.writeEntry(entry)
 
   def getShopEntries(self):
     return self.getEntriesWithType("market")

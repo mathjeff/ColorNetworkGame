@@ -355,11 +355,24 @@ def offerChangeSettings():
 
   print("Ok!")
 
-if runLog.nonEmpty():
-  offerChangeSettings()
-  profile.incrementVersion("runlog")
+def shouldContinuePreviousGame():
+  if runLog.getConclusionEntry() is None:
+    print("Do you want to resume your previous game?")
+    menu = Menu()
+    menu.addChoice("Continue", "Continue")
+    menu.addChoice("Abandon", "Abandon")
+    choice = menu.chooseValue()
+    return choice == "Continue"
+  return False
 
-runLog = RunLog(profile.getLatestPath("runlog"), offeringFactory)
+if not shouldContinuePreviousGame():
+  if runLog.nonEmpty():
+    offerChangeSettings()
+    profile.incrementVersion("runlog")
+    runLog = RunLog(profile.getLatestPath("runlog"), offeringFactory)
+    profile.incrementVersion("choices")
+
+inputUtils.setPath(profile.getLatestPath("choices"))
 profile.save()
 
 def makePlayer():
@@ -373,6 +386,7 @@ def makeStory():
   return StoryNodeRunner(welcome)
 
 def main():
+  random.seed(profile.getVersion("runlog"))
   runner = makeStory()
   runner.run()
 

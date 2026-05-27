@@ -2,6 +2,7 @@
 
 from competition.Competition import *
 from items.Items import *
+from interface.Interface import *
 
 import random, sys, textwrap
 
@@ -33,26 +34,12 @@ class Menu(object):
     return self.choicesByIndex[index][1]
 
   def chooseIndex(self):
+    optionTexts = {}
     for index in sorted(self.choicesByIndex.keys()):
       optionText = self.choicesByIndex[index][0]
       print(str(index) + ": " + str(optionText))
-    choiceText = ""
-    while True:
-      choiceText = input("")
-      number = 0
-      if len(self.choicesByIndex) <= 1:
-        # there's only one choice so we return it
-        for index in self.choicesByIndex:
-          return index
-      try:
-        number = float(choiceText)
-      except Exception as e:
-        print("Choose a number!")
-        continue
-      if number not in self.choicesByIndex:
-        print("Choose an option!")
-        continue
-      return number
+      optionTexts[index] = optionText
+    return inputUtils.getInput(optionTexts)
 
   def choices(self):
     result = set()
@@ -111,7 +98,7 @@ class MessageStoryNode(SimpleStoryNode):
 
   def process(self):
     print(self.text)
-    input("(press Enter)")
+    inputUtils.pause("(press Enter)")
 
 # a SageStoryNode gives the user information
 class SageStoryNode(SimpleStoryNode):
@@ -208,7 +195,7 @@ class CompetitionStoryNode(SimpleStoryNode):
   def onResult(self, successful):
     # save the successful
     entry = RunLogCompetitionEntry(str(self.index), successful)
-    self.runLog.addEntry(entry)
+    self.runLog.newEntry(entry)
     # do any updates
     if successful is not None:
       if successful:
@@ -233,7 +220,7 @@ class FinalsStoryNode(SimpleStoryNode):
     print(str(self.numRemainingNodes) + " events remaining: tournament mode switches to single elimination!")
     print("Any losses after this point will result in ejection from the tournament. Good luck!")
     self.player.hitpoints = 1
-    input("")
+    inputUtils.pause("")
 
 class ShopStoryNode(SimpleStoryNode):
   def __init__(self, player, offerings, offeringFactory):
@@ -326,7 +313,7 @@ class ShopStoryNode(SimpleStoryNode):
   def updateRunLog(self, nodeName, runLog):
     unpurchased = [offering for offering in self.contents if offering is not None]
     entry = RunLogShopEntry(nodeName, self.purchasedItems, unpurchased)
-    runLog.addEntry(entry)
+    runLog.newEntry(entry)
 
   def serializeOffering(self, offerings):
     return [self.offeringFactory.offeringToDict(o) for o in offerings]
@@ -484,7 +471,7 @@ class CustomizationStoryNode(SimpleStoryNode):
       if index < 0:
         return
       print(nodes[index].formatHelp())
-      input("(press Enter)")
+      inputUtils.pause("(press Enter)")
 
 class MarketStoryNode(MenuStoryNode):
   def __init__(self, nodeName, description, player, offerings, offeringFactory, runLog):
@@ -545,7 +532,7 @@ class SuccessStoryNode(SimpleStoryNode):
     self.runLog = runLog
 
   def process(self):
-    self.runLog.addEntry(RunLogConclusionEntry(self.name, True))
+    self.runLog.newEntry(RunLogConclusionEntry(self.name, True))
     print("You win!")
 
 # a StoryNodeRunner follows a path of StoryNode objects

@@ -1,6 +1,6 @@
 #!python
 
-import json, os, random, shutil, textwrap
+import json, os, shutil, textwrap
 
 # a set of items that can be bought together
 class Offering(object):
@@ -68,23 +68,6 @@ class OfferingFactory(object):
 
   def getAll(self):
     return self.contents
-
-  def cloneAndMutateRandomItem(self):
-    index = random.randint(0, len(self.contents) - 1)
-    mutated = self.mutateRandomly(self.contents[index], 0.1)
-    self.addOffering(mutated)
-
-  def mutateRandomly(self, offering, maxFractionChange):
-    result = offering.clone()
-    for item in result.items:
-      oldProperties = item.properties
-      newProperties = {}
-      for key in oldProperties.keys():
-        value = oldProperties.get(key)
-        fractionChange = random.uniform(-maxFractionChange, maxFractionChange)
-        newProperties[key] = value * (1 + fractionChange)
-      item.setProperties(newProperties)
-    return result
 
   def tryParseOfferings(self, jsonObjects):
     result = []

@@ -6,7 +6,7 @@ from items.Items import *
 from persistence.Persistence import *
 from story.Story import *
 
-import json, math, os, random, shutil, textwrap
+import json, math, os, shutil, textwrap
 
 # a collection of predefined Offering
 class DefaultOfferingFactory(OfferingFactory):

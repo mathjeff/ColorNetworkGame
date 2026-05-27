@@ -3,7 +3,7 @@
 from items.Items import *
 from persistence.Persistence import *
 
-import json, os, random, shutil, textwrap
+import json, os, shutil, textwrap
 
 # represents an attack
 class Attack(object):

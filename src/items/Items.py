@@ -563,12 +563,11 @@ class Joiner(Item):
   def __init__(self, properties):
     super().__init__(properties)
     self.declareOutput()
-    self.numInputs = 0
 
   def loadProperties(self, properties):
     self.undeclareInputs()
-    numInputs = int(properties.get("numInputs"))
-    inputNames = [self.getInputName(i) for i in range(numInputs)]
+    self.numInputs = int(properties.get("numInputs"))
+    inputNames = [self.getInputName(i) for i in range(self.numInputs)]
     self.declareInputs(inputNames)
 
   def getInputName(self, number):
@@ -586,7 +585,7 @@ class Joiner(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("takes power from up to three inputs and provides it as output")
+    messages.append("takes power from up to " + str(self.numInputs) + " inputs and provides it as output")
     return messages
 
   def summarize(self):

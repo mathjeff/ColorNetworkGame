@@ -302,7 +302,7 @@ def offerChangeSettings():
 
   # parameters for changing prices
   costIncrease = 1.01 # how quickly average costs increase when raising difficulty
-  costShift = 1.06 # how quickly individual costs change
+  costShift = (numPurchases / offeringFactory.getNumOfferings() / 10) + 1 # how quickly individual costs change
 
   # how quickly item popularity changes (for shops)
   popularityShift = 1.15

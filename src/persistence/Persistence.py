@@ -71,6 +71,9 @@ class OfferingFactory(object):
   def getAll(self):
     return self.contents
 
+  def getNumOfferings(self):
+    return len(self.getAll())
+
   def tryParseOfferings(self, jsonObjects):
     result = []
     for o in jsonObjects:

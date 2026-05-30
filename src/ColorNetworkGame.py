@@ -291,9 +291,11 @@ def offerChangeSettings():
   print("")
   print("Choose settings for this game")
   menu = Menu()
+  menu.addChoice("Much easier than last run", "Much easier")
+  menu.addChoice("Slightly easier than last run", "Easier")
   menu.addChoice("Same as last run", "Same")
-  menu.addChoice("Easier than last run", "Easier")
-  menu.addChoice("Harder than last run", "Harder")
+  menu.addChoice("Slightly harder than last run", "Harder")
+  menu.addChoice("Much harder than last run", "Much harder")
   menu.addChoice("Different than last run", "Different")
   choice = menu.chooseValue()
   if choice == "Same":
@@ -310,19 +312,24 @@ def offerChangeSettings():
   # how quickly room difficulty changes
   roomDifficultyIncrease = 1.1 # how quickly difficulty changes in rooms
 
+  if choice in ["Much easier", "Much harder"]:
+    power = 4
+    costIncrease = pow(costIncrease, power)
+    roomDifficultyIncrease = pow(roomDifficultyIncrease, power)
+
   # adjust difficulty if requested
-  if choice in ["Easier", "Harder"]:
+  if choice in ["Much easier", "Easier", "Harder", "Much harder"]:
     # make a new item factory based on the previous one
     profile.incrementVersion("items/current")
     profile.incrementVersion("rooms")
     offeringFactory = offeringFactory.withFileContents(profile.getLatestPath("items/current"))
-    if choice == "Harder":
+    if choice in ["Harder", "Much harder"]:
       raiseCosts(costIncrease * costShift, purchaseCounts, skipCounts)
       lowerCosts(costShift, offerCounts)
       rescaleRoomDifficulties(roomDifficultyIncrease, competitionResults)
       profile.incrementVersion("rooms")
       competitionBuilder.incrementLength()
-    if choice == "Easier":
+    if choice in ["Easier", "Much easier"]:
       raiseCosts(costIncrease, purchaseCounts, skipCounts)
       lowerCosts(costIncrease * costShift, offerCounts)
       lowerRoomDifficulties(roomDifficultyIncrease, competitionResults)

@@ -202,25 +202,27 @@ class CompetitionStoryNode(SimpleStoryNode):
         if self.rewardMoney != 0:
           self.player.money += self.rewardMoney
           print("You gain "  + str(self.rewardMoney) + " money and have " + str(self.player.money) + " money")
-      else:
-        self.player.hitpoints -= 1
-        hitpoints = self.player.getHitpoints()
-        if hitpoints > 0:
-          print("You may continue until " + str(hitpoints) + " more losses")
+        self.player.consecutiveLosses = 0
+        self.player.consecutiveWins += 1
+        maxConsecutiveWins = 20
+        if self.player.consecutiveWins < maxConsecutiveWins:
+          print("You have " + str(self.player.consecutiveWins) + " consecutive wins. If you reach " + str(maxConsecutiveWins) + ", you win the tournament")
         else:
-          print("Loss limit reached. Bye!")
+          print("You have " + str(self.player.consecutiveWins) + " consecutive wins. Congratulations!")
+          entry = RunLogConclusionEntry(str(self.index + 1), True)
+          self.runLog.newEntry(entry)
           sys.exit(0)
-
-class FinalsStoryNode(SimpleStoryNode):
-  def __init__(self, player, numRemainingNodes):
-    self.player = player
-    self.numRemainingNodes = numRemainingNodes
-
-  def process(self):
-    print(str(self.numRemainingNodes) + " events remaining: tournament mode switches to single elimination!")
-    print("Any losses after this point will result in ejection from the tournament. Good luck!")
-    self.player.hitpoints = 1
-    inputUtils.pause("")
+      else:
+        self.player.consecutiveWins = 0
+        self.player.consecutiveLosses += 1
+        maxConsecutiveLosses = 3
+        if self.player.consecutiveLosses < maxConsecutiveLosses:
+          print("You have " + str(self.player.consecutiveLosses) + " consecutive losses and may continue until " + str(maxConsecutiveLosses) + " consecutive losses")
+        else:
+          print("You have " + str(self.player.consecutiveLosses) + " consecutive losses. Bye!")
+          entry = RunLogConclusionEntry(str(self.index + 1), False)
+          self.runLog.newEntry(entry)
+          sys.exit(0)
 
 class ShopStoryNode(SimpleStoryNode):
   def __init__(self, player, offerings, offeringFactory):
@@ -649,12 +651,10 @@ class Color_OfferingFilter(OfferingFilter):
 class StoryGenerator(object):
   def __init__(self, player, competitionBuilder, offeringFactory, runLog):
     self.player = player
-    self.targetLength = competitionBuilder.getMaxLength()
     self.competitionBuilder = competitionBuilder
     self.offeringFactory = offeringFactory
     self.runLog = runLog
     self.previousMarketIndex = -100
-    self.finalsLength = player.hitpoints
     self.nextShopNumItems = 12
     self.makeMultipleMarkets = False
 
@@ -666,18 +666,8 @@ class StoryGenerator(object):
     return firstNode
 
   def makeRoom(self, index):
-    # some special cases near the end of the game
-    if index > self.targetLength:
-      return None
-    if index == self.targetLength:
-      return SuccessStoryNode(str(index), self.runLog)
-    if index == self.targetLength - self.finalsLength - 1:
-      finalsNode = FinalsStoryNode(self.player, self.finalsLength)
-      return finalsNode
     # decide whether to make a market
     makeMarket = (index >= self.previousMarketIndex + 4)
-    if index == self.targetLength - 1:
-      makeMarket = False
     if makeMarket:
       self.previousMarketIndex = index
       if self.makeMultipleMarkets:
@@ -713,9 +703,8 @@ class StoryGenerator(object):
     return chooser
 
   def makeMarket(self, index, offeringFilter, numItems):
-    fractionComplete = index / self.targetLength
     maxComplexity = 10
-    nodeComplexity = 1 + fractionComplete * (maxComplexity - 1)
+    nodeComplexity = 1 + index / 10
     nodeName = str(index)
     candidates = self.filterOfferings(self.offeringFactory.getAll(), offeringFilter)
     offerings = self.chooseMarketContents(nodeComplexity, index, numItems, candidates)
@@ -824,18 +813,21 @@ class CompetitionBuilder(object):
     competition = CompetitionStoryNode(roomIndex, player, opponent, rewardMoney, runLog)
     return competition
 
-  def getMaxLength(self):
-    return len(self.difficulties)
-
   def getDifficulty(self, roomIndex):
+    self.includeIndex(roomIndex)
     return self.difficulties[roomIndex]
 
   def rescaleDifficulty(self, roomIndex, difficulty):
+    self.includeIndex(roomIndex)
     self.difficulties[roomIndex] *= difficulty
 
-  def decrementLength(self):
-    if len(self.difficulties) > 2:
-      self.difficulties = self.difficulties[:-1]
+  def getMaxLength(self):
+    return len(self.difficulties)
+
+  # ensures that the CompetitionBuilder has allocated space to include a competition with this index
+  def includeIndex(self, length):
+    while self.getMaxLength() <= length:
+      self.incrementLength()
 
   def incrementLength(self):
     lastDifficulty = self.difficulties[-1]
@@ -866,7 +858,7 @@ class CompetitionBuilder(object):
     return str(self.difficulties)
 
   def setupDefaults(self):
-    self.difficulties = [int((i + 6) / 4) for i in range(55)]
+    self.difficulties = [int((i + 6) / 4) for i in range(200)]
 
 # represents a network of items
 class Network(object):
@@ -935,16 +927,14 @@ class GamePlayer(object):
     self.money = 100
     self.items = []
     self.network = Network()
-    self.hitpoints = 3
+    self.consecutiveWins = 0
+    self.consecutiveLosses = 0
 
   def addItem(self, item):
     self.items.append(item)
 
   def buildCompetitor(self):
     return Competitor(self.name, self.network.clone())
-
-  def getHitpoints(self):
-    return self.hitpoints
 
 def makeOpponent(difficulty, offeringFactory):
   player = GamePlayer("Opponent")

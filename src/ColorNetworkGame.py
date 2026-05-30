@@ -247,6 +247,7 @@ def lowerRoomDifficulties(difficultyMultiplier, competitionResults):
   for entry in competitionResults:
     if not entry.successful:
       index = int(entry.name)
+      competitionBuilder.includeIndex(index)
       statuses[index] = False
   # for each room, determine whether it was near a failure, and if so, make it easier
   makeEasiers = []
@@ -294,8 +295,6 @@ def offerChangeSettings():
   menu.addChoice("Same as last run", "Same")
   menu.addChoice("Easier than last run", "Easier")
   menu.addChoice("Harder than last run", "Harder")
-  menu.addChoice("Shorter than last run", "Shorter")
-  menu.addChoice("Longer than last run", "Longer")
   menu.addChoice("Different than last run", "Different")
   choice = menu.chooseValue()
   if choice == "Same":
@@ -312,13 +311,6 @@ def offerChangeSettings():
   # how quickly room difficulty changes
   roomDifficultyIncrease = 1.1 # how quickly difficulty changes in rooms
 
-  # adjust length if requested
-  if choice == "Shorter":
-    profile.incrementVersion("rooms")
-    competitionBuilder.decrementLength()
-  if choice == "Longer":
-    profile.incrementVersion("rooms")
-    competitionBuilder.incrementLength()
   # adjust difficulty if requested
   if choice in ["Easier", "Harder"]:
     # make a new item factory based on the previous one

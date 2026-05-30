@@ -200,7 +200,7 @@ class CompetitionStoryNode(SimpleStoryNode):
     if successful is not None:
       if successful:
         if self.rewardMoney != 0:
-          self.player.money += self.rewardMoney
+          self.player.addMoney(self.rewardMoney)
           print("You gain "  + str(self.rewardMoney) + " money and have " + str(self.player.money) + " money")
         self.player.consecutiveLosses = 0
         self.player.consecutiveWins += 1
@@ -302,7 +302,7 @@ class ShopStoryNode(SimpleStoryNode):
           self.player.addItem(item)
         # record what was purchased
         self.purchasedItems.append(offering)
-        self.player.money -= cost
+        self.player.removeMoney(cost)
         self.contents[itemIndex] = None
 
   def explainItems(self):
@@ -935,6 +935,20 @@ class GamePlayer(object):
 
   def buildCompetitor(self):
     return Competitor(self.name, self.network.clone())
+
+  def addMoney(self, amount):
+    self.money = self.roundMoney(self.money + amount)
+
+  def removeMoney(self, amount):
+    self.money = self.roundMoney(self.money - amount)
+
+  def roundMoney(self, amount):
+    result = round(amount, 5)
+    for i in reversed(range(5)):
+      rounded = round(amount)
+      if rounded == result:
+        result = rounded
+    return result
 
 def makeOpponent(difficulty, offeringFactory):
   player = GamePlayer("Opponent")

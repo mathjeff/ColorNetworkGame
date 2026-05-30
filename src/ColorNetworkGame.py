@@ -356,7 +356,7 @@ def offerChangeSettings():
   print("Ok!")
 
 def shouldContinuePreviousGame():
-  if runLog.getConclusionEntry() is None:
+  if runLog.nonEmpty() and runLog.getConclusionEntry() is None:
     print("Do you want to resume your previous game?")
     menu = Menu()
     menu.addChoice("Continue", "Continue")

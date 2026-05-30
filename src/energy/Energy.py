@@ -1,7 +1,9 @@
+import math
+
 # represents an amount of energy
 class Energy(object):
   def __init__(self, amounts = {}):
-    self.amounts = self.withoutZeros(amounts)
+    self.amounts = self.round(self.withoutZeros(amounts))
 
   def get(self, color):
     return self.amounts.get(color, 0)
@@ -51,6 +53,16 @@ class Energy(object):
     for key, value in amounts.items():
       if value != 0:
         result[key] = value
+    return result
+
+  def round(self, amounts):
+    result = {}
+    for key, value in amounts.items():
+      value = round(value, 1)
+      rounded = round(value)
+      if rounded == value:
+        value = rounded
+      result[key] = value
     return result
 
   # for each component, computes the minimum in that component

@@ -1034,6 +1034,7 @@ class Flipper(Item):
       if position != 0:
         print("Cannot run " + self.summarize() + " because of being in position " + str(position) + " rather than 0")
       else:
+        print("Launching flip attack of strength " + str(strength))
         competitor.launchFlipAttack(strength)
     else:
       if power.nonempty():

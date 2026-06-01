@@ -61,7 +61,6 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Capacitor({"maxEnergy": m.d({yellow:10, black:10, green:10}), "signalOutputFraction": 0.1}), 13, 2, 17)
     self.add(Capacitor({"maxEnergy": g.d(20), "startingEnergy": g.d(10), "signalOutputFraction": 0.1}), 10, 2, 13)
     # self.add(type(properties), popularity, complexity=3, cost)
-    self.add(HealthSensor({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "radius": 2, "outputRatio": 0.1}), 9, 4, 7)
     self.add(InputCutter({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 12, 3, 12)
     self.add(OutputCutter({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 8, 3, 8)
     self.add(Comparer({"threshold": 0.2}), 5, 3, 13)
@@ -76,6 +75,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": y.d(4), "maxSignalPower": y.d(10), "maxPossibleDistance": 100}), 10, 3, 11)
     # self.add(type(properties), popularity, complexity=4, cost)
     self.add(PowerUsageSensor({"radius": 1, "requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 9, 4, 9)
+    self.add(HealthSensor({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "radius": 2, "outputRatio": 0.1}), 9, 4, 7)
 
 profile = Profile("data/profile/")
 defaultOfferingFactory = DefaultOfferingFactory()

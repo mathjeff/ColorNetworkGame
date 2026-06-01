@@ -631,21 +631,35 @@ class Color_OfferingFilter(OfferingFilter):
 
   def acceptsOffering(self, offering):
     for item in offering.items:
-      if self.acceptsItem(item):
+      if self.itemHasColor(item, self.color):
         return True
     return False
 
-  def acceptsItem(self, item):
+  def itemHasColor(self, item, color):
     properties = item.properties
     for propertyName in properties.keys():
       propertyValue = properties.get(propertyName)
       if isinstance(propertyValue, dict):
-        if self.color.shortName in propertyValue.keys():
+        if color.shortName in propertyValue.keys():
           return True
     return False
 
   def summarize(self):
     return "items involving " + self.color.formatLongName() + " energy"
+
+class NoColor_Filter(Color_OfferingFilter):
+  def __init__(self):
+    super().__init__(None)
+
+  def acceptsOffering(self, offering):
+    for item in offering.items:
+      for color in Energies.getAll():
+        if self.itemHasColor(item, color):
+          return False
+    return True
+
+  def summarize(self):
+    return "items that don't specify any particular colors"
 
 # creates a StoryNode network
 class StoryGenerator(object):
@@ -685,9 +699,10 @@ class StoryGenerator(object):
 
   def makeMarkets(self, index, numMarkets, numItems):
     # candidate offering filters
-    candidateFilters = [AllOfferingsFilter(), PowerSource_OfferingFilter(), PowerSink_OfferingFilter(), PowerTransformer_OfferingFilter()]
+    candidateFilters = [AllOfferingsFilter(), PowerSource_OfferingFilter(), PowerSink_OfferingFilter(), PowerTransformer_OfferingFilter()] # filter for a single type
     for color in Energies.getAll():
       candidateFilters.append(Color_OfferingFilter(color))
+    candidateFilters.append(NoColor_Filter())
     # choose two at random
     index1 = random.randint(0, len(candidateFilters) - 1)
     index2 = random.randint(1, len(candidateFilters) - 1)

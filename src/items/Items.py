@@ -688,9 +688,9 @@ class Shield(Item):
       ourPosition = competitor.network.getPosition(self)
       distance = int(self.maxPossibleDistance * distanceSignal.getTotal() / self.maxSignalPower.getTotal())
       if directionSignal.nonempty():
-        position = ourPosition - distance
-      else:
         position = ourPosition + distance
+      else:
+        position = ourPosition - distance
       competitor.createShield(position, self.radius, self.defenseFraction)
       print("created shield " + str(self.defenseFraction) + " from positions " + str(position - self.radius) + " to " + str(position + self.radius))
     else:
@@ -712,7 +712,7 @@ class Shield(Item):
     messages.append("requires " + str(self.requiredEnergy) + " power per turn to function")
     messages.append("targets itself by default")
     messages.append("can be aimed up to " + str(self.maxPossibleDistance) + " spaces away from itself by setting distance input power to " + str(self.maxSignalPower))
-    messages.append("will aim to the left if the direction input power is nonzero")
+    messages.append("will aim to the right if the direction input power is nonzero")
     return messages
 
 # senses power usage

@@ -689,7 +689,7 @@ class StoryGenerator(object):
       else:
         market = self.makeMarket(index, AllOfferingsFilter(), self.nextShopNumItems)
       self.makeMultipleMarkets = True
-      self.nextShopNumItems = 2
+      self.nextShopNumItems = 3
       return market
     self.previousNodeIsMarket = False
     # in most cases, send the player to a competition

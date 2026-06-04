@@ -450,4 +450,8 @@ class Profile(object):
 
   def listSavedVersions(self, serviceName):
     files = os.listdir(self.getServicePath(serviceName))
-    return [int(file) for file in files]
+    results = []
+    for file in files:
+      if not file.endswith(".swp"):
+        results.append(int(file))
+    return results

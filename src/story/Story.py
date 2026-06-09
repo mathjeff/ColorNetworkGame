@@ -821,10 +821,33 @@ class CompetitionBuilder(object):
     else:
       self.setupDefaults()
       self.save(filepath)
+    self.opponents = [] # opponents[roomIndex] = opponent for that room
+
+  # gets the opponent for the given room
+  def getOpponent(self, roomIndex, offeringFactory):
+    while len(self.opponents) <= roomIndex:
+      self.makeNextOpponent(offeringFactory)
+    return self.opponents[roomIndex]
+
+  # makes another opponent
+  def makeNextOpponent(self, offeringFactory):
+    roomIndex = len(self.opponents)
+    difficulty = self.getDifficulty(roomIndex)
+    if len(self.opponents) < 1:
+      self.opponents.append(makeOpponent(difficulty, offeringFactory))
+    else:
+      # design this opponent based on one of the recent opponents
+      age = random.randint(1, 8)
+      if age > len(self.opponents):
+        baseOpponent = self.opponents[0]
+      else:
+        baseOpponent = self.opponents[-age]
+      opponent = augmentOpponent(baseOpponent, difficulty, offeringFactory)
+      self.opponents.append(opponent)
 
   def buildCompetition(self, player, roomIndex, offeringFactory, rewardMoney, runLog):
     difficulty = self.getDifficulty(roomIndex)
-    opponent = makeOpponent(difficulty, offeringFactory)
+    opponent = self.getOpponent(roomIndex, offeringFactory)
     competition = CompetitionStoryNode(roomIndex, player, opponent, rewardMoney, runLog)
     return competition
 
@@ -965,27 +988,44 @@ class GamePlayer(object):
         result = rounded
     return result
 
+  def clone(self):
+    copy = GamePlayer(self.name)
+    copy.money = self.money
+    copy.items = self.items[:]
+    copy.network = self.network.clone()
+    copy.consecutiveWins = self.consecutiveWins
+    copy.consecutiveLosses = self.consecutiveLosses
+    return copy
+
+def newEmptyOpponent():
+  return GamePlayer("Opponent")
+
 def makeOpponent(difficulty, offeringFactory):
-  player = GamePlayer("Opponent")
+  return augmentOpponent(newEmptyOpponent(), difficulty, offeringFactory)
+
+def augmentOpponent(baseOpponent, difficulty, offeringFactory):
+  player = baseOpponent.clone()
   network = player.network
-  batteries = []
-  lasers = []
-  for i in range(int(difficulty)):
+  while len(network.nodes) < difficulty:
     choice = random.randint(0, 2)
+    index = random.randint(0, len(network.nodes))
     if choice == 0:
-      battery = offeringFactory.cloneItemNamed("Battery")
-      network.addItem(battery)
-      batteries.append(battery)
+      network.insert(index, offeringFactory.cloneItemNamed("Battery"))
       continue
     if choice == 1:
-      laser = offeringFactory.cloneItemNamed("Laser")
-      network.addItem(laser)
-      lasers.append(laser)
+      network.insert(index, offeringFactory.cloneItemNamed("Laser"))
       continue
     if choice == 2:
-      network.addItem(offeringFactory.cloneItemNamed("Wall"))
+      network.insert(index, offeringFactory.cloneItemNamed("Wall"))
       continue
-  if len(batteries) > 0:
-    for laser in lasers:
-      laser.setInput("power", random.choice(batteries))
+  sources = []
+  disconnectedSinks = []
+  for item in network.nodes:
+    if item.declaresOutputs():
+      sources.append(item)
+    if item.declaresInputs() and not item.hasConnectedInput():
+      disconnectedSinks.append(item)
+  if len(sources) > 0:
+    for item in disconnectedSinks:
+      item.setInput("power", random.choice(sources))
   return player

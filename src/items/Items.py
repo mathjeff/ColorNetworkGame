@@ -845,6 +845,7 @@ class HealthSensor(Item):
     messages.append("Measures hitpoints of items within radius " + str(self.radius) + " of the target position in the opposing robot")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     messages.append("Provides " + str(self.getNumOutputs()) + " output signals. Each one is set to the hitpoints of the corresponding item in the opponent's robot times " + str(self.outputRatio))
+    messages.append("Requires " + str(self.requiredPower) + " power to run")
     return messages
 
 # drains power

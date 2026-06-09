@@ -813,11 +813,11 @@ class HealthSensor(Item):
         hitpoints = competitor.getEnemyHitpoints(index)
         reading = min(hitpoints * self.outputRatio, power.getTotal())
         self.readings.append(reading)
-        print(self.summarize() + " reading opponent hitpoints at " + str(index) + " of " + str(hitpoints) + ", outputting " + str(self.reading))
+        print(self.summarize() + " reading opponent hitpoints at " + str(index) + " of " + str(hitpoints) + ", outputting " + str(reading))
     else:
       if power.nonempty():
         print("power " + str(power) + " not enough to power " + self.summarize())
-      self.reading = []
+      self.readings = []
 
   def getOutputIndex(self, outputName):
     for i in range(self.getNumOutputs()):

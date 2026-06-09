@@ -25,7 +25,7 @@ class Menu(object):
     if index is None:
       index = self.previousIndex + 1
     while index in self.choicesByIndex:
-      index += 0.1
+      index = round(index + 0.1, 1)
     self.previousIndex = index
     self.choicesByIndex[index] = (text, result)
 

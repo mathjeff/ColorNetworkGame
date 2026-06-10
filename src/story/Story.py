@@ -693,7 +693,7 @@ class StoryGenerator(object):
       return market
     self.previousNodeIsMarket = False
     # in most cases, send the player to a competition
-    rewardMoney = 3
+    rewardMoney = 4
     competition = self.competitionBuilder.buildCompetition(self.player, index, self.offeringFactory, rewardMoney, self.runLog)
     return competition
 

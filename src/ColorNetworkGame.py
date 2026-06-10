@@ -50,7 +50,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Converter({"requiredPower": g.d(1), "outputPower": y.d(4), "numUsesPerTurn": 3}), 6, 2, 14)
     self.add(Converter({"requiredPower": g.d(1), "outputPower": b.d(2), "numUsesPerTurn": 2}), 5, 2, 9)
     self.add(Wall({"hitPoints": 8}), 19, 2, 42)
-    self.add(CellWall({"hitPoints": 8, "requiredPower": g.d(1), "hitpointGainPerTurn": 1}), 14, 2, 33)
+    self.add(CellWall({"hitPoints": 8, "requiredPower": g.d(1), "hitpointGainPerUse": 1, "numUsesPerTurn": 2}), 11, 2, 27)
     self.add(Adder({"addition": 0.1, "maxInput": 10}), 8, 2, 14)
     self.add(Adder({"addition": 0.2, "maxInput": 10}), 18, 2, 12)
     self.add(Adder({"addition": 0.3, "maxInput": 10}), 7, 2, 10)

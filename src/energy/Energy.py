@@ -97,6 +97,9 @@ class Energy(object):
   def nonempty(self):
     return len(self.amounts) > 0
 
+  def isEmpty(self):
+    return not self.nonempty()
+
   def __str__(self):
     if len(self.amounts) < 1:
       return "0"

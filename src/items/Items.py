@@ -421,21 +421,26 @@ class CellWall(Item):
   def loadProperties(self, properties):
     self.hitPoints = properties.get("hitPoints")
     self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
-    self.hitpointGainPerTurn = properties.get("hitpointGainPerTurn")
+    self.hitpointGainPerUse = properties.get("hitpointGainPerUse")
+    self.numUsesPerTurn = properties.get("numUsesPerTurn")
 
   def act(self, competitor):
     super().act(competitor)
-    if self.requiredPower.satisfiedBy(self.tryAcquirePower("power", self.requiredPower)):
-      newHitpoints = self.hitPoints + self.hitpointGainPerTurn
-      print(self.summarize() + " hitpoints increasing by " + str(self.hitpointGainPerTurn) + " to " + str(newHitpoints))
-      self.hitPoints = newHitpoints
+    for i in range(self.numUsesPerTurn):
+      acquired = self.tryAcquirePower("power", self.requiredPower)
+      if acquired.isEmpty():
+        break
+      if self.requiredPower.satisfiedBy(acquired):
+        newHitpoints = self.hitPoints + self.hitpointGainPerUse
+        print(self.summarize() + " hitpoints increasing by " + str(self.hitpointGainPerUse) + " to " + str(newHitpoints))
+        self.hitPoints = newHitpoints
 
   def summarize(self):
-    return "CellWall " + str(self.hitPoints) + " " + str(self.requiredPower) + "->+" + str(self.hitpointGainPerTurn)
+    return "CellWall " + str(self.hitPoints) + " " + str(self.requiredPower) + "->+" + str(self.hitpointGainPerUse) + "(" + str(self.numUsesPerTurn) + "X)"
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("each turn if powered with " + str(self.requiredPower) + ", increases hitpoints by " + str(self.hitpointGainPerTurn)) 
+    messages.append("each turn, tries " + str(self.numUsesPerTurn) + " to acquire " + str(self.requiredPower) + ", and if successful, increases hitpoints by " + str(self.hitpointGainPerUse))
     return messages
 
   def clone(self):

@@ -473,7 +473,7 @@ class Adder(Item):
   def getHelpMessages(self):
     messages = super().getHelpMessages()
     messages.append("at the start of its turn, reads input up to " + str(self.maxInput))
-    messages.append("whenever an item asks it for power, it attempts to consume an amount of input power equal to the last read signal plus " + str(self.addition) + ", and outputs the result")
+    messages.append("whenever an item asks it for power, it attempts to acquire an amount of input power equal to the last read signal plus " + str(self.addition) + ", and gives the result to the asker")
     return messages
 
 # Divides power flow by a constant
@@ -980,7 +980,7 @@ class Converter(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("converts " + str(self.requiredPower) + " to " + str(self.outputPower) + " every turn, " + str(self.numUsesPerTurn) + " times per turn")
+    messages.append("every turn, tries " + str(self.numUsesPerTurn) + " times to consume " + str(self.requiredPower) + ". Each time it successfully consumes that much power, it produces " + str(self.outputPower))
     return messages
 
 # does equal damage to both competitors
@@ -1088,6 +1088,6 @@ class Infector(Item):
     messages = super().getHelpMessages()
     messages.append("launches one pathogen per turn at the opposing robot")
     messages.append("each pathogen will do " + str(self.damage) + " damage. If that damage destroys the target item, the pathogen will proceed to the next item in the next turn")
-    messages.append("requires at least " + str(self.requiredPower) + " energy in one turn and then deals " + str(self.damage) + " damage")
+    messages.append("requires at least " + str(self.requiredPower) + " energy in one turn in order to launch the pathogen")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages

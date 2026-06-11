@@ -368,7 +368,7 @@ if not shouldContinuePreviousGame():
     offerChangeSettings()
     profile.incrementVersion("runlog")
     runLog = RunLog(profile.getLatestPath("runlog"), offeringFactory)
-    profile.incrementVersion("choices")
+  profile.incrementVersion("choices")
 
 inputUtils.setPath(profile.getLatestPath("choices"))
 profile.save()

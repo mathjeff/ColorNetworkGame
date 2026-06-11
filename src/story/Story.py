@@ -1006,17 +1006,24 @@ def makeOpponent(difficulty, offeringFactory):
 def augmentOpponent(baseOpponent, difficulty, offeringFactory):
   player = baseOpponent.clone()
   network = player.network
+  complexity = 2 + difficulty / 10
+  if complexity > 3:
+    complexity = 3
   while len(network.nodes) < difficulty:
-    choice = random.randint(0, 2)
-    index = random.randint(0, len(network.nodes))
-    if choice == 0:
-      network.insert(index, offeringFactory.cloneItemNamed("Battery"))
+    typeIndex = random.randint(0, int(complexity))
+    position = random.randint(0, len(network.nodes))
+    if typeIndex == 0:
+      network.insert(position, offeringFactory.cloneItemNamed("Battery"))
       continue
-    if choice == 1:
-      network.insert(index, offeringFactory.cloneItemNamed("Laser"))
+    if typeIndex == 1:
+      network.insert(position, offeringFactory.cloneItemNamed("Laser"))
       continue
-    if choice == 2:
-      network.insert(index, offeringFactory.cloneItemNamed("Wall"))
+    if typeIndex == 2:
+      network.insert(position, offeringFactory.cloneItemNamed("Wall"))
+      continue
+    if typeIndex == 3:
+      adder = Adder({"addition": random.randint(1, 10) / 10, "maxInput": 1})
+      network.insert(position, adder)
       continue
   sources = []
   disconnectedSinks = []
@@ -1027,5 +1034,7 @@ def augmentOpponent(baseOpponent, difficulty, offeringFactory):
       disconnectedSinks.append(item)
   if len(sources) > 0:
     for item in disconnectedSinks:
-      item.setInput("power", random.choice(sources))
+      inputName = random.choice(list(item.getInputNames()))
+      source = random.choice(sources)
+      item.setInput(inputName, source)
   return player

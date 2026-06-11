@@ -719,8 +719,7 @@ class StoryGenerator(object):
     return chooser
 
   def makeMarket(self, index, offeringFilter, numItems):
-    maxComplexity = 10
-    nodeComplexity = 1 + index / 10
+    nodeComplexity = 1 + index / 4
     nodeName = str(index)
     candidates = self.filterOfferings(self.offeringFactory.getAll(), offeringFilter)
     offerings = self.chooseMarketContents(nodeComplexity, index, numItems, candidates)

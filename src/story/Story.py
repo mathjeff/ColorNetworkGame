@@ -394,7 +394,8 @@ class CustomizationStoryNode(SimpleStoryNode):
       fromIndex = self.chooseNetworkPosition("Select item to move:", "Done (moving items)", "Move", nodes)
       if fromIndex < 0:
         return
-      toIndex = self.chooseNetworkPosition("Select new position:", "Cancel", "Position", nodes)
+      item = network.nodes[fromIndex]
+      toIndex = self.chooseNetworkPosition("Select new position for " + item.describeLinks(network), "Cancel", "Position", nodes)
       if toIndex < 0:
         continue
       item = network.removeAt(fromIndex)

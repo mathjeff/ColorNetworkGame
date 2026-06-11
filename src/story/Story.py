@@ -1034,7 +1034,12 @@ def augmentOpponent(baseOpponent, difficulty, offeringFactory):
       disconnectedSinks.append(item)
   if len(sources) > 0:
     for item in disconnectedSinks:
-      inputName = random.choice(list(item.getInputNames()))
-      source = random.choice(sources)
-      item.setInput(inputName, source)
+      for inputName in item.getInputNames():
+        if inputName == "signal":
+          connect = random.randint(0, 1) == 0
+        else:
+          connect = True
+        if connect:
+          source = random.choice(sources)
+          item.setInput(inputName, source)
   return player

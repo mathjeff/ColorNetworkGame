@@ -782,6 +782,7 @@ class PowerUsageSensor(Item):
     messages.append("The producedSignal output will be set to " + str(self.outputRatio) + " times the total power output by the measured items")
     messages.append("The consumedSignal output will be set to " + str(self.outputRatio) + " times the total power consumed by the measured items")
     messages.append("The totalSignal output will be set to the producedSignal output plus the consumedSignal output")
+    messages.append("Requires " + str(self.requiredPower) + " to work")
     return messages
 
 # senses the number of hitpoints in an item

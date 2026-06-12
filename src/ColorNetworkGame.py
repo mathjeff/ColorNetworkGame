@@ -224,51 +224,10 @@ def adjustShopFrequencies(multiplier, purchaseCounts, skipCounts):
     item.popularity = newPopularity
 
 def rescaleRoomDifficulties(difficultyMultiplier, competitionResults):
-  for i in range(competitionBuilder.getMaxLength()):
-    difficulty = competitionBuilder.getDifficulty(i)
-    competitionBuilder.rescaleDifficulty(i, difficultyMultiplier)
-    newDifficulty = competitionBuilder.getDifficulty(i)
-    print("Rescaled difficulty at " + str(i) + " from " + str(difficulty) + " to " + str(newDifficulty))
+  competitionBuilder.rescaleDifficulty(difficultyMultiplier)
 
 def lowerRoomDifficulties(difficultyMultiplier, competitionResults):
-  numFailures = 0
-  for entry in competitionResults:
-    if not entry.successful:
-      numFailures += 1
-  if numFailures < 1:
-    # if there is no data, then rescale all difficulty settings by the same amount
-    rescaleRoomDifficulties(1 / difficultyMultiplier, competitionResults)
-    return
-  # determine which rooms were successful
-  statuses = []
-  for i in range(competitionBuilder.getMaxLength()):
-    statuses.append(True)
-  for entry in competitionResults:
-    if not entry.successful:
-      index = int(entry.name)
-      competitionBuilder.includeIndex(index)
-      statuses[index] = False
-  # for each room, determine whether it was near a failure, and if so, make it easier
-  makeEasiers = []
-  countToMakeEasier = 0
-  for i in range(competitionBuilder.getMaxLength()):
-    minNeighbor = max(0, i - 4)
-    maxNeighbor = min(competitionBuilder.getMaxLength(), i + 5)
-    nearbyFailure = False
-    for neighbor in range(minNeighbor, maxNeighbor):
-      if not statuses[neighbor]:
-        nearbyFailure = True
-    if nearbyFailure:
-      countToMakeEasier += 1
-    makeEasiers.append(nearbyFailure)
-  multiplierPerFailure = pow(difficultyMultiplier, competitionBuilder.getMaxLength() / countToMakeEasier)
-  # reduce difficulty of rooms near failures
-  for i in range(competitionBuilder.getMaxLength()):
-    if makeEasiers[i]:
-      difficulty = competitionBuilder.getDifficulty(i)
-      competitionBuilder.rescaleDifficulty(i, 1 / multiplierPerFailure)
-      newDifficulty = competitionBuilder.getDifficulty(i)
-      print("Rescaled difficulty at " + str(i) + " from " + str(difficulty) + " to " + str(newDifficulty))
+  competitionBuilder.rescaleDifficulty(1 / difficultyMultiplier)
 
 def offerChangeSettings():
   global offeringFactory

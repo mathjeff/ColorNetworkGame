@@ -823,6 +823,9 @@ class CompetitionBuilder(object):
       self.save(filepath)
     self.opponents = [] # opponents[roomIndex] = opponent for that room
 
+  def setupDefaults(self):
+    self.difficultyMultiplier = 1
+
   # gets the opponent for the given room
   def getOpponent(self, roomIndex, offeringFactory):
     while len(self.opponents) <= roomIndex:
@@ -852,28 +855,14 @@ class CompetitionBuilder(object):
     return competition
 
   def getDifficulty(self, roomIndex):
-    self.includeIndex(roomIndex)
-    return self.difficulties[roomIndex]
+    defaultDifficulty = (roomIndex / 2) + 3
+    return int(defaultDifficulty * self.difficultyMultiplier)
 
-  def rescaleDifficulty(self, roomIndex, difficulty):
-    self.includeIndex(roomIndex)
-    self.difficulties[roomIndex] *= difficulty
-
-  def getMaxLength(self):
-    return len(self.difficulties)
-
-  # ensures that the CompetitionBuilder has allocated space to include a competition with this index
-  def includeIndex(self, length):
-    while self.getMaxLength() <= length:
-      self.incrementLength()
-
-  def incrementLength(self):
-    lastDifficulty = self.difficulties[-1]
-    nextDifficulty = lastDifficulty * (len(self.difficulties) + 1) / len(self.difficulties)
-    self.difficulties.append(nextDifficulty)
+  def rescaleDifficulty(self, multiplier):
+    self.difficultyMultiplier *= multiplier
 
   def loadFile(self, filepath):
-    self.difficulties = self.readFile(filepath)
+    self.difficultyMultiplier = self.readFile(filepath)
 
   def ensureSaved(self, filepath):
     if not os.path.isfile(filepath):
@@ -890,13 +879,11 @@ class CompetitionBuilder(object):
 
   def readFile(self, filepath):
     with open(filepath) as f:
-      return json.load(f)
+      text = f.read()
+      return float(text)
 
   def serialize(self):
-    return str(self.difficulties)
-
-  def setupDefaults(self):
-    self.difficulties = [int((i + 6) / 2) for i in range(20)]
+    return str(self.difficultyMultiplier)
 
 # represents a network of items
 class Network(object):

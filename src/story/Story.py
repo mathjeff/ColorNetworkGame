@@ -1014,19 +1014,23 @@ def augmentOpponent(baseOpponent, difficulty, offeringFactory):
       continue
   sources = []
   disconnectedSinks = []
+  converters = []
   for item in network.nodes:
     if item.declaresOutputs():
-      sources.append(item)
-    if item.declaresInputs() and not item.hasConnectedInput():
-      disconnectedSinks.append(item)
-  if len(sources) > 0:
-    for item in disconnectedSinks:
+      if item.declaresInputs():
+        converters.append(item)
+      else:
+        sources.append(item)
+  for item in network.nodes:
+    if not item.hasConnectedInput():
       for inputName in item.getInputNames():
-        if inputName == "signal":
+        if inputName == "signal" or inputName == "control":
           connect = random.randint(0, 1) == 0
+          if random.randint(0, 1) == 0 and len(converters) > 0:
+            source = random.choice(converters)
+            item.setInput(inputName, source)
         else:
-          connect = True
-        if connect:
-          source = random.choice(sources)
-          item.setInput(inputName, source)
+          if len(sources) > 0:
+            source = random.choice(sources)
+            item.setInput(inputName, source)
   return player

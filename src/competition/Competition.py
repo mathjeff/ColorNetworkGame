@@ -164,11 +164,14 @@ class Competitor(object):
 
   def processIncomingAttacks(self):
     print("Processing " + str(len(self.incomingAttacks)) + " attacks incoming to " + str(self))
-    incomingAttacks = self.incomingAttacks
-    for attack in incomingAttacks:
+    for attack in self.incomingAttacks:
       attack.process(self)
-    self.incomingAttacks = []
+
+  def afterAttacks(self):
+    print("Cleaning up " + str(self) + " after attacks")
     self.removeBrokenNodes()
+    incomingAttacks = self.incomingAttacks
+    self.incomingAttacks = []
     for attack in incomingAttacks:
       attack.afterAttacks(self)
 
@@ -348,13 +351,16 @@ class Competition(object):
     self.competitors[0].enemy = self.competitors[1]
     self.competitors[1].enemy = self.competitors[0]
 
+  def showCompetitorsStatus(self):
+    for competitor in self.competitors:
+      print(competitor.getStatus())
+      print("")
+
   def run(self):
     maxNumRounds = 20
     for i in range(maxNumRounds):
       print("\nRound " + str(i) + "/" + str(maxNumRounds) + ": ////////////////////")
-      for competitor in self.competitors:
-        print(competitor.getStatus())
-        print("")
+      self.showCompetitorsStatus()
       inputUtils.pause("(Press Enter) --------------------")
       print("")
       for competitor in self.competitors:
@@ -363,6 +369,9 @@ class Competition(object):
         competitor.nodesAct()
       for competitor in self.competitors:
         competitor.processIncomingAttacks()
+      self.showCompetitorsStatus()
+      for competitor in self.competitors:
+        competitor.afterAttacks()
       for j in range(2):
         if self.competitors[j].getNumActiveNodes() < 1:
           if self.competitors[1 - j].getNumActiveNodes() < 1:

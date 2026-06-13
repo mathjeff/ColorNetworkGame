@@ -11,7 +11,15 @@ class InputUtils(object):
   def getWasLastDecisionReplayed(self):
     return self.wasLastDecisionReplayed
 
+  def fileHasPendingDecisions(self, path):
+    if not os.path.exists(path):
+      return False
+    if os.path.getsize(path) < 1:
+      return False
+    return True
+
   def setPath(self, path):
+    self.pendingSelections = []
     if os.path.exists(path):
       self.loadPath(path)
     else:

@@ -313,7 +313,7 @@ def offerChangeSettings():
   print("Ok!")
 
 def shouldContinuePreviousGame():
-  if runLog.nonEmpty() and runLog.getConclusionEntry() is None:
+  if inputUtils.fileHasPendingDecisions(profile.getLatestPath("choices")) and runLog.getConclusionEntry() is None:
     print("Do you want to resume your previous game?")
     menu = Menu()
     menu.addChoice("Continue", "Continue")
@@ -327,7 +327,8 @@ if not shouldContinuePreviousGame():
     offerChangeSettings()
     profile.incrementVersion("runlog")
     runLog = RunLog(profile.getLatestPath("runlog"), offeringFactory)
-  profile.incrementVersion("choices")
+  if inputUtils.fileHasPendingDecisions(profile.getLatestPath("choices")):
+    profile.incrementVersion("choices")
 
 inputUtils.setPath(profile.getLatestPath("choices"))
 profile.save()

@@ -274,8 +274,11 @@ class Laser(Item):
       damage = 0
     signal = self.tryAcquirePower("control", self.maxSignalPower)
     targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
-    print("laser applying damage " + str(damage) + " at position " + str(targetIndex))
-    competitor.applyEnemyDamage(targetIndex, damage)
+    if damage > 0:
+      print("laser applying damage " + str(damage) + " at position " + str(targetIndex))
+      competitor.applyEnemyDamage(targetIndex, damage)
+    else:
+      print("power " + str(power) + " not enough to power " + self.summarize())
 
   def clone(self):
     return Laser(self.properties)

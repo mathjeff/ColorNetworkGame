@@ -729,11 +729,10 @@ class PowerUsageSensor(Item):
     super().__init__(properties)
     self.givenReading = 0
     self.consumedReading = 0
-    self.declareInputs(["power", "positionSignal"])
+    self.declareInputs(["power", "positionSignal", "radiusSignal"])
     self.declareOutputs(["producedSignal", "consumedSignal", "totalSignal"])
 
   def loadProperties(self, properties):
-    self.radius = properties.get("radius")
     self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
     self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
     self.maxPossibleTarget = properties.get("maxPossibleTarget")
@@ -742,13 +741,15 @@ class PowerUsageSensor(Item):
   def act(self, competitor):
     super().act(competitor)
     power = self.tryAcquirePower("power", self.requiredPower)
-    positionSignal = self.tryAcquirePower("positionSignal", self.requiredPower)
+    positionSignal = self.tryAcquirePower("positionSignal", self.maxSignalPower)
+    radiusSignal = self.tryAcquirePower("radiusSignal", self.maxSignalPower)
     if self.requiredPower.satisfiedBy(power):
       index = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
+      radius = int(radiusSignal * self.maxPossibleTarget / self.maxSignalPower.getTotal())
       givenReading = 0
       consumedReading = 0
-      lowIndex = index - self.radius
-      highIndex = index + self.radius
+      lowIndex = index - radius
+      highIndex = index + radius
       for i in range(lowIndex, highIndex + 1):
         consumedReading += competitor.getEnemyPowerConsumed(i)
         givenReading += competitor.getEnemyPowerGiven(i)
@@ -780,8 +781,9 @@ class PowerUsageSensor(Item):
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()
-    messages.append("Measures power usage with radius " + str(self.radius) + " from the target position in the opposing robot")
-    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    messages.append("Measures power usage within a certain radius from a certain position in the opposing robot")
+    messages.append("You can supply power to the positionSignal port to change where this aims. A control power level of 0 will target position 0. A positionSignal power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    messages.append("You can supply power to the radiusSignal port to adjust the number of items measured. A radiusSignal power level of 0 will measure a radius of size 0 (measuring 1 item). A control power level of " + str(self.maxSignalPower) + " will measure a radius of size " + str(self.maxPossibleTarget))
     messages.append("The producedSignal output will be set to " + str(self.outputRatio) + " times the total power output by the measured items")
     messages.append("The consumedSignal output will be set to " + str(self.outputRatio) + " times the total power consumed by the measured items")
     messages.append("The totalSignal output will be set to the producedSignal output plus the consumedSignal output")

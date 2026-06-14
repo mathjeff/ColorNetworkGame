@@ -840,11 +840,11 @@ class CompetitionBuilder(object):
       self.opponents.append(makeOpponent(difficulty, offeringFactory))
     else:
       # design this opponent based on one of the recent opponents
-      age = random.randint(1, 8)
-      if age > len(self.opponents):
+      targetAge = 2
+      if targetAge > len(self.opponents):
         baseOpponent = self.opponents[0]
       else:
-        baseOpponent = self.opponents[-age]
+        baseOpponent = self.opponents[-targetAge]
       opponent = augmentOpponent(baseOpponent, difficulty, offeringFactory)
       self.opponents.append(opponent)
 

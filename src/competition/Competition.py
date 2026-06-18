@@ -118,6 +118,7 @@ class Competitor(object):
     self.network = network
     self.enemy = None
     self.incomingAttacks = []
+    self.processedAttacks = []
     self.clearShields()
     self.active = True
 
@@ -166,13 +167,13 @@ class Competitor(object):
     print("Processing " + str(len(self.incomingAttacks)) + " attacks incoming to " + str(self))
     for attack in self.incomingAttacks:
       attack.process(self)
+    self.processedAttacks = self.incomingAttacks
+    self.incomingAttacks = []
 
   def afterAttacks(self):
     print("Cleaning up " + str(self) + " after attacks")
     self.removeBrokenNodes()
-    incomingAttacks = self.incomingAttacks
-    self.incomingAttacks = []
-    for attack in incomingAttacks:
+    for attack in self.processedAttacks:
       attack.afterAttacks(self)
 
   def removeBrokenNodes(self):

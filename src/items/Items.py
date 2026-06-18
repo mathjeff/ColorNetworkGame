@@ -484,6 +484,40 @@ class Adder(Item):
     messages.append("whenever an item asks it for power, it attempts to acquire an amount of input power equal to the last read signal plus " + str(self.addition) + ", and gives the result to the asker")
     return messages
 
+# counts up each time power is requested
+class Counter(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareOutput()
+    self.declareInputs(["power"])
+    self.signal = 0
+
+  def loadProperties(self, properties):
+    self.step = properties.get("step")
+
+  def act(self, competitor):
+    super().act(competitor)
+    self.signal = 0
+
+  def tryGetPower(self, requested, outputName):
+    targetOutput = requested.limitToConstant(self.signal)
+    self.signal += self.step
+    power = self.tryAcquirePower("power", targetOutput)
+    return power
+
+  def clone(self):
+    return Counter(self.properties)
+
+  def summarize(self):
+    return super().summarize() + "+=" + str(self.step)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("Records an internal limit of the amount of power allowed through for each request (initially 0).")
+    messages.append("Whenever an item asks for power, limits that power to the saved limit, and then increases the subsequent limits by " + str(self.step))
+    messages.append("During its turn, resets the limit to 0.")
+    return messages
+
 # Divides power flow by a constant
 class Divider(Item):
   def __init__(self, properties):

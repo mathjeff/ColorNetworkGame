@@ -53,6 +53,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(CellWall({"hitPoints": 8, "requiredPower": g.d(1), "hitpointGainPerUse": 1, "numUsesPerTurn": 2}), 12, 2, 32)
     self.add(Adder({"addition": 0.2, "maxInput": 10}), 19, 2, 12)
     self.add(Adder({"addition": 0.4, "maxInput": 10}), 15, 2, 16)
+    self.add(Counter({"step": 0.1}), 20, 2, 20)
     self.add(Comparer({"threshold": 0.2}), 6, 2, 10)
     self.add(Comparer({"threshold": 0.3}), 6, 2, 10)
     self.add(Divider({"divisors": [2, 5]}), 10, 2, 8)

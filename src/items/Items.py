@@ -275,7 +275,7 @@ class Laser(Item):
     signal = self.tryAcquirePower("control", self.maxSignalPower)
     targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
     if damage > 0:
-      print("laser applying damage " + str(damage) + " at position " + str(targetIndex))
+      print(self.summarize() + " applying damage " + str(damage) + " at position " + str(targetIndex))
       competitor.applyEnemyDamage(targetIndex, damage)
     else:
       print("power " + str(power) + " not enough to power " + self.summarize())
@@ -291,6 +291,97 @@ class Laser(Item):
     messages.append("attacks items in the opposing robot")
     messages.append("requires at least " + str(self.requiredPower) + " energy in one turn and then deals " + str(self.damage) + " damage")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    return messages
+
+# attacks several positions at once
+class Catapult(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["power", "control"])
+
+  def loadProperties(self, properties):
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.damage = properties.get("damage")
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
+    self.radius = 1
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.requiredPower)
+    if self.requiredPower.satisfiedBy(power):
+      damage = self.damage
+    else:
+      damage = 0
+    signal = self.tryAcquirePower("control", self.maxSignalPower)
+    targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
+    if damage > 0:
+      for position in range(targetIndex - self.radius, targetIndex + self.radius + 1):
+        print(self.summarize() + " applying damage " + str(damage) + " at position " + str(position))
+        competitor.applyEnemyDamage(position, damage)
+    else:
+      print("power " + str(power) + " not enough to power " + self.summarize())
+
+  def clone(self):
+    return Catapult(self.properties)
+
+  def summarize(self):
+    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.damage) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ") +/-" + str(self.radius)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("attacks items in the opposing robot")
+    messages.append("requires at least " + str(self.requiredPower) + " energy in one turn and then deals " + str(self.damage) + " damage")
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    messages.append("Damages all items within range " + str(self.radius) + " of the target")
+    return messages
+
+# attacks until power runs out
+class Gatling(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["energy", "ammo", "control"])
+
+  def loadProperties(self, properties):
+    self.requiredEnergy = EnergyRequest(Energy(properties.get("requiredEnergy")))
+    self.requiredAmmo = EnergyRequest(Energy(properties.get("requiredAmmo")))
+    self.damage = properties.get("damage")
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
+
+  def act(self, competitor):
+    super().act(competitor)
+    while True:
+      energy = self.tryAcquirePower("energy", self.requiredEnergy)
+      ammo = self.tryAcquirePower("ammo", self.requiredAmmo)
+      if self.requiredEnergy.satisfiedBy(energy) and self.requiredAmmo.satisfiedBy(ammo):
+        damage = self.damage
+      else:
+        damage = 0
+      signal = self.tryAcquirePower("control", self.maxSignalPower)
+      targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
+      if damage > 0:
+        print(self.summarize() + " applying damage " + str(damage) + " at position " + str(targetIndex))
+        competitor.applyEnemyDamage(targetIndex, damage)
+      else:
+        if not self.requiredEnergy.satisfiedBy(energy):
+          print("energy " + str(energy) + " not enough to power " + self.summarize())
+        else:
+          print("ammo " + str(ammo) + " not enough to power " + self.summarize())
+        break
+
+  def clone(self):
+    return Gatling(self.properties)
+
+  def summarize(self):
+    return super().summarize() + " " + str(self.requiredEnergy) + "," + str(self.requiredAmmo) + "->" + str(self.damage) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("attacks items in the opposing robot")
+    messages.append("requires at least " + str(self.requiredEnergy) + " and " + str(self.requiredAmmo) + " in one turn and then deals " + str(self.damage) + " damage")
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    messages.append("Will attack repeatedly until there is not enough input for an attack")
     return messages
 
 # disconnects node inputs
@@ -401,19 +492,63 @@ class Battery(Item):
     messages.append(prefix + amountText + suffix)
     return messages
 
-# just has lots of hitpoints
+# has a lots of hitpoints and produces energy as it is damaged
 class Wall(Item):
   def __init__(self, properties):
     super().__init__(properties)
+    self.readyToDischarge = Energy()
+    self.declareOutput()
 
   def loadProperties(self, properties):
     self.hitPoints = properties.get("hitPoints")
+    self.outputPerDamage = Energy(properties.get("outputPerDamage"))
 
-  def summarize(self):
-    return "Wall " + str(self.hitPoints)
+  def receiveDamage(self, amount):
+    super().receiveDamage(amount)
+    self.readyToDischarge = self.readyToDischarge.plus(self.outputPerDamage.times(amount))
+
+  def tryGetPower(self, requested, outputName):
+    amount = requested.chooseFrom(self.readyToDischarge)
+    self.readyToDischarge = self.readyToDischarge.minus(amount)
+    return amount
 
   def clone(self):
     return Wall(self.properties)
+
+  def summarize(self):
+    return super().summarize() + " " + str(self.hitPoints) + "(1->" + str(self.outputPerDamage) + ")"
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("produces " + str(self.outputPerDamage) + " per damage received")
+    return messages
+
+# slowly takes damage on its own
+class UnstableWall(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.readyToDischarge = Energy()
+    self.declareOutput()
+
+  def loadProperties(self, properties):
+    self.hitPoints = properties.get("hitPoints")
+    self.outputPerDamage = Energy(properties.get("outputPerDamage"))
+    self.decayPerTurn = properties.get("decayPerTurn")
+
+  def act(self, competitor):
+    super().act(competitor)
+    self.receiveDamage(self.decayPerTurn)
+
+  def clone(self):
+    return UnstableWall(self.properties)
+
+  def summarize(self):
+    return super().summarize() + " -=" + str(self.decayPerTurn)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("takes " + str(self.decayPerTurn) + " damage per turn")
+    return messages
 
 # grows while it has energy
 class CellWall(Item):

@@ -66,7 +66,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Divider({"divisors": [2, 5]}), 10, 2, 8)
     self.add(Capacitor({"maxEnergy": y.d(10), "signalOutputFraction": 0.1}), 14, 2, 23)
     self.add(Capacitor({"maxEnergy": y.d(100), "signalOutputFraction": 0.1}), 9, 2, 16)
-    self.add(Capacitor({"maxEnergy": m.d({yellow:10, black:10, green:10}), "signalOutputFraction": 0.1}), 11, 2, 14)
+    self.add(Capacitor({"maxEnergy": m.d({yellow:10, black:10, green:10, grey:2}), "startingEnergy": m.d({yellow: 2, black:2, green:2, grey:2}), "signalOutputFraction": 0.1}), 11, 2, 14)
     self.add(Capacitor({"maxEnergy": g.d(20), "startingEnergy": g.d(10), "signalOutputFraction": 0.1}), 10, 2, 11)
     self.add(Capacitor({"maxEnergy": e.d(20), "startingEnergy": e.d(10), "signalOutputFraction": 0.1}), 10, 2, 20)
     self.add(Joiner({"numInputs": 2}), 13, 2, 21)

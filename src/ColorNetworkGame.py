@@ -30,7 +30,7 @@ class DefaultOfferingFactory(OfferingFactory):
     yellow = Energies.register(EnergyColor("Y", "yellow", "\033[1;33;40m", "yellow energy represents electricity"))
     black = Energies.register(EnergyColor("B", "black", "\033[1;30;40m", "black energy represents coal"))
     green = Energies.register(EnergyColor("G", "green", "\033[1;32;40m", "green energy represents energy in living cells"))
-    grey = Energies.register(EnergyColor("E", "grey", "\033[1;37;40m", "grey energy represents solid materials like rocks"))
+    grey = Energies.register(EnergyColor("E", "grey", "\033[1;38;5;253m", "grey energy represents solid materials like rocks"))
     y = SingleColorBuilder(yellow)
     b = SingleColorBuilder(black)
     g = SingleColorBuilder(green)

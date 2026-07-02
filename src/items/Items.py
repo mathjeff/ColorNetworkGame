@@ -959,7 +959,7 @@ class PowerUsageSensor(Item):
     messages.append("Requires " + str(self.requiredPower) + " to work")
     return messages
 
-# senses the number of hitpoints in an item
+# senses the number of hitpoints in an opponent's item
 class HealthSensor(Item):
   def __init__(self, properties):
     super().__init__(properties)
@@ -1026,6 +1026,86 @@ class HealthSensor(Item):
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     messages.append("Provides " + str(self.getNumOutputs()) + " output signals. Each one is set to the hitpoints of the corresponding item in the opponent's robot times " + str(self.outputRatio))
     messages.append("Requires " + str(self.requiredPower) + " power to run")
+    return messages
+
+# abstract class for searching for a position in the opponent's network
+class Scanner(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.reading = 0
+    self.declareInputs(["power", "positionSignal"])
+
+  def loadProperties(self, properties):
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
+    self.outputRatio = properties.get("outputRatio")
+    self.undeclareOutputs()
+    self.declareOutput("reading")
+
+  def accepts(self, index):
+    raise Exception("accepts is not implemented in" + str(self))
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.requiredPower)
+    positionSignal = self.tryAcquirePower("positionSignal", self.requiredPower)
+    self.readings = []
+    if self.requiredPower.satisfiedBy(power):
+      startIndex = int(self.maxPossibleTarget * positionSignal.getTotal() / self.maxSignalPower.getTotal())
+      for index in range(self.maxPossibleTarget):
+        if self.accepts(competitor, index):
+          break
+      self.reading = index * self.outputRatio
+    else:
+      if power.nonempty():
+        print("power " + str(power) + " not enough to power " + self.summarize())
+    self.reading = 0
+
+  def tryGetPower(self, requested, outputName):
+    result = requested.limitToConstant(self.reading)
+    return result
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("Searches for items in the opposing robot starting from a specified position, and returns the first identified item")
+    messages.append("The initial search position is controlled by positionSignal")
+    messages.append("A positionSignal of 0 will start searching from position 0")
+    messages.append("A positionSignal of " + str(self.maxSignalPower) + " will start searching from position " + str(self.maxPossibleTarget))
+    messages.append("The reading will be set to the identified position times " + str(self.outputRatio))
+    return messages
+
+# scans for items in the opponent's network having a specified number of hitpoints
+class HitpointScanner(Scanner):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["targetSignal"])
+    self.targetValue = None
+
+  def act(self, competitor):
+    self.targetValue = None
+    super().act(competitor)
+
+  def getTargetValue(self):
+    if self.targetValue is None:
+      positionSignal = self.tryAcquirePower("targetSignal", self.maxSignalPower)
+      self.targetValue = positionSignal.getTotal() / self.outputRatio
+      print(str(self) + " got targetSignal of " + positionSignal + " so will search for items having " + str(self.targetValue) + " hitpoints")
+    return self.targetValue
+
+  def accepts(self, competitor, index):
+    hitpoints = competitor.getEnemyHitpoints(index)
+    if hitpoints == self.getTargetValue():
+      print("found item with " + str(hitpoints) + " hitpoints at position " + index)
+      return True
+    return False
+
+  def clone(self):
+    return HitpointScanner(self.properties)
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("This scanner will search for items whose hitpoints equal the value of targetSignal times " + str(1 / self.outputRatio))
     return messages
 
 # drains power

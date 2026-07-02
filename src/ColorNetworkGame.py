@@ -85,6 +85,7 @@ class DefaultOfferingFactory(OfferingFactory):
     # self.add(type(properties), popularity, complexity=4, cost)
     self.add(PowerUsageSensor({"radius": 1, "requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 9, 4, 11)
     self.add(HealthSensor({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "radius": 2, "outputRatio": 0.1}), 10, 4, 7)
+    self.add(HitpointScanner({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 10, 4, 7)
 
 profile = Profile("data/profile/")
 defaultOfferingFactory = DefaultOfferingFactory()

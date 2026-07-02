@@ -263,9 +263,9 @@ def offerChangeSettings():
   menu.addChoice("Much easier than last run", "Much easier")
   menu.addChoice("Slightly easier than last run", "Easier")
   menu.addChoice("Same as last run", "Same")
+  menu.addChoice("Different than last run", "Different")
   menu.addChoice("Slightly harder than last run", "Harder")
   menu.addChoice("Much harder than last run", "Much harder")
-  menu.addChoice("Different than last run", "Different")
   choice = menu.chooseValue()
   if choice == "Same":
     print("Keeping settings the same as previous game")

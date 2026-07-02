@@ -783,10 +783,22 @@ class Comparer(Item):
 
   def act(self, competitor):
     super().act(competitor)
-    self.high = self.threshold.satisfiedBy(self.tryAcquirePower("signal", self.threshold))
+    reading = self.tryAcquirePower("signal", self.threshold)
+    self.high = self.threshold.satisfiedBy(reading)
+    if self.high:
+      enabledText = "high output enabled"
+    else:
+      enabledText = "low output enabled"
+    print(self.summarize() + " read signal " + str(reading) + " so " + enabledText)
 
   def tryGetPower(self, requested, outputName):
-    if (outputName == "high") == (self.high):
+    enabled = ((outputName == "high") == self.high)
+    if enabled:
+      enabledText = "enabled"
+    else:
+      enabledText = "disabled"
+    print(self.summarize() + " input reading is high = " + str(self.high) + " so output " + outputName + " is " + enabledText)
+    if enabled:
       return self.tryAcquirePower("power", requested)
     return Energy({})
 

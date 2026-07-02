@@ -51,7 +51,7 @@ class DefaultOfferingFactory(OfferingFactory):
     self.add(Converter({"requiredPower": b.d(0.5), "outputPower": g.d(2), "numUsesPerTurn": 1}), 12, 2, 7)
     self.add(Converter({"requiredPower": y.d(0.4), "outputPower": g.d(0.5), "numUsesPerTurn": 2}), 25, 2, 14)
     self.add(Converter({"requiredPower": e.d(1), "outputPower": g.d(2), "numUsesPerTurn": 1}), 25, 2, 14)
-    self.addBundle([Converter({"requiredPower": g.d(1), "outputPower": y.d(2), "numUsesPerTurn": 1}), Converter({"requiredPower": g.d(1), "outputPower": b.d(1), "numUsesPerTurn": 1}), Converter({"requiredPower": g.d(1), "outputPower": e.d(1), "numUsesPerTurn": 1})], 7, 2, 18)
+    self.add(Converter({"requiredPower": g.d(1), "outputPower": m.d({yellow:1, black:1, grey: 1}), "numUsesPerTurn": 1}), 7, 2, 18)
     self.add(Converter({"requiredPower": g.d(1), "outputPower": y.d(4), "numUsesPerTurn": 3}), 5, 2, 12)
     self.add(Converter({"requiredPower": g.d(1), "outputPower": b.d(2), "numUsesPerTurn": 1}), 6, 2, 11)
     self.add(Converter({"requiredPower": g.d(1), "outputPower": e.d(1), "numUsesPerTurn": 1}), 6, 2, 11)

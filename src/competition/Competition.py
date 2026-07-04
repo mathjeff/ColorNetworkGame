@@ -30,17 +30,13 @@ class DamageAttack(Attack):
     target.receiveDamage(self.index, self.amount)
 
 class CutAttack(Attack):
-  def __init__(self, index, disconnectInputs, disconnectOutputs):
+  def __init__(self, index, numConnectionsToRemove):
     super().__init__()
     self.index = index
-    self.disconnectInputs = disconnectInputs
-    self.disconnectOutputs = disconnectOutputs
+    self.numConnectionsToRemove = numConnectionsToRemove
 
   def process(self, target):
-    if self.disconnectInputs:
-      target.disconnectInputs(self.index)
-    if self.disconnectOutputs:
-      target.disconnectOutputs(self.index)
+    target.disconnectCrossing(self.index, self.numConnectionsToRemove)
 
 class PowerDrainAttack(Attack):
   def __init__(self, index, inputAmount, outputAmount):
@@ -250,32 +246,36 @@ class Competitor(object):
     for i in range(startIndex, endIndex):
       self.incomingDamageMultipliers[i] *= damageMultiplier
 
-  def disconnectEnemyInputs(self, nodeIndex):
-    self.addOutgoingAttack(CutAttack(nodeIndex, True, False))
+  def disconnectEnemyConnections(self, nodeIndex, maxNumCuts):
+    self.addOutgoingAttack(CutAttack(nodeIndex, maxNumCuts))
 
-  def disconnectInputs(self, nodeIndex):
+  def disconnectCrossing(self, nodeIndex, disconnectCount):
     if nodeIndex < 0:
       print("No node at position " + str(nodeIndex))
       return # miss
     if nodeIndex >= self.network.size():
       print("No node at position " + str(nodeIndex))
       return # miss
+    if disconnectCount < 1:
+      return # nothing to do
+    print("Disconnecting up to " + str(disconnectCount) + " connections crossing position " + str(nodeIndex))
     network = self.network
-    node = network.nodes[nodeIndex]
-    if len(node.inputsByName) < 1:
-      print("No inputs to disconnect at position " + str(nodeIndex) + ": " + node.describeLinks(network))
-    else:
-      print("Disconnecting inputs at position " + str(nodeIndex) + ": " + node.describeLinks(network))
-    for linkType in node.inputsByName.keys():
-      existing = node.inputsByName[linkType]
-      if existing is not None:
-        print("Disconnecting input " + linkType + " for " + node.summarize())
-        node.inputsByName[linkType] = None
-      else:
-        print("Input " + linkType + " for " + node.summarize() + " is already disconnected")
-
-  def disconnectEnemyOutputs(self, nodeIndex):
-    self.addOutgoingAttack(CutAttack(nodeIndex, False, True))
+    nodes = network.nodes
+    numDisconnected = 0
+    for i in range(len(nodes)):
+      node = nodes[i]
+      for linkType in node.inputsByName.keys():
+        connectedOutput = node.inputsByName[linkType]
+        if connectedOutput is not None:
+          linkedNode = connectedOutput.item
+          linkedPosition = network.tryGetPosition(linkedNode)
+          if (i < nodeIndex) != (linkedPosition < nodeIndex):
+            print("Disconnecting input " + linkType + " from " + node.summarize() + " pos " + str(i) + " (source pos " + str(linkedPosition) + ")")
+            node.inputsByName[linkType] = None
+            numDisconnected += 1
+            if numDisconnected >= disconnectCount:
+              print("Disconnected " + str(numDisconnected) + "/" + str(disconnectCount) + " connections")
+              return
 
   def disconnectOutputs(self, nodeIndex):
     if nodeIndex < 0:

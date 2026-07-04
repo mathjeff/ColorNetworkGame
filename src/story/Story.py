@@ -662,6 +662,46 @@ class NoColor_Filter(Color_OfferingFilter):
   def summarize(self):
     return "items that don't specify any particular colors"
 
+class CostFilter(OfferingFilter):
+  def __init__(self, minCost, maxCost):
+    self.minCost = minCost
+    self.maxCost = maxCost
+
+  def acceptsOffering(self, offering):
+    if self.minCost is not None and self.minCost > offering.cost:
+      return False
+    if self.maxCost is not None and self.maxCost < offering.cost:
+      return False
+    return True
+
+  def summarize(self):
+    if self.minCost is not None:
+      if self.maxCost is not None:
+        return "medium cost items"
+      return "expensive items"
+    else:
+      return "cheap items"
+
+class PopularityFilter(OfferingFilter):
+  def __init__(self, minPopularity, maxPopularity):
+    self.minPopularity = minPopularity
+    self.maxPopularity = maxPopularity
+
+  def acceptsOffering(self, offering):
+    if self.minPopularity is not None and self.minPopularity > offering.popularity:
+      return False
+    if self.maxPopularity is not None and self.maxPopularity < offering.popularity:
+      return False
+    return True
+
+  def summarize(self):
+    if self.minPopularity is not None:
+      if self.maxPopularity is not None:
+        return "medium popularity items"
+      return "popular items"
+    else:
+      return "rare items"
+
 # creates a StoryNode network
 class StoryGenerator(object):
   def __init__(self, player, competitionBuilder, offeringFactory, runLog):
@@ -672,6 +712,8 @@ class StoryGenerator(object):
     self.previousMarketIndex = -100
     self.nextShopNumItems = 12
     self.makeMultipleMarkets = False
+    self.middleOfferingCost = self.computeMiddleOfferingCost(offeringFactory)
+    self.middleOfferingPopularity = self.computeMiddleOfferingPopularity(offeringFactory)
 
   def create(self):
     player = self.player
@@ -679,6 +721,14 @@ class StoryGenerator(object):
     door = LazyStoryNode(-1, self)
     firstNode.setNext(door)
     return firstNode
+
+  def computeMiddleOfferingCost(self, offeringFactory):
+    values = sorted([offering.cost for offering in offeringFactory.getAll()])
+    return values[int(len(values) / 2)]
+
+  def computeMiddleOfferingPopularity(self, offeringFactory):
+    values = sorted([offering.popularity for offering in offeringFactory.getAll()])
+    return values[int(len(values) / 2)]
 
   def makeRoom(self, index):
     # decide whether to make a market
@@ -701,6 +751,8 @@ class StoryGenerator(object):
   def makeMarkets(self, index, numMarkets, numItems):
     # candidate offering filters
     candidateFilters = [AllOfferingsFilter(), PowerSource_OfferingFilter(), PowerSink_OfferingFilter(), PowerTransformer_OfferingFilter()] # filter for a single type
+    candidateFilters += [CostFilter(None, self.middleOfferingCost), CostFilter(self.middleOfferingCost, None)]
+    candidateFilters += [PopularityFilter(None, self.middleOfferingPopularity), PopularityFilter(self.middleOfferingPopularity, None)]
     for color in Energies.getAll():
       candidateFilters.append(Color_OfferingFilter(color))
     candidateFilters.append(NoColor_Filter())

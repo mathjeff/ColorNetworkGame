@@ -38,14 +38,15 @@ class InputUtils(object):
 
   # choices is a Map<Float, String> and this returns the Float key
   def getInput(self, choices):
-    if len(self.pendingSelections) > 0:
+    while len(self.pendingSelections) > 0:
       self.wasLastDecisionReplayed = True
       preselection = self.pendingSelections[0]
       del self.pendingSelections[0]
       for key, value in choices.items():
         if preselection == str(value):
           return key
-      raise Exception("Cannot find '" + str(preselection) + "' in " + str(choices))
+      if preselection != "":
+        raise Exception("Cannot find '" + str(preselection) + "' in " + str(choices))
     self.wasLastDecisionReplayed = False
     while True:
       if len(choices) == 1:

@@ -39,15 +39,23 @@ class CutAttack(Attack):
     target.disconnectCrossing(self.index, self.numConnectionsToRemove)
 
 class PowerDrainAttack(Attack):
-  def __init__(self, index, inputAmount, outputAmount):
+  def __init__(self, index, amount):
     super().__init__()
     self.index = index
-    self.inputAmount = inputAmount
-    self.outputAmount = outputAmount
+    self.remaining = amount
+    self.totalDrained = Energy()
 
   def process(self, target):
-    target.drainInputPower(self.index, self.inputAmount)
-    target.drainOutputPower(self.index, self.outputAmount)
+    target.drainPower(self.index, self)
+
+  def getRemaining(self):
+    return self.remaining
+
+  def done(self):
+    return self.totalDrained.getTotal() >= self.remaining
+
+  def drained(self, energy):
+    self.totalDrained = self.totalDrained.plus(energy)
 
 class RamAttack(Attack):
   def __init__(self, damage):
@@ -325,7 +333,7 @@ class Competitor(object):
       return 0
     return network.nodes[nodeIndex].hitPoints
 
-  def drainEnemyPower(self, nodeIndex, inputAmount, outputAmount):
+  def drainEnemyPower(self, nodeIndex, amount):
     if nodeIndex < 0:
       return
     network = self.enemy.network
@@ -333,11 +341,8 @@ class Competitor(object):
       return 0
     self.addOutgoingAttack(PowerDrainAttack(nodeIndex, inputAmount, outputAmount))
 
-  def drainInputPower(self, nodeIndex, amount):
-    self.network.nodes[nodeIndex].drainInputPower(amount)
-
-  def drainOutputPower(self, nodeIndex, amount):
-    self.network.nodes[nodeIndex].drainOutputPower(amount)
+  def drainPower(self, nodeIndex, effect):
+    self.network.nodes[nodeIndex].drainPower(effect)
 
   def __str__(self):
     return self.name

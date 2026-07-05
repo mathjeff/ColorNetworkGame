@@ -52,7 +52,7 @@ class OfferingFactory(object):
   def getTemplateNamed(self, name):
     result = self.contentsByName.get(name)
     if result is None:
-      raise Exception("'" + str(name) + "' not found in " + str(list(self.contentsByName.keys())))
+      raise Exception("name '" + str(name) + "' not found")
     return result
 
   def cloneItemNamed(self, name):
@@ -65,7 +65,7 @@ class OfferingFactory(object):
   def cloneItemWithType(self, itemType):
     result = self.itemsByType.get(itemType)
     if result is None:
-      raise Exception("'" + str(itemType) + "' not found in " + str(list(self.itemsByType.keys())))
+      raise Exception("type '" + str(itemType) + "' not found")
     return result.clone()
 
   def getAll(self):
@@ -433,7 +433,7 @@ class Profile(object):
       savedVersions = self.listSavedVersions(name)
       latestVersion = self.versions[name]
       if latestVersion not in savedVersions:
-        raise Exception("error in garbage collection: version '" + str(latestVersion) + "' not found in versions " + str(savedVersions) + " for service " + str(name))
+        raise Exception("error in garbage collection: version '" + str(latestVersion) + "' not found")
       for version in savedVersions:
         if version < latestVersion - self.targetNumBackups:
           self.removeServiceVersion(name, version)

@@ -35,9 +35,14 @@ class Menu(object):
 
   def chooseIndex(self):
     optionTexts = {}
+    maxLength = 0
+    for index in self.choicesByIndex.keys():
+      maxLength = max(maxLength, len(str(index)))
     for index in sorted(self.choicesByIndex.keys()):
       optionText = self.choicesByIndex[index][0]
-      print(str(index) + ": " + str(optionText))
+      indexText = str(index)
+      indexText = " " * (maxLength - len(indexText)) + indexText # align vertically
+      print(indexText + ": " + str(optionText))
       optionTexts[index] = optionText
     return inputUtils.getInput(optionTexts)
 
@@ -273,7 +278,7 @@ class ShopStoryNode(SimpleStoryNode):
     if paddedLength < minLength:
       paddedLength = minLength
     if paddedLength > minLength:
-      paddedLength = ((paddedLength - minLength) / lengthStep) * lengthStep
+      paddedLength = int((paddedLength - minLength - 1) / lengthStep + 1) * lengthStep + minLength
     if paddedLength > displayLength:
       addition = padding * (paddedLength - displayLength)
       return text + addition

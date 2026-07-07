@@ -336,7 +336,7 @@ class Catapult(Item):
     return Catapult(self.properties)
 
   def summarize(self):
-    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.damage) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ") +/-" + str(self.radius)
+    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.damage) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")+/-" + str(self.radius)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()

@@ -4,7 +4,7 @@ from competition.Competition import *
 from items.Items import *
 from interface.Interface import *
 
-import random, sys, textwrap
+import random, re, sys, textwrap
 
 class StoryNode(object):
   def __init__(self):
@@ -261,7 +261,28 @@ class ShopStoryNode(SimpleStoryNode):
     if offering is None:
       return "Nothing"
     components = [item.summarize() for item in offering.items]
-    return ", ".join(components) + ": cost = " + str(offering.cost)
+    contents = ", ".join(components)
+    contentsPadded = self.pad(contents, " ", 32, 4)
+    return contentsPadded + ": cost = " + str(offering.cost)
+
+  # Pads <text> to a length of at least <minLength> by adding <padding> repeatedly
+  # If <text> is already longer than <minLength>, will pad so it exceeds by a multiple of <lengthStep>
+  def pad(self, text, padding, minLength, lengthStep):
+    displayLength = len(self.withoutSpecialCharacters(text))
+    paddedLength = displayLength
+    if paddedLength < minLength:
+      paddedLength = minLength
+    if paddedLength > minLength:
+      paddedLength = ((paddedLength - minLength) / lengthStep) * lengthStep
+    if paddedLength > displayLength:
+      addition = padding * (paddedLength - displayLength)
+      return text + addition
+    return text
+
+  def withoutSpecialCharacters(self, text):
+    regex = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    result = re.sub(regex, "", text)
+    return result
 
   def hasOffering(self):
     for offering in self.contents:

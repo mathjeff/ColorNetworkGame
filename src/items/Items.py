@@ -56,6 +56,9 @@ class Item(object):
     if otherItem is not None:
       otherItem.addOutput(inputName, self, outputName)
 
+  def getInput(self, inputName):
+    return self.inputsByName[inputName]
+
   # adds (otherItem, inputName) to self.outputs[outputName]
   def addOutput(self, inputName, otherItem, outputName):
     if outputName not in self.outputsByName:

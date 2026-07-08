@@ -251,38 +251,29 @@ class ShopStoryNode(SimpleStoryNode):
     descriptions = [self.describe(offering) for offering in offerings]
     offeringsByDescription = {}
     for offering in offerings:
-      description = self.describe(offering)
-      offeringsHere = offeringsByDescription.get(description)
+      fields = self.getDisplayFields(offering)
+      key = "".join(fields)
+      offeringsHere = offeringsByDescription.get(key)
       if offeringsHere is None:
         offeringsHere = []
-        offeringsByDescription[description] = offeringsHere
+        offeringsByDescription[key] = offeringsHere
       offeringsHere.append(offering)
     results = []
-    for description in sorted(offeringsByDescription.keys()):
-      results = results + offeringsByDescription[description]
+    for key in sorted(offeringsByDescription.keys()):
+      results = results + offeringsByDescription[key]
     return results
 
   def describe(self, offering):
+    return "".join(self.getDisplayFields(offering))
+
+  # converts Offering into Iterable<String>
+  def getDisplayFields(self, offering):
     if offering is None:
-      return "Nothing"
+      return ("Nothing")
     components = [item.summarize() for item in offering.items]
     contents = ", ".join(components)
-    contentsPadded = self.pad(contents, " ", 32, 4)
-    return contentsPadded + ": cost = " + str(offering.cost)
-
-  # Pads <text> to a length of at least <minLength> by adding <padding> repeatedly
-  # If <text> is already longer than <minLength>, will pad so it exceeds by a multiple of <lengthStep>
-  def pad(self, text, padding, minLength, lengthStep):
-    displayLength = len(self.withoutSpecialCharacters(text))
-    paddedLength = displayLength
-    if paddedLength < minLength:
-      paddedLength = minLength
-    if paddedLength > minLength:
-      paddedLength = int((paddedLength - minLength - 1) / lengthStep + 1) * lengthStep + minLength
-    if paddedLength > displayLength:
-      addition = padding * (paddedLength - displayLength)
-      return text + addition
-    return text
+    costText = ": cost = " + str(offering.cost)
+    return (contents, costText)
 
   def withoutSpecialCharacters(self, text):
     regex = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
@@ -295,6 +286,28 @@ class ShopStoryNode(SimpleStoryNode):
         return True
     return False
 
+  # Converts List<List<String>> into List<String>
+  def formatTable(self, entries):
+    # compute column lengths
+    columnLengths = []
+    for entry in entries:
+      for i in range(len(entry)):
+        field = entry[i]
+        if len(columnLengths) <= i:
+          columnLengths.append(0)
+        displayLength = len(self.withoutSpecialCharacters(field))
+        columnLengths[i] = max(columnLengths[i], displayLength)
+    # format
+    results = []
+    for entry in entries:
+      padded = []
+      for i in range(len(entry)):
+        field = entry[i]
+        displayLength = len(self.withoutSpecialCharacters(field))
+        padded.append(entry[i] + (" " * (columnLengths[i] - displayLength)))
+      results.append("".join(padded))
+    return results
+
   def process(self):
     while True:
       print("")
@@ -303,8 +316,12 @@ class ShopStoryNode(SimpleStoryNode):
       menu.addChoice("Done (buying items)", 0, 0)
       if self.hasOffering():
         menu.addChoice("What are these things?", 1)
-      for i in range(len(self.contents)):
-        menu.addChoice(self.describe(self.contents[i]), i + 2)
+      choices = []
+      for item in self.contents:
+        choices.append(self.getDisplayFields(item))
+      textChoices = self.formatTable(choices)
+      for i in range(len(textChoices)):
+        menu.addChoice(textChoices[i], i + 2)
       choice = menu.chooseValue()
       if choice == 0:
         print("Bye!")

@@ -215,7 +215,7 @@ class CompetitionStoryNode(SimpleStoryNode):
         else:
           print("You have " + str(self.player.consecutiveWins) + " consecutive wins. Congratulations!")
           entry = RunLogConclusionEntry(str(self.index + 1), True)
-          self.runLog.newEntry(entry)
+          self.runLog.addEntry(entry)
           sys.exit(0)
       else:
         self.player.consecutiveWins = 0
@@ -226,7 +226,7 @@ class CompetitionStoryNode(SimpleStoryNode):
         else:
           print("You have " + str(self.player.consecutiveLosses) + " consecutive losses. Bye!")
           entry = RunLogConclusionEntry(str(self.index + 1), False)
-          self.runLog.newEntry(entry)
+          self.runLog.addEntry(entry)
           sys.exit(0)
 
 class ShopStoryNode(SimpleStoryNode):

@@ -258,8 +258,11 @@ class RunLog(object):
 
   def newEntry(self, entry):
     if not inputUtils.getWasLastDecisionReplayed():
-      self.putEntryInMemory(entry)
-      self.writeEntry(entry)
+      self.addEntry(entry)
+
+  def addEntry(self, entry):
+    self.putEntryInMemory(entry)
+    self.writeEntry(entry)
 
   def getShopEntries(self):
     return self.getEntriesWithType("market")

@@ -236,6 +236,7 @@ class ShopStoryNode(SimpleStoryNode):
     self.contents = self.chooseContents(offerings)
     self.purchasedItems = []
     self.offeringFactory = offeringFactory
+    self.columnWidths = None
 
   def getTotalCost(self):
     total = 0
@@ -286,9 +287,8 @@ class ShopStoryNode(SimpleStoryNode):
         return True
     return False
 
-  # Converts List<List<String>> into List<String>
-  def formatTable(self, entries):
-    # compute column lengths
+  # Converts List<List<String>> into List<Integer>
+  def computeColumnWidths(self, entries):
     columnLengths = []
     for entry in entries:
       for i in range(len(entry)):
@@ -297,14 +297,19 @@ class ShopStoryNode(SimpleStoryNode):
           columnLengths.append(0)
         displayLength = len(self.withoutSpecialCharacters(field))
         columnLengths[i] = max(columnLengths[i], displayLength)
-    # format
+    return columnLengths
+
+  # Converts List<List<String>> into List<String>
+  def formatTable(self, entries):
+    if self.columnWidths is None:
+      self.columnWidths = self.computeColumnWidths(entries)
     results = []
     for entry in entries:
       padded = []
       for i in range(len(entry)):
         field = entry[i]
         displayLength = len(self.withoutSpecialCharacters(field))
-        padded.append(entry[i] + (" " * (columnLengths[i] - displayLength)))
+        padded.append(entry[i] + (" " * (self.columnWidths[i] - displayLength)))
       results.append("".join(padded))
     return results
 

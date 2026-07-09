@@ -1061,6 +1061,7 @@ class Scanner(Item):
     messages.append("A positionSignal of 0 will start searching from position 0")
     messages.append("A positionSignal of " + str(self.maxSignalPower) + " will start searching from position " + str(self.maxPossibleTarget))
     messages.append("The reading will be set to the identified position times " + str(self.outputRatio))
+    messages.append("Requires " + str(self.requiredPower) + " to run")
     return messages
 
 # scans for items in the opponent's network having a specified number of hitpoints
@@ -1078,13 +1079,13 @@ class HitpointScanner(Scanner):
     if self.targetValue is None:
       positionSignal = self.tryAcquirePower("targetSignal", self.maxSignalPower)
       self.targetValue = positionSignal.getTotal() / self.outputRatio
-      print(str(self) + " got targetSignal of " + positionSignal + " so will search for items having " + str(self.targetValue) + " hitpoints")
+      print(self.summarize() + " got targetSignal of " + str(positionSignal) + " so will search for items having " + str(self.targetValue) + " hitpoints")
     return self.targetValue
 
   def accepts(self, competitor, index):
     hitpoints = competitor.getEnemyHitpoints(index)
     if hitpoints == self.getTargetValue():
-      print("found item with " + str(hitpoints) + " hitpoints at position " + index)
+      print(self.summarize() + " found item with " + str(hitpoints) + " hitpoints at position " + str(index))
       return True
     return False
 

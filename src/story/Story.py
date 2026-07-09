@@ -4,7 +4,7 @@ from competition.Competition import *
 from items.Items import *
 from interface.Interface import *
 
-import random, re, sys, textwrap
+import random, sys, textwrap
 
 class StoryNode(object):
   def __init__(self):
@@ -276,11 +276,6 @@ class ShopStoryNode(SimpleStoryNode):
     costText = ": cost = " + str(offering.cost)
     return (contents, costText)
 
-  def withoutSpecialCharacters(self, text):
-    regex = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    result = re.sub(regex, "", text)
-    return result
-
   def hasOffering(self):
     for offering in self.contents:
       if offering is not None:
@@ -295,7 +290,7 @@ class ShopStoryNode(SimpleStoryNode):
         field = entry[i]
         if len(columnLengths) <= i:
           columnLengths.append(0)
-        displayLength = len(self.withoutSpecialCharacters(field))
+        displayLength = inputUtils.getLength(field)
         columnLengths[i] = max(columnLengths[i], displayLength)
     return columnLengths
 
@@ -308,7 +303,7 @@ class ShopStoryNode(SimpleStoryNode):
       padded = []
       for i in range(len(entry)):
         field = entry[i]
-        displayLength = len(self.withoutSpecialCharacters(field))
+        displayLength = inputUtils.getLength(field)
         padded.append(entry[i] + (" " * (self.columnWidths[i] - displayLength)))
       results.append("".join(padded))
     return results

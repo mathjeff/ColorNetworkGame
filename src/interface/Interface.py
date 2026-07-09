@@ -1,12 +1,13 @@
 #!python
 
-import os
+import os, re
 
 class InputUtils(object):
   def __init__(self):
     self.pendingSelections = []
     self.saveToPath = None
     self.wasLastDecisionReplayed = True
+    self.controlSequenceRegex = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
   def getWasLastDecisionReplayed(self):
     return self.wasLastDecisionReplayed
@@ -77,5 +78,11 @@ class InputUtils(object):
     if self.saveToPath is not None:
       with open(self.saveToPath, 'a') as file:
         file.write(str(selection) + "\n")
+
+  # Computes the number of characters displayed in a given text
+  # Removes control sequences like colors
+  def getLength(self, text):
+    result = re.sub(self.controlSequenceRegex, "", text)
+    return len(result)
 
 inputUtils = InputUtils()

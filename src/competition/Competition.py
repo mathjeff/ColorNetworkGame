@@ -145,7 +145,10 @@ class Competitor(object):
       if i != 0:
         messages.append(", ")
       node = self.network.nodes[i]
-      messages.append(node.summarize())
+      nodeText = node.summarize()
+      if node.hitPoints <= 0: # display an empty space for destroyed items
+        nodeText = "X" * inputUtils.getLength(nodeText)
+      messages.append(nodeText)
     return "".join(messages)
 
   def clearShields(self):

@@ -31,7 +31,7 @@ class InputUtils(object):
   def loadPath(self, path):
     with open(path) as file:
       for line in file:
-        self.pendingSelections.append(line.rstrip())
+        self.pendingSelections.append(line.replace("\r", "").replace("\n", ""))
 
   def addPendingSelections(self, pendingSelections):
     self.pendingSelections += pendingSelections

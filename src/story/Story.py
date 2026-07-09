@@ -269,7 +269,7 @@ class ShopStoryNode(SimpleStoryNode):
   # converts Offering into Iterable<String>
   def getDisplayFields(self, offering):
     if offering is None:
-      return ("Nothing")
+      return ["Nothing"]
     components = [item.summarize() for item in offering.items]
     contents = ", ".join(components)
     costText = ": cost = " + str(offering.cost)

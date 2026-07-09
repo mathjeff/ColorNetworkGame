@@ -1116,7 +1116,7 @@ def augmentOpponent(baseOpponent, difficulty, offeringFactory):
   disconnectedSinks = []
   converters = []
   for item in network.nodes:
-    if item.declaresOutputs():
+    if item.declaresOutputs() and item.hitPoints < 2:
       if item.declaresInputs():
         converters.append(item)
       else:

@@ -920,15 +920,15 @@ class PowerUsageSensor(Item):
       self.consumedReading = 0
 
   def tryGetPower(self, requested, outputName):
+    limited = Energy()
     if outputName == "givenSignal":
-      result = requested.limitToConstant(self.givenReading)
-      return result
+      limited = requested.limitToConstant(self.givenReading)
     if outputName == "consumedSignal":
-      result = requested.limitToConstant(self.consumedReading)
-      return result
+      limited = requested.limitToConstant(self.consumedReading)
     if outputName == "totalSignal":
-      result = requested.limitToConstant(self.givenReading + self.consumedReading)
-    return Energy()
+      limited = requested.limitToConstant(self.givenReading + self.consumedReading)
+    result = self.tryAcquirePower("power", limited)
+    return result
 
   def clone(self):
     return PowerUsageSensor(self.properties)
@@ -999,7 +999,8 @@ class HealthSensor(Item):
       print("Reading " + str(outputIndex) + " not available")
       return Energy()
     reading = self.readings[outputIndex]
-    result = requested.limitToConstant(reading)
+    limited = requested.limitToConstant(reading)
+    result = self.tryAcquirePower("power", limited)
     return result
 
   def clone(self):
@@ -1051,7 +1052,8 @@ class Scanner(Item):
     self.reading = 0
 
   def tryGetPower(self, requested, outputName):
-    result = requested.limitToConstant(self.reading)
+    limited = requested.limitToConstant(self.reading)
+    result = self.tryAcquirePower("power", limited)
     return result
 
   def getHelpMessages(self):

@@ -169,7 +169,7 @@ class Item(object):
       powerConsumed += result.getTotal()
       link.item.powerGivenThisTurn += powerConsumed
     if result.nonempty():
-      print(str(self.summarize()) + " got " + str(result) + " power from " + link.item.summarize())
+      print(str(self.summarize()) + " " + linkType + " got " + str(result) + " from " + link.item.summarize())
     self.acquiringPower = False
     self.powerConsumedThisTurn += powerConsumed
     return result

@@ -519,7 +519,7 @@ class UnstableWall(Item):
     return UnstableWall(self.properties)
 
   def summarize(self):
-    return super().summarize() + " -=" + str(self.decayPerTurn)
+    return super().summarize() + " " + str(self.hitPoints) + "-=" + str(self.decayPerTurn)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()

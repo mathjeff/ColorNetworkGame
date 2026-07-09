@@ -96,9 +96,9 @@ class DefaultOfferingFactory(OfferingFactory):
     builder.add(Shield({"defenseFraction": 0.5, "radius": 1, "requiredPower": y.d(4), "maxSignalPower": y.d(10), "maxPossibleDistance": 100}), 11, 13)
     # builder.add(type(properties), popularity, cost)
     builder = OfferingBuilder(4, self)
-    builder.add(PowerUsageSensor({"radius": 1, "requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 9, 11)
-    builder.add(HealthSensor({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "radius": 2, "outputRatio": 0.1}), 10, 7)
-    builder.add(HitpointScanner({"requiredPower": y.d(1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 10, 7)
+    builder.add(PowerUsageSensor({"radius": 1, "requiredPower": y.d(0.1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 8, 10)
+    builder.add(HealthSensor({"requiredPower": y.d(0.1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "radius": 2, "outputRatio": 0.1}), 11, 7)
+    builder.add(HitpointScanner({"requiredPower": y.d(0.1), "maxSignalPower": y.d(10), "maxPossibleTarget": 100, "outputRatio": 0.1}), 8, 10)
 
 profile = Profile("data/profile/")
 defaultOfferingFactory = DefaultOfferingFactory()

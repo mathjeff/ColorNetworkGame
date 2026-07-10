@@ -438,10 +438,14 @@ class CustomizationStoryNode(SimpleStoryNode):
       if fromIndex < 0:
         return
       item = network.nodes[fromIndex]
-      toIndex = self.chooseNetworkPosition("Select new position for " + item.describeLinks(network), "Cancel", "Position", nodes)
+      description = item.describeLinks(network)
+      destChoices = nodes + [None]
+      toIndex = self.chooseNetworkPosition("Select new position for " + description, "Cancel", "Position", destChoices)
       if toIndex < 0:
         continue
       item = network.removeAt(fromIndex)
+      if toIndex > fromIndex:
+        toIndex -= 1
       network.insert(toIndex, item)
 
   def linkItems(self):
@@ -470,6 +474,10 @@ class CustomizationStoryNode(SimpleStoryNode):
       if item in choiceSet:
         displayIndex = i + 1
         menu.addChoice(choicePrefix + " " + self.describeItem(item), i, displayIndex)
+    if None in validChoices:
+      index = len(network.nodes)
+      displayIndex = index + 1
+      menu.addChoice(choicePrefix + " " + "End", index, displayIndex)
     return menu.chooseValue()
 
   def chooseNetworkItemInput(self, item):

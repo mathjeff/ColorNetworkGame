@@ -500,13 +500,13 @@ class Wall(Item):
     return messages
 
 # slowly takes damage on its own
-class UnstableWall(Item):
+class UnstableWall(Wall):
   def __init__(self, properties):
     super().__init__(properties)
     self.readyToDischarge = Energy()
-    self.declareOutput()
 
   def loadProperties(self, properties):
+    super().loadProperties(properties)
     self.hitPoints = properties.get("hitPoints")
     self.outputPerDamage = Energy(properties.get("outputPerDamage"))
     self.decayPerTurn = properties.get("decayPerTurn")
@@ -519,7 +519,7 @@ class UnstableWall(Item):
     return UnstableWall(self.properties)
 
   def summarize(self):
-    return super().summarize() + " " + str(self.hitPoints) + "-=" + str(self.decayPerTurn)
+    return super().summarize() + "-=" + str(self.decayPerTurn)
 
   def getHelpMessages(self):
     messages = super().getHelpMessages()

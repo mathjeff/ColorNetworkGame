@@ -942,8 +942,16 @@ class CompetitionBuilder(object):
     if len(self.opponents) < 1:
       self.opponents.append(makeOpponent(difficulty, offeringFactory))
     else:
-      # design this opponent based on one of the recent opponents
-      targetAge = 2
+      # Design this opponent based on one of the previous opponents
+      # We want the next opponent to be mostly predictable but later opponents to be more varied
+      # So, we usually add a small change and occasionally add a big change
+      targetAge = 1
+      while True:
+        if random.randint(0, 1) == 0:
+          break
+        if targetAge > len(self.opponents):
+          break
+        targetAge *= 2
       if targetAge > len(self.opponents):
         baseOpponent = self.opponents[0]
       else:

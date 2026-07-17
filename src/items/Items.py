@@ -1320,3 +1320,42 @@ class Infector(Item):
     messages.append("requires at least " + str(self.requiredPower) + " energy in one turn in order to launch the pathogen")
     messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
     return messages
+
+# launches attacks that each slowly deal damage to one item
+class AcidLauncher(Item):
+  def __init__(self, properties):
+    super().__init__(properties)
+    self.declareInputs(["power", "control"])
+
+  def loadProperties(self, properties):
+    self.requiredPower = EnergyRequest(Energy(properties.get("requiredPower")))
+    self.damage = properties.get("damagePerTurn")
+    self.maxSignalPower = EnergyRequest(Energy(properties.get("maxSignalPower")))
+    self.maxPossibleTarget = properties.get("maxPossibleTarget")
+
+  def act(self, competitor):
+    super().act(competitor)
+    power = self.tryAcquirePower("power", self.requiredPower)
+    if self.requiredPower.satisfiedBy(power):
+      damage = self.damage
+    else:
+      damage = 0
+    signal = self.tryAcquirePower("control", self.maxSignalPower)
+    targetIndex = int(self.maxPossibleTarget * signal.getTotal() / self.maxSignalPower.getTotal())
+    if damage > 0:
+      print(str(self.summarize()) + " launching attack of strength " + str(damage) + " at position " + str(targetIndex))
+      competitor.launchAcidAttack(targetIndex, damage)
+
+  def clone(self):
+    return AcidLauncher(self.properties)
+
+  def summarize(self):
+    return super().summarize() + " " + str(self.requiredPower) + "->" + str(self.damage) + "(" + str(self.maxSignalPower) + ":" + str(self.maxPossibleTarget) + ")"
+
+  def getHelpMessages(self):
+    messages = super().getHelpMessages()
+    messages.append("launches acid at the opposing robot")
+    messages.append("each unit of acid will do " + str(self.damage) + " damage per turn until its item is destroyed")
+    messages.append("requires at least " + str(self.requiredPower) + " energy in one turn in order to launch the acid")
+    messages.append("You can supply power to the control port to change where this aims. A control power level of 0 will target position 0. A control power level of " + str(self.maxSignalPower) + " will target position " + str(self.maxPossibleTarget))
+    return messages

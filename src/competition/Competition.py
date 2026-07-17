@@ -115,6 +115,37 @@ class InfectAttack(Attack):
     print(str(self) + " spreading to " + self.spreadToNode.summarize())
     target.addIncomingAttack(InfectAttack(index, self.amount))
 
+class AcidAttack(Attack):
+  def __init__(self, index, amount):
+    super().__init__()
+    self.index = index
+    self.amount = amount
+    self.spreadToNode = None
+
+  def process(self, target):
+    itemIndex = self.index
+    if itemIndex < 0:
+      return # miss
+    network = target.network
+    if itemIndex >= network.size():
+      return # miss
+    targetItem = network.nodes[itemIndex]
+    target.receiveDamage(itemIndex, self.amount)
+    print(str(self) + " dealing " + str(self.amount) + " damage to " + targetItem.summarize())
+    stillHasHitpoints = targetItem.hitPoints > 0
+    self.spreadToNode = None
+    if stillHasHitpoints:
+      self.spreadToNode = network.nodes[itemIndex]
+
+  def afterAttacks(self, target):
+    if self.spreadToNode is None:
+      return # previously computed unable to spread
+    index = target.network.tryGetPosition(self.spreadToNode)
+    if index is None:
+      return # item no longer present
+    print(str(self) + " remaining on " + self.spreadToNode.summarize() + "(" + str(self.spreadToNode.hitPoints) + " hitpoints)")
+    target.addIncomingAttack(AcidAttack(index, self.amount))
+
 # represents an entity that competes with other entities
 class Competitor(object):
   def __init__(self, name, network):
@@ -172,10 +203,11 @@ class Competitor(object):
 
   def processIncomingAttacks(self):
     print("Processing " + str(len(self.incomingAttacks)) + " attacks incoming to " + str(self))
-    for attack in self.incomingAttacks:
-      attack.process(self)
-    self.processedAttacks = self.incomingAttacks
+    attacksToProcess = self.incomingAttacks
     self.incomingAttacks = []
+    for attack in attacksToProcess:
+      attack.process(self)
+    self.processedAttacks = attacksToProcess
 
   def afterAttacks(self):
     print("Cleaning up " + str(self) + " after attacks")
@@ -249,6 +281,9 @@ class Competitor(object):
 
   def launchInfectAttack(self, nodeIndex, amount):
     self.addOutgoingAttack(InfectAttack(nodeIndex, amount))
+
+  def launchAcidAttack(self, nodeIndex, amount):
+    self.addOutgoingAttack(AcidAttack(nodeIndex, amount))
 
   def createShield(self, position, radius, defenseFraction):
     damageMultiplier = 1 - defenseFraction

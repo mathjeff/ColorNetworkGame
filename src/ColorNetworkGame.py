@@ -49,6 +49,7 @@ class DefaultOfferingFactory(OfferingFactory):
     builder.add(Laser({"requiredPower": b.d(1), "damage": 8, "maxSignalPower": b.d(1), "maxPossibleTarget": 0}), 20, 29)
     builder.add(Flipper({"maxPower": y.d(20), "strengthPerPower":3, "hitpoints":4}), 5, 24)
     builder.add(Infector({"requiredPower": g.d(1), "damage": 1, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 20, 20)
+    builder.add(AcidLauncher({"requiredPower": g.d(1), "damagePerTurn": 1, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 20, 12)
     builder.add(Catapult({"requiredPower": m.d({yellow:1, grey:1}), "damage": 1, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 20, 20)
     builder.add(Gatling({"requiredEnergy": y.d(1), "requiredAmmo": e.d(0.2), "damage": 1, "maxSignalPower": y.d(10), "maxPossibleTarget": 100}), 20, 20)
     builder.addBundle([Battery({"maxCharge": b.d(3), "dischargeRate": 3}), Ram({"maxPower": b.d(10), "damagePerPower":4})], 24, 23)
